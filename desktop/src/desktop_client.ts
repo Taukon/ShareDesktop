@@ -135,8 +135,8 @@ channel.onConnect(error => {
     clearInterval(intervalId);
   });
 
-  sendFullScreen(channel);
-  //sendScreen(channel);
+  //sendFullScreen(channel);
+  sendScreen(channel);
 
 });
 
@@ -164,7 +164,6 @@ export async function sendScreen(channel: ClientChannel) {
 
               const imgJpeg = converter.convert(img, data.width, data.height, data.depth, data.fb_bpp);
               channel.raw.emit(imgJpeg);
-              //dataProducer.send(img);
               preImg = Buffer.from(img.buffer);
           }
       }catch(err){
