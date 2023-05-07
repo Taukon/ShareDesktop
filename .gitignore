@@ -1,0 +1,3 @@
+server/public/app*
+server/ssl/cert.pem
+server/ssl/key.pem

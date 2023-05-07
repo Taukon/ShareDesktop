@@ -1,0 +1,22 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tsc": "tsc",
+    "build": "tsc && node_modules/browserify/bin/cmd.js node_modules/mediasoup-client/lib/index.js dist/app/app.js -o ../public/app.js && node_modules/browserify/bin/cmd.js node_modules/mediasoup-client/lib/index.js -e dist/app_no_audio/app_no_audio.js -o ../public/app_no_audio.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "mediasoup-client": "^3.6.84",
+    "socket.io-client": "^4.6.1",
+    "typescript": "^5.0.4"
+  }
+}

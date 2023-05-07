@@ -1,0 +1,36 @@
+{
+  "name": "desktop",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install": "node-gyp configure && node-gyp build",
+    "configure": "node-gyp configure",
+    "build": "node-gyp build",
+    "rebuild": "node-gyp rebuild",
+    "tsc": "tsc",
+    "start": "DISPLAY=:1 NODE_TLS_REJECT_UNAUTHORIZED='0' node ./dist/desktop_client.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "gypfile": true,
+  "dependencies": {
+    "@geckos.io/client": "^2.3.1",
+    "bindings": "^1.5.0",
+    "node": "^20.0.0",
+    "node-addon-api": "^6.1.0",
+    "node-fetch": "^3.3.1",
+    "typescript": "^5.0.4",
+    "wrtc": "^0.4.7"
+  },
+  "devDependencies": {
+    "@types/bindings": "^1.5.1",
+    "@types/node": "^18.16.3"
+  }
+}
