@@ -1,4 +1,4 @@
-### install
+### Install
 
 * Server
 ```bash
@@ -15,14 +15,14 @@ sudo apt-get install -y ffmpeg pulseaudio
 
 ```
 
-* module
+* Module
 ```
 ShareDesktop$ install
 ```
 
 ---
 
-### start
+### Start
 
 * Server
 ```bash
