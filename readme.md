@@ -17,7 +17,7 @@ sudo apt-get install -y ffmpeg pulseaudio
 
 * Module
 ```
-ShareDesktop$ install
+ShareDesktop$ npm install
 ```
 
 ---
