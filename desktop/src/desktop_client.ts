@@ -111,7 +111,7 @@ channel.onConnect(error => {
     }
 
     if(command){
-        console.log(command);
+        //console.log(command);
         ffmpegPS = exec(command);
     }
 
