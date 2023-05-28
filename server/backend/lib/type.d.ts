@@ -8,6 +8,7 @@ import {
     IceCandidate,
     DtlsParameters,
     SctpParameters,
+    SrtpParameters,
     DataConsumer,
     DataProducer,
     Producer,
@@ -26,19 +27,21 @@ import * as mediasoupClientType from "mediasoup-client/lib/types";
  * Desktop = desktopId
  */
 
-export type ScreenRecvTransport = WebRtcTransport & { consumer?: DataConsumer };
-export type AudioRecvTransport = WebRtcTransport & { consumer?: Consumer };
-export type ControlRecvTransport =DirectTransport & { consumer?: DataConsumer };
+export type ScreenClientTransport = WebRtcTransport & { consumer?: DataConsumer };
+export type AudioClientTransport = WebRtcTransport & { consumer?: Consumer };
+export type ControlDesktopRtcTransport = WebRtcTransport & { consumer?: DataConsumer };
+export type ControlClientDirTransport = DirectTransport & { consumer?: DataConsumer };
 
-export type ScreenSendTransport = DirectTransport & { producer?: DataProducer };
-export type AudioSendTransport = PlainTransport & { producer?: Producer };
-export type ControlSendTransport = WebRtcTransport & { producer?: Producer };
+export type ScreenDesktopTransport = WebRtcTransport & { producer?: DataProducer };
+export type AudioDesktopTransport = PlainTransport & { producer?: Producer };
+export type ControlClientRtcTransport = WebRtcTransport & { producer?: Producer };
+export type ControlDesktopDirTransport = DirectTransport & { producer?: DataProducer };
 
 export type ClientTransports = {
-    controlSendTransport?: ControlSendTransport;
-    controlRecvTransport?: ControlRecvTransport;
-    screenTransport?: ScreenRecvTransport;
-    audioTransport?: AudioRecvTransport;
+    controlRtcTransport?: ControlClientRtcTransport;
+    controlDirTransport?: ControlClientDirTransport;
+    screenTransport?: ScreenClientTransport;
+    audioTransport?: AudioClientTransport;
     exits: boolean;
 };
 
@@ -66,20 +69,23 @@ export type MediaClientList = {
 }
 
 export type DesktopTransports  = {
-    screenTransport: ScreenSendTransport;
-    audioTransport?: AudioSendTransport;
+    controlRtcTransport?: ControlDesktopRtcTransport;
+    controlDirTransport?: ControlDesktopDirTransport;
+    screenTransport?: ScreenDesktopTransport;
+    audioTransport?: AudioDesktopTransport;
+    exits: boolean;
 };
 
 /**
  * key: desktopId (channel id), 
  * value: {
- *  channel,
  *  screenSendTransport, 
- *  audioSendtransport
+ *  audioSendtransport,
+ *  exits
  * }
  */
 export type DesktopList = {
-    [desktopId: string]: DesktopTransports & {channel: ServerChannel};
+    [desktopId: string]: DesktopTransports;
 }
 
 
@@ -88,7 +94,7 @@ export type StartWorkerResponse = {
     router: Router;
 }
 
-export type CreateMediaWebRtcTransportResponse = {
+export type CreateRtcTransportResponse = {
     transport: WebRtcTransport,
     params: {
         id: string;
@@ -99,7 +105,7 @@ export type CreateMediaWebRtcTransportResponse = {
     }
 }
 
-export type createTransportResponse = {
+export type CreateTransportResponse = {
     id: string;
     iceParameters?: IceParameters | undefined;
     iceCandidates?: IceCandidate[] | undefined;
@@ -116,7 +122,7 @@ type TransportProduceDataParameters = {
     appData: any;
 }
 
-export type consumeScreenResponse = {
+export type ConsumeDataResponse = {
     id: string;
     dataProducerId: string;
     sctpStreamParameters: SctpStreamParameters | undefined;
@@ -124,9 +130,16 @@ export type consumeScreenResponse = {
     protocol: string;
 }
 
-export type consumeAudioResponse = {
+export type ConsumeAudioResponse = {
     id: string;
     producerId: string;
     kind: MediaKind;
     rtpParameters: RtpParameters;
+}
+
+export type AudioResponse = { 
+    rtp: number, 
+    rtcp?: number, 
+    ip_addr: string, 
+    srtpParameters?: SrtpParameters
 }

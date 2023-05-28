@@ -10,7 +10,6 @@ import {
 } from 'mediasoup/node/lib/types';
 import * as mediasoupClientType from "mediasoup-client/lib/types";
 import { Server } from 'socket.io';
-import geckos from '@geckos.io/server';
 import { serverRtc } from "../lib/index.js";
 
 
@@ -25,20 +24,21 @@ const getIpAddress = (): string | undefined => {
 
 
 const MinPort = 2000;   // --- RtcMinPort
-const MaxPort = 2010;   // --- RtcMaxport
+const MaxPort = 2020;   // --- RtcMaxport
 const limitClient = 2;
+const limitDesktop = 2;
 
-const ioPort = 3000;  // --- https Port for IO
-const geckosPort = 4000; // --- https Port for geckos
+const clientPort = 3000;  // --- https Port for client
+const desktopPort = 3100;  // --- https Port for desktop
 
-const ip_addr = getIpAddress(); // --- IP Address
+const ip_addr = getIpAddress()?? "127.0.0.1"; // --- IP Address
 
 const enableAudio = false;
 
 const transportOption: WebRtcTransportOptions = {
     listenIps: [
         {
-            ip: ip_addr ?? "127.0.0.1"
+            ip: ip_addr
         },
     ],
     enableSctp: true,
@@ -69,48 +69,41 @@ const options = {
     cert: fs.readFileSync('../ssl/cert.pem', 'utf-8')
 }
 
-// --- WebSocket Server ---
-const httpsServerForIO = https.createServer(options, app);
-httpsServerForIO.listen(ioPort, () => {
-    console.log('https://' + ip_addr + ':' + ioPort + '/webRTC_client_no_audio.html');
+// --- WebSocket Server For Client ---
+const httpsServerForClient = https.createServer(options, app);
+httpsServerForClient.listen(clientPort, () => {
+    console.log('https://' + ip_addr + ':' + clientPort + '/webRTC_client.html');
 });
-const ioServer = new Server(httpsServerForIO);
+const clientServer = new Server(httpsServerForClient);
 
-// --- geckos Server ---
-const httpsServerForGeckos = https.createServer(options, app);
-const geckosServer = geckos();
-geckosServer.addServer(httpsServerForGeckos);
-httpsServerForGeckos.listen(geckosPort, () => {
-    console.log('https://' + ip_addr + ':' + geckosPort);
+// --- WebSocket Server For Desktop ---
+const httpsServerForDesktop = https.createServer(options, app);
+httpsServerForDesktop.listen(desktopPort, () => {
+    console.log('https://' + ip_addr + ':' + desktopPort + '  <-- desktop server');
 });
+const desktopServer = new Server(httpsServerForDesktop);
+
 
 // --- MediaSoup Server ---
 
-const serverWebRtc = new serverRtc(limitClient, transportOption, workerSettings, mediaCodecs, ip_addr ?? "127.0.0.1");
+const serverWebRtc = new serverRtc(
+    limitClient, 
+    limitDesktop,
+    transportOption, 
+    workerSettings, 
+    mediaCodecs, 
+    ip_addr
+);
 
-geckosServer.onConnection(channel => {
-
-    console.log(`geckos id: ${channel.id}`);
-
-    if(channel.id){
-        const desktopId = channel.id;
-        serverWebRtc.createDesktopTransports(desktopId, channel, enableAudio, false).then(() => {
-            serverWebRtc.establishDesktopScreenAudio(desktopId, enableAudio);
-        });
-        //serverWebRtc.establishDesktopScreenAudio(channel.id, enableAudio);
-    }
-
-    channel.onDisconnect(() => {
-        console.log(`${channel.id} got disconnected`)
-        serverWebRtc.disconnectDesktop(channel.id ?? "");
-    });
-});
-
-ioServer.on('connection', sock => {
+clientServer.on('connection', sock => {
 
     sock.on('getRtpCapabilities', async (desktopId: string, callback: any) => {
         //console.log(`getRtpCapabilities`);
-        const params = await serverWebRtc.getRtpCapabilities(sock.id, desktopId, ioServer, false);
+        const dropId = serverWebRtc.checkClientTotal();
+        if(dropId){
+            clientServer.to(dropId).emit("end");
+        }
+        const params = await serverWebRtc.getRtpCapabilitiesForClient(sock.id, desktopId, enableAudio);
         //console.log(params);
         if (params) {
             callback(params);
@@ -184,5 +177,80 @@ ioServer.on('connection', sock => {
 
     sock.on("disconnect", () => {
         serverWebRtc.disconnectMediaClient(sock.id);
+    });
+});
+
+desktopServer.on('connection', sock => {
+
+    console.log(`desktopId: ${sock.id}`);
+    sock.emit('desktopId', sock.id);
+
+    sock.on('getRtpCapabilities', async (desktopId: string, callback: any) => {
+        const dropId = serverWebRtc.checkDesktopTotal();
+        if(dropId){
+            desktopServer.to(dropId).emit("end");
+        }
+        const params = await serverWebRtc.getRtpCapabilitiesForDesktop(desktopId, enableAudio);
+        if (params) {
+            callback(params);
+        }
+    });
+
+    sock.on('createDesktopControl', async (desktopId: string, callback: any) => {
+        const params = await serverWebRtc.createDesktopControl(desktopId);
+        if (params) {
+            callback(params);
+        }
+    });
+
+    sock.on('connectDesktopControl', async (
+        req: {desktopId: string, dtlsParameters: DtlsParameters}, 
+        callback: any
+    ) => {
+        const params = await serverWebRtc.connectDesktopControl(req.desktopId, req.dtlsParameters);
+        if (params) {
+            callback(params);
+        }
+    });
+
+    sock.on('establishDesktopControl', async (desktopId: string, callback: any) => {
+        const params = await serverWebRtc.establishDesktopControl(desktopId);
+        if (params) {
+            callback(params);
+        }
+    });
+
+    sock.on('createDesktopScreen', async (desktopId: string, callback: any) => {
+        const params = await serverWebRtc.createDesktopScreen(desktopId);
+        if (params) {
+            callback(params);
+        }
+    });
+
+    sock.on('connectDesktopScreen', async (
+        req: {
+            desktopId: string, 
+            dtlsParameters: mediasoupClientType.DtlsParameters
+        },
+        callback: any
+    ) => {
+        const params = await serverWebRtc.connectDesktopScreen(req.desktopId, req.dtlsParameters);
+        if (params) {
+            callback(params);
+        }
+    });
+
+    sock.on('establishDesktopScreen', async (
+        req: {desktopId: string, produceParameters: any},
+        callback: any
+    ) => {
+        const params = await serverWebRtc.establishDesktopScreen(req.desktopId, req.produceParameters);
+        if (params) {
+            callback(params);
+        }
+    });
+
+    sock.on("disconnect", () => {
+        serverWebRtc.disconnectDesktop(sock.id);
     });
 });

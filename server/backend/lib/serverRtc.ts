@@ -8,20 +8,20 @@ import {
     WorkerSettings,
 } from 'mediasoup/node/lib/types';
 import * as mediasoupClientType from "mediasoup-client/lib/types";
-import { Server } from 'socket.io';
-import { ServerChannel } from '@geckos.io/server';
 import {
-    AudioSendTransport,
+    AudioDesktopTransport,
+    AudioResponse,
     ClientTransports,
-    consumeAudioResponse,
-    consumeScreenResponse,
-    ControlRecvTransport,
-    CreateMediaWebRtcTransportResponse,
-    createTransportResponse,
+    ConsumeAudioResponse,
+    ConsumeDataResponse,
+    ControlClientDirTransport,
+    ControlDesktopDirTransport,
+    CreateRtcTransportResponse,
+    CreateTransportResponse,
     DesktopList,
+    DesktopTransports,
     MediaClient,
     MediaClientList,
-    ScreenSendTransport,
     StartWorkerResponse,
 } from './type';
 
@@ -47,19 +47,22 @@ export class serverRtc {
     private transportOption: WebRtcTransportOptions;
     private workerSettings: WorkerSettings;
     private mediaCodecs: RtpCodecCapability[];
-    private socketIdList: string[] = [];
+    private clientIdList: string[] = [];
     private mediaClientList: MediaClientList = {}
     private desktopList: DesktopList = {};
     private limitClient: number;
+    private limitDesktop: number;
 
     constructor(
         limitClient: number,
+        limitDesktop: number,
         transportOption: WebRtcTransportOptions, 
         workerSettings: WorkerSettings, 
         mediaCodecs: RtpCodecCapability[],
         ip_addr: string
     ){
         this.limitClient = limitClient;
+        this.limitDesktop = limitDesktop;
         this.ip_addr = ip_addr;
 
         
@@ -73,10 +76,10 @@ export class serverRtc {
     }
 
 
-    private saveSocketId(sockId: string) {
-        if(this.socketIdList.find(v => v == sockId) == undefined){
-            this.mediaClientList[sockId] = {exits: true} as MediaClient;
-            this.socketIdList.push(sockId);
+    private initMediaClient(clientId: string):void {
+        if(this.clientIdList.find(v => v == clientId) == undefined){
+            this.mediaClientList[clientId] = {exits: true} as MediaClient;
+            this.clientIdList.push(clientId);
         }
     }
 
@@ -88,9 +91,9 @@ export class serverRtc {
         return typeof clientTransports === 'object' && clientTransports.exits;
     }
 
-    private getClientTransports(sockId: string, desktopId:string): ClientTransports|undefined {
+    private getClientTransports(clientId: string, desktopId:string): ClientTransports|undefined {
 
-        const mediaClient= this.mediaClientList[sockId];
+        const mediaClient= this.mediaClientList[clientId];
         if(this.isMediaClient(mediaClient)){
             const transports = mediaClient[desktopId];
 
@@ -100,150 +103,130 @@ export class serverRtc {
         return undefined;
     }
 
-    private setClientTransports(sockId: string, desktopId:string, clientTransports: ClientTransports): boolean {
-        const mediaClient= this.mediaClientList[sockId];
-        if(this.isMediaClient(mediaClient)){
+    private setClientTransports(clientId: string, desktopId:string, clientTransports: ClientTransports): boolean {
+        const mediaClient= this.mediaClientList[clientId];
+        if(this.isMediaClient(mediaClient) && this.isClientTransports(clientTransports)){
             mediaClient[desktopId] = clientTransports;
-            this.mediaClientList[sockId] = mediaClient;
+            this.mediaClientList[clientId] = mediaClient;
             return true;
         }
         return false;
     }
 
-    public async createDesktopTransports(desktopId: string, serverChannel: ServerChannel, enableAudio: boolean, rtcpMux?: boolean): Promise<boolean> {
-
-        console.log(`geckos createDesktopTransports`);
-        if(this.desktopList[desktopId]) {
-            // FIXME: change desktop server transports
-            console.log("already created desktop server transports");
-            
-            return false;
-        }
-
-        const screenTransport = await this.createDirectProducer();
-
+    private initClientTransports(clientId: string, desktopId:string, enableAudio: boolean): boolean {
         if(enableAudio){
-            const audioTransport = await this.createPlainProducer(rtcpMux ?? false);
-
-            // initialize desktop server
-            this.desktopList[desktopId] = {
-                channel: serverChannel,
-                screenTransport: screenTransport,
-                audioTransport: audioTransport
+            const transports: ClientTransports = {
+                controlRtcTransport: undefined,
+                controlDirTransport: undefined,
+                screenTransport: undefined,
+                audioTransport: undefined,
+                exits: true
             };
-        } else {
-            // initialize desktop server
-            this.desktopList[desktopId] = {
-                channel: serverChannel,
-                screenTransport: screenTransport
+            return this.setClientTransports(clientId, desktopId, transports);
+        }else{
+            const transports: ClientTransports = {
+                controlRtcTransport: undefined,
+                controlDirTransport: undefined,
+                screenTransport: undefined,
+                exits: true
             };
-            //console.log(this.desktopList[desktopId])
+            return this.setClientTransports(clientId, desktopId, transports);
         }
-
-        console.log(`desktop server: ${desktopId}`);
-
-        return true;
     }
 
-    public establishDesktopScreenAudio(
-        desktopId: string,  
-        enableAudio: boolean
-    ): void {
-        const serverChannel = this.desktopList[desktopId]?.channel;
+    private isDesktopTransports(desktopTransports: DesktopTransports|undefined): desktopTransports is DesktopTransports {
+        return typeof desktopTransports === 'object'    && desktopTransports.exits;
+    }
 
-        // connect screen between transport and serverChannel
-        const screenSendDataProducer = this.desktopList[desktopId]?.screenTransport.producer;
-    
-        if(screenSendDataProducer && serverChannel){
-            serverChannel.onRaw(image => {
-                const bufData = Buffer.from(image as ArrayBuffer);
-                screenSendDataProducer.send(bufData);
-            });
+    private getDesktopTransports(desktopId:string): DesktopTransports|undefined {
+        const desktopTransports = this.desktopList[desktopId];
+        if(desktopTransports){
+            return this.isDesktopTransports(desktopTransports)? desktopTransports : undefined;
         }
+        return undefined;
+    }
 
-        // connect audio between transport and serverChannel
-        if(enableAudio && serverChannel){
-            const audioSendTransport = this.desktopList[desktopId]?.audioTransport;
-            if(audioSendTransport){
-                const localIp = audioSendTransport.tuple.localIp;
+    private setDesktopTransports(desktopId: string, desktopTransports: DesktopTransports): boolean {
+        if(this.isDesktopTransports(desktopTransports)){
+            this.desktopList[desktopId] = desktopTransports;
+            return true;
+        }
+        return false;
+    }
 
-                // Read the transport local RTP port.
-                const audioRtpPort = audioSendTransport.tuple.localPort;
-                // If rtcpMux is false, read the transport local RTCP port.
-                const audioRtcpPort = audioSendTransport.rtcpTuple?.localPort;
-                // If enableSrtp is true, read the transport srtpParameters.
-                const srtpParameters = audioSendTransport.srtpParameters;
-
-                const msg = { 
-                    rtp: audioRtpPort, 
-                    rtcp: audioRtcpPort, 
-                    ip_addr: localIp, 
-                    srtpParameters: srtpParameters 
-                };
-                serverChannel.emit(
-                    'audio', 
-                    JSON.stringify(msg),
-                    {
-                        // Set the reliable option
-                        // Default: false
-                        reliable: true,
-                        // The interval between each message in ms (optional)
-                        // Default: 150
-                        interval: 150,
-                        // How many times the message should be sent (optional)
-                        // Default: 10
-                        runs: 10
-                    }
-                );
+    private initDesktopTransports(desktopId:string, enableAudio: boolean): boolean {
+        if(enableAudio) {
+            const transports: DesktopTransports = {
+                controlRtcTransport: undefined,
+                controlDirTransport: undefined,
+                screenTransport: undefined,
+                audioTransport: undefined,
+                exits: true
             }
+            return this.setDesktopTransports(desktopId, transports);
+        }else{
+            const transports: DesktopTransports = {
+                controlRtcTransport: undefined,
+                controlDirTransport: undefined,
+                screenTransport: undefined,
+                exits: true
+            }
+            return this.setDesktopTransports(desktopId, transports);
         }
     }
 
-    public establishDesktopControl(
-        sockId: string, 
+    public establishControl(
+        clientId: string, 
         desktopId: string
     ): void {
-        const serverChannel = this.desktopList[desktopId]?.channel;
+        const clientTransports = this.getClientTransports(clientId, desktopId);
+        const dataConsumer = clientTransports?.controlDirTransport?.consumer;
 
-        const clientTransports = this.getClientTransports(sockId, desktopId);
-        const dataConsumer = clientTransports?.controlRecvTransport?.consumer;
+        const desktopTransports = this.getDesktopTransports(desktopId);
+        const dataProducer = desktopTransports?.controlDirTransport?.producer;
 
-        if(dataConsumer && serverChannel){
+        if(dataConsumer && dataProducer){
             dataConsumer.on("message", msg => {
-                serverChannel.emit('data', msg);
+                dataProducer.send(msg);
             });
         }
     }
 
-    public async getRtpCapabilities(
-        sockId: string, 
+    // ----------------- Client ------------------------
+
+    public checkClientTotal():string|undefined {
+        console.log("Total Client List: " + Object.keys(this.mediaClientList).length);
+        if (this.clientIdList.length + 1 > this.limitClient && this.clientIdList[0]) {
+            //console.log("clientIdList length: " + clientIdList.length);
+            return this.clientIdList[0];
+            
+        }
+        return undefined;
+    }
+
+    public async getRtpCapabilitiesForClient(
+        clientId: string, 
         desktopId: string, 
-        ioServer: Server,
-        enableAudio: boolean 
+        enableAudio: boolean,
     ): Promise<RtpCapabilities|undefined> {
 
-        this.saveSocketId(sockId);
-        console.log("Total Client List: " + Object.keys(this.mediaClientList).length);
-        if (this.socketIdList.length > this.limitClient && this.socketIdList[0]) {
-            //console.log("socketIdList length: " + socketIdList.length);
-            ioServer.to(this.socketIdList[0]).emit("end");
-        }
+        // initialize mediaClient
+        this.initMediaClient(clientId);
 
-        const clientTransports =this.getClientTransports(sockId, desktopId);
-
-        if (clientTransports) {
+        const clientTransports =this.getClientTransports(clientId, desktopId);
+        if (clientTransports?.exits) {
             console.log("already created client transports");
 
-            const controlRecvTransport = clientTransports.controlRecvTransport;
-                if (controlRecvTransport) {
-                    console.log("delete controlRecvTransportId: " + controlRecvTransport.id);
-                    controlRecvTransport.close();
-                }
+            const controlDirTransport = clientTransports.controlDirTransport;
+            if (controlDirTransport) {
+                console.log("delete controlDirTransportId: " + controlDirTransport.id);
+                controlDirTransport.close();
+            }
 
-            const controlSendTransport = clientTransports.controlSendTransport;
-            if (controlSendTransport) {
-                console.log("delete controlSendTransportId: " + controlSendTransport.id);
-                controlSendTransport.close();
+            const controlRtcTransport = clientTransports.controlRtcTransport;
+            if (controlRtcTransport) {
+                console.log("delete controlRtcTransportId: " + controlRtcTransport.id);
+                controlRtcTransport.close();
             }
 
             const screenRecvTransport = clientTransports.screenTransport;
@@ -261,56 +244,33 @@ export class serverRtc {
             }
         }
 
-        if(this.isMediaClient(this.mediaClientList[sockId]) && this.desktopList[desktopId]) {
-            if(enableAudio){
-                // initialize mediaClient
-                const transports = {
-                    controlSendTransport: undefined,
-                    controlRecvTransport: undefined,
-                    screenTransport: undefined,
-                    audioTransport: undefined,
-                    exits: true
-                };
-
-                this.setClientTransports(sockId, desktopId, transports);
-            }else{
-                // initialize mediaClient
-                const transports = {
-                    controlSendTransport: undefined,
-                    controlRecvTransport: undefined,
-                    screenTransport: undefined,
-                    exits: true
-                };
-
-                this.setClientTransports(sockId, desktopId, transports);
-            }
-
+        // initialize ClientTransports
+        if(this.initClientTransports(clientId, desktopId, enableAudio)){
             return this.router.rtpCapabilities;
         }
-
         return undefined;
     }
 
     // create ProducerTransport for control
     public async createMediaControl(
-        sockId: string, 
+        clientId: string, 
         desktopId: string
-    ): Promise<createTransportResponse|undefined> {
+    ): Promise<CreateTransportResponse|undefined> {
 
-        const clientTransports = this.getClientTransports(sockId, desktopId);
+        const clientTransports = this.getClientTransports(clientId, desktopId);
 
-        if (clientTransports) {
+        if (clientTransports?.exits) {
 
-            const { transport, params } = await this.createMediaWebRtcTransport(this.router, this.transportOption);
+            const { transport, params } = await this.createRtcTransport(this.router, this.transportOption);
 
             transport.observer.on('close', () => {
                 transport.close();
                 //delete this.producerList[transport.id];
             });
             
-            clientTransports.controlSendTransport = transport;
+            clientTransports.controlRtcTransport = transport;
             
-            this.setClientTransports(sockId, desktopId, clientTransports);
+            this.setClientTransports(clientId, desktopId, clientTransports);
 
             return params;
         }
@@ -319,15 +279,15 @@ export class serverRtc {
 
     // connect event of ProducerTransport for control
     public async connectMediaControl(
-        sockId: string, 
+        clientId: string, 
         desktopId: string, 
         dtlsParameters: DtlsParameters
     ):Promise<boolean> {
-        const clientTransports = this.getClientTransports(sockId, desktopId);
-        const controlSendTransport = clientTransports?.controlSendTransport;
+        const clientTransports = this.getClientTransports(clientId, desktopId);
+        const controlRtcTransport = clientTransports?.controlRtcTransport;
         
-        if(controlSendTransport){
-            await controlSendTransport.connect({ dtlsParameters: dtlsParameters });
+        if(controlRtcTransport){
+            await controlRtcTransport.connect({ dtlsParameters: dtlsParameters });
             return true;
         }
         return false;
@@ -335,22 +295,22 @@ export class serverRtc {
 
     // produceData event of ProducerTransport for control
     public async establishMediaControl(
-        sockId: string, 
+        clientId: string, 
         desktopId: string, 
         produceParameters: any
     ):Promise<string|undefined> {
 
-        const clientTransports = this.getClientTransports(sockId, desktopId);
-        const controlSendTransport = clientTransports?.controlSendTransport;
+        const clientTransports = this.getClientTransports(clientId, desktopId);
+        const controlSendTransport = clientTransports?.controlRtcTransport;
 
         if (controlSendTransport) {
             const dataProducer = await controlSendTransport.produceData(produceParameters);
             //console.log("dataProducer.id: " + dataProducer.id);
 
             //directconsume
-            clientTransports.controlRecvTransport = await this.createDirectConsumer(dataProducer.id);
+            clientTransports.controlDirTransport = await this.createDirectConsumer(dataProducer.id);
 
-            this.establishDesktopControl(sockId, desktopId);
+            this.establishControl(clientId, desktopId);
 
             return dataProducer.id;
         }
@@ -359,15 +319,15 @@ export class serverRtc {
 
     // create ConsumerTransport for screen or audio
     public async createMediaScreenOrAudio(
-        sockId: string, 
+        clientId: string, 
         desktopId: string, 
         isAudio: boolean
-    ): Promise<createTransportResponse|undefined> {
+    ): Promise<CreateTransportResponse|undefined> {
         
-        const clientTransports = this.getClientTransports(sockId, desktopId);
+        const clientTransports = this.getClientTransports(clientId, desktopId);
 
         if (clientTransports) {
-            const { transport, params } = await this.createMediaWebRtcTransport(this.router, this.transportOption);
+            const { transport, params } = await this.createRtcTransport(this.router, this.transportOption);
             transport.observer.on('close', () => {
                 transport.close();
                 //delete this.consumerList[transport.id];
@@ -379,7 +339,7 @@ export class serverRtc {
                 clientTransports.screenTransport = transport;
             }
 
-            this.setClientTransports(sockId, desktopId, clientTransports);
+            this.setClientTransports(clientId, desktopId, clientTransports);
 
             return params;
         }
@@ -389,12 +349,12 @@ export class serverRtc {
 
     // connect event of ConsumerTransport for screen or audio
     public async connectMediaScreenOrAudio(
-        sockId: string, 
+        clientId: string, 
         desktopId: string, 
         dtlsParameters: mediasoupClientType.DtlsParameters, 
         isAudio: boolean
     ):Promise<boolean> {
-        const transports = this.getClientTransports(sockId, desktopId);
+        const transports = this.getClientTransports(clientId, desktopId);
         const transport = isAudio ?  transports?.audioTransport : transports?.screenTransport;
         //const transport = mediaClient ? isAudio ? mediaClient[desktopId]?.audioTransport : mediaClient[desktopId]?.screenTransport : undefined;
 
@@ -406,16 +366,16 @@ export class serverRtc {
     }
 
     public async establishMediaScreen(
-        sockId: string, 
+        clientId: string, 
         desktopId: string
-    ): Promise<consumeScreenResponse|undefined> {
-        const clientTransports = this.getClientTransports(sockId, desktopId);
+    ): Promise<ConsumeDataResponse|undefined> {
+        const clientTransports = this.getClientTransports(clientId, desktopId);
         const screenRecvTransport = clientTransports?.screenTransport;
-        const screenSendProducerId = this.desktopList[desktopId]?.screenTransport.producer?.id;
+        const screenSendProducerId = this.getDesktopTransports(desktopId)?.screenTransport?.producer?.id;
 
         if (screenRecvTransport && screenSendProducerId) {
 
-            const dataConsumer = await screenRecvTransport.consumeData({ dataProducerId: screenSendProducerId, });
+            const dataConsumer = await screenRecvTransport.consumeData({ dataProducerId: screenSendProducerId });
             const params = {
                 id: dataConsumer.id,
                 dataProducerId: dataConsumer.dataProducerId,
@@ -433,14 +393,14 @@ export class serverRtc {
 
     
     public async establishMediaAudio(
-        sockId: string, 
+        clientId: string, 
         desktopId: string, 
         rtpCapabilities: mediasoupClientType.RtpCapabilities
-    ): Promise<consumeAudioResponse|undefined> {
+    ): Promise<ConsumeAudioResponse|undefined> {
 
-        const clientTransports = this.getClientTransports(sockId, desktopId);
+        const clientTransports = this.getClientTransports(clientId, desktopId);
         const audioRecvTransport = clientTransports?.audioTransport;
-        const audioSendProducerId = this.desktopList[desktopId]?.audioTransport?.producer?.id;
+        const audioSendProducerId = this.getDesktopTransports(desktopId)?.audioTransport?.producer?.id;
 
         if (audioRecvTransport && audioSendProducerId) {
 
@@ -474,25 +434,25 @@ export class serverRtc {
         return undefined;
     }
 
-    public disconnectMediaClient(sockId: string): void {
+    public disconnectMediaClient(clientId: string): void {
 
-        console.log("discconect client id: " + sockId);
+        console.log("discconect client id: " + clientId);
 
-        const mediaClient= this.mediaClientList[sockId];
+        const mediaClient= this.mediaClientList[clientId];
 
-        if(mediaClient){
+        if(mediaClient?.exits){
             Object.entries(mediaClient).map(([_, value]) =>  {
                 if(typeof value !== 'boolean'){
-                    const controlRecvTransport = value.controlRecvTransport;
-                    if (controlRecvTransport) {
-                        console.log("delete controlRecvTransportId: " + controlRecvTransport.id);
-                        controlRecvTransport.close();
+                    const controlDirTransport = value.controlDirTransport;
+                    if (controlDirTransport) {
+                        console.log("delete controlDirTransportId: " + controlDirTransport.id);
+                        controlDirTransport.close();
                     }
 
-                    const controlSendTransport = value.controlSendTransport;
-                    if (controlSendTransport) {
-                        console.log("delete controlSendTransportId: " + controlSendTransport.id);
-                        controlSendTransport.close();
+                    const controlRtcTransport = value.controlRtcTransport;
+                    if (controlRtcTransport) {
+                        console.log("delete controlRtcTransportId: " + controlRtcTransport.id);
+                        controlRtcTransport.close();
                     }
 
                     const screenRecvTransport = value.screenTransport;
@@ -508,34 +468,255 @@ export class serverRtc {
                     }
                 }
                 
-                delete this.mediaClientList[sockId];
-                const indexId = this.socketIdList.indexOf(sockId);
-                this.socketIdList.splice(indexId, 1);
+                delete this.mediaClientList[clientId];
+                const indexId = this.clientIdList.indexOf(clientId);
+                this.clientIdList.splice(indexId, 1);
 
-                console.log("delete socketIdList length: " + this.socketIdList.length);
+                console.log("delete clientIdList length: " + this.clientIdList.length);
             })
         }
+    }
+
+    // ------------------------ Desktop --------------------------
+
+    public checkDesktopTotal():string|undefined {
+        const desktopIds = Object.keys(this.desktopList);
+        console.log("Total Desktop List: " + desktopIds.length);
+        if (desktopIds.length + 1 > this.limitDesktop &&  desktopIds[0]) {
+            //console.log("desktopIds length: " + desktopIds.length);
+            return desktopIds[0];
+        }
+        return undefined;
+    }
+
+    public async getRtpCapabilitiesForDesktop(
+        desktopId: string, 
+        enableAudio: boolean,
+    ): Promise<RtpCapabilities|undefined> {
+
+        const desktopTransports = this.getDesktopTransports(desktopId);
+        if(desktopTransports?.exits){
+            console.log("already created Desktop transports");
+
+            const controlDirTransport = desktopTransports.controlDirTransport;
+            if (controlDirTransport) {
+                console.log("delete controlDirTransportId: " + controlDirTransport.id);
+                controlDirTransport.close();
+            }
+            const controlRtcTransport = desktopTransports.controlRtcTransport;
+            if (controlRtcTransport) {
+                console.log("delete controlRtcTransportId: " + controlRtcTransport.id);
+                controlRtcTransport.close();
+            }
+            const screenTransport = desktopTransports.screenTransport;
+            if (screenTransport) {
+                console.log("delete screenTransportId: " + screenTransport.id);
+                screenTransport.close();
+            }
+            if(enableAudio){
+                const audioTransport = desktopTransports.audioTransport;
+                if (audioTransport) {
+                    console.log("delete audioTransportId: " + audioTransport.id);
+                    audioTransport.close();
+                }
+            }
+        }
+
+        // initialize DesktopTransports
+        if(this.initDesktopTransports(desktopId, enableAudio)){
+            return this.router.rtpCapabilities;
+        }
+        return undefined;
+    }
+
+    // create ConsumerTransport for control
+    public async createDesktopControl(desktopId: string):Promise<CreateTransportResponse|undefined> {
+        const desktopTransports = this.getDesktopTransports(desktopId);
+
+        if(desktopTransports?.exits) {
+            const { transport, params } = await this.createRtcTransport(this.router, this.transportOption);
+        
+            transport.observer.on('close', () => {
+                transport.close();
+                //delete this.producerList[transport.id];
+            });
+
+            desktopTransports.controlRtcTransport = transport;
+
+            desktopTransports.controlDirTransport = await this.createDirectProducer();
+
+            this.setDesktopTransports(desktopId, desktopTransports);
+
+            return params;
+        }
+        return undefined;
+    }
+
+    // connect event of ConsumerTransport for control
+    public async connectDesktopControl(
+        desktopId: string, 
+        dtlsParameters: mediasoupClientType.DtlsParameters
+    ):Promise<boolean> {
+        const desktopTransports = this.getDesktopTransports(desktopId);
+        const controlRtcTransport = desktopTransports?.controlRtcTransport;
+
+        if(controlRtcTransport){
+            await controlRtcTransport.connect({ dtlsParameters: dtlsParameters });
+            return true;
+        }
+        return false;
+    }
+
+    // consumeData event of ConsumerTransport for control
+    public async establishDesktopControl(
+        desktopId: string
+    ): Promise<ConsumeDataResponse|undefined> {
+        const desktopTransports = this.getDesktopTransports(desktopId);
+        const controlRtcTransport = desktopTransports?.controlRtcTransport;
+        const controlDirProducerId = desktopTransports?.controlDirTransport?.producer?.id
+        
+        if(controlRtcTransport && controlDirProducerId) {    
+            const dataConsumer = await controlRtcTransport.consumeData({ dataProducerId: controlDirProducerId});
+            const params = {
+                id: dataConsumer.id,
+                dataProducerId: dataConsumer.dataProducerId,
+                sctpStreamParameters: dataConsumer.sctpStreamParameters,
+                label: dataConsumer.label,
+                protocol: dataConsumer.protocol,
+            };
+
+            controlRtcTransport.consumer = dataConsumer;
+            return params;
+        }
+        return undefined;
+    }
+
+    //create ProducerTransport for screen
+    public async createDesktopScreen(desktopId: string): Promise<CreateTransportResponse|undefined> {
+        const desktopTransports = this.getDesktopTransports(desktopId);
+
+        if(desktopTransports?.exits) {
+            const { transport, params } = await this.createRtcTransport(this.router, this.transportOption);
+        
+            transport.observer.on('close', () => {
+                transport.close();
+                //delete this.producerList[transport.id];
+            });
+
+            desktopTransports.screenTransport = transport;
+
+            this.setDesktopTransports(desktopId, desktopTransports);
+
+            return params;
+        }
+
+        return undefined;
+    }   
+
+    // connect event of ProducerTransport for screen
+    public async connectDesktopScreen(
+        desktopId: string, 
+        dtlsParameters: DtlsParameters
+    ):Promise<boolean> {
+        const desktopTransports = this.getDesktopTransports(desktopId);
+        const screenTransport = desktopTransports?.screenTransport;
+
+        if(screenTransport) {
+            await screenTransport.connect({ dtlsParameters: dtlsParameters });
+            return true;
+        }
+        return false;
+    }
+
+    // produceData event of ProducerTransport for screen
+    public async establishDesktopScreen(
+        desktopId: string, 
+        produceParameters: any
+    ):Promise<string|undefined> {
+        const desktopTransports = this.getDesktopTransports(desktopId);
+        const screenTransport = desktopTransports?.screenTransport;
+
+        if(screenTransport){
+            const dataProducer = await screenTransport.produceData(produceParameters);
+            //console.log("dataProducer.id: " + dataProducer.id);
+            screenTransport.producer = dataProducer;
+            return dataProducer.id;
+        }
+        return undefined;
+    }
+
+    public async createDesktopAudio(desktopId: string, rtcpMux: boolean):Promise<boolean> {
+        const desktopTransports = this.getDesktopTransports(desktopId);
+        if(desktopTransports?.exits){
+            const audioTransport = await this.createPlainProducer(rtcpMux);
+            desktopTransports.audioTransport = audioTransport;
+            this.setDesktopTransports(desktopId, desktopTransports);
+            return true;
+        }
+        return false;
+    }
+
+    public establishDesktopAudio(desktopId: string): AudioResponse|undefined {
+        const desktopTransports = this.getDesktopTransports(desktopId);
+        const audioSendTransport = desktopTransports?.audioTransport;
+
+        // connect audio between transport and serverChannel
+        if(audioSendTransport){
+
+            const localIp = audioSendTransport.tuple.localIp;
+
+                // Read the transport local RTP port.
+                const audioRtpPort = audioSendTransport.tuple.localPort;
+                // If rtcpMux is false, read the transport local RTCP port.
+                const audioRtcpPort = audioSendTransport.rtcpTuple?.localPort;
+                // If enableSrtp is true, read the transport srtpParameters.
+                const srtpParameters = audioSendTransport.srtpParameters;
+
+                const msg: AudioResponse = { 
+                    rtp: audioRtpPort, 
+                    rtcp: audioRtcpPort, 
+                    ip_addr: localIp, 
+                    srtpParameters: srtpParameters 
+                };
+
+            return msg;
+        }
+        return undefined;
     }
 
     public disconnectDesktop(desktopId: string): void {
 
         console.log("disconnect desktop server id: " + desktopId);
 
-        const screenSendTransport = this.desktopList[desktopId]?.screenTransport;
-        if(screenSendTransport){
-            console.log("delete screenSendTransportId: " + screenSendTransport.id);
-            screenSendTransport.close();
+        const desktopTransports = this.getDesktopTransports(desktopId);
+        if(desktopTransports?.exits){
+            const controlDirTransport = desktopTransports.controlDirTransport;
+            if(controlDirTransport){
+                console.log("delete controlDirTransportId: " + controlDirTransport.id);
+                controlDirTransport.close();
+            }
+
+            const controlRtcTransport = desktopTransports.controlRtcTransport;
+            if(controlRtcTransport){
+                console.log("delete controlRtcTransportId: " + controlRtcTransport.id);
+                controlRtcTransport.close();
+            }
+
+            const screenTransport = desktopTransports.screenTransport;
+            if(screenTransport){
+                console.log("delete screenTransportId: " + screenTransport.id);
+                screenTransport.close();
+            }
+
+            const audioTransport = this.desktopList[desktopId]?.audioTransport;
+            if(audioTransport){
+                console.log("delete audioTransportId: " + audioTransport.id);
+                audioTransport.close();
+            }
+
+            delete this.desktopList[desktopId];
+            console.log("delete desktopList length: " + Object.entries(this.desktopList).length);
         }
-
-        const audioSendTransport = this.desktopList[desktopId]?.audioTransport;
-        if(audioSendTransport){
-            console.log("delete audioSendTransportId: " + audioSendTransport.id);
-            audioSendTransport.close();
-        }
-
-        delete this.desktopList[desktopId];
-
-        console.log("delete desktopList length: " + Object.entries(this.desktopList).length);
     }
 
     ///////////////////////////////////////////////////////////////////
@@ -550,10 +731,10 @@ export class serverRtc {
     }
 
 
-    private async createMediaWebRtcTransport(
+    private async createRtcTransport(
         router: Router,
         transportOption: WebRtcTransportOptions,
-    ): Promise<CreateMediaWebRtcTransportResponse> {
+    ): Promise<CreateRtcTransportResponse> {
         const transport = await router.createWebRtcTransport(transportOption);
         return {
             transport: transport,
@@ -569,8 +750,8 @@ export class serverRtc {
 
     // --- Producer PlainTransport ---
     // --- send audio
-    private async createPlainProducer(rtcpMux: boolean): Promise<AudioSendTransport> {
-        const transport: AudioSendTransport = await this.router.createPlainTransport(
+    private async createPlainProducer(rtcpMux: boolean): Promise<AudioDesktopTransport> {
+        const transport: AudioDesktopTransport = await this.router.createPlainTransport(
             {
                 listenIp: this.ip_addr,
                 rtcpMux: rtcpMux,
@@ -625,11 +806,9 @@ export class serverRtc {
         return transport;
     }
 
-
-    // --- Producer DirectTransport ---
-    // ---  send desktop image
-    private async createDirectProducer(): Promise<ScreenSendTransport> {
-        const transport: ScreenSendTransport = await this.router.createDirectTransport();
+    // // --- Producer DirectTransport ---
+    private async createDirectProducer(): Promise<ControlDesktopDirTransport> {
+        const transport: ControlDesktopDirTransport = await this.router.createDirectTransport();
 
         const dataProducer = await transport.produceData();
         transport.producer = dataProducer;
@@ -639,12 +818,12 @@ export class serverRtc {
         return transport;
     }
 
-    // --- client data: keyboard,mouse
+    // --- Consumer DirectTransport
     private async createDirectConsumer(
         dataProducerId: string
-    ): Promise<ControlRecvTransport> {
-        console.log("createDirectConsumer");
-        const transport: ControlRecvTransport = await this.router.createDirectTransport();
+    ): Promise<ControlClientDirTransport> {
+        //console.log("createDirectConsumer");
+        const transport: ControlClientDirTransport = await this.router.createDirectTransport();
 
         const dataConsumer = await transport.consumeData({ dataProducerId: dataProducerId });
         transport.consumer = dataConsumer;
