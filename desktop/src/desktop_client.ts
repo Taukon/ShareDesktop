@@ -22,6 +22,8 @@ import { io } from 'socket.io-client';
 
 import { networkInterfaces } from "os";
 import { DesktopRtc } from './desktopRtc.js';
+import { Xvfb } from './xvfb.js';
+
 const getIpAddress = (): string | undefined => {
   const nets = networkInterfaces();
   const net = nets["eth0"]?.find((v) => v.family == "IPv4");
@@ -33,6 +35,15 @@ const ip_addr = getIpAddress()?? "127.0.0.1"; // --- IP Address
 const interval = 100;//300;
 
 const socket = io(`https://${ip_addr}:3100`, { secure: true, rejectUnauthorized: false});
+
+const xvfb = new Xvfb(1, 
+    {
+        width: 1200,
+        height: 720,
+        depth: 24
+    });
+
+xvfb.start();
 
 socket.on('desktopId', msg => {
     if(typeof msg === 'string'){
