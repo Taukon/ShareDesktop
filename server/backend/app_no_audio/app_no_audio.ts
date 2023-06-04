@@ -72,7 +72,7 @@ const options = {
 // --- WebSocket Server For Client ---
 const httpsServerForClient = https.createServer(options, app);
 httpsServerForClient.listen(clientPort, () => {
-    console.log('https://' + ip_addr + ':' + clientPort + '/webRTC_client.html');
+    console.log('https://' + ip_addr + ':' + clientPort + '/webRTC_client_no_audio.html');
 });
 const clientServer = new Server(httpsServerForClient);
 
