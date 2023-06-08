@@ -41,6 +41,9 @@ const transportOption: WebRtcTransportOptions = {
             ip: ip_addr
         },
     ],
+    enableUdp: true,
+    enableTcp: true,
+    preferUdp: true,
     enableSctp: true,
 };
 

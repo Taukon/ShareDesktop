@@ -47,7 +47,7 @@ const startDesktop = () => {
         });
 
     if(xvfb.start()){
-        new AppProcess(
+        const appProcess = new AppProcess(
             displayNum, 
             process.argv[2] ?? `xterm`, 
             [],
@@ -57,10 +57,16 @@ const startDesktop = () => {
         socket.on('desktopId', msg => {
             if(typeof msg === 'string'){
                 console.log(`desktopId: ${msg}`);
-
+                
                 const desktopRtc = new DesktopRtc(displayNum, msg, socket, interval);
                 //desktopRtc.initDesktopNoAudio();
                 desktopRtc.initDesktop();
+
+                process.on('exit', (e) => {
+                    console.log(e);
+                    appProcess.stop();
+                    xvfb.stop();
+                });
     
                 socket.on('disconnect', () => {
                     desktopRtc.deleteDesktop();
