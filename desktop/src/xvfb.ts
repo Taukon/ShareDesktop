@@ -20,7 +20,7 @@ export class Xvfb {
     private process: ChildProcessWithoutNullStreams|undefined;
     private silent: boolean = false;
     private oldDisplay: string|undefined;
-    private timeout: number = 50;
+    private timeout: number = 1000;
 
     
     constructor(displayNum: number, display: Display){
@@ -30,11 +30,12 @@ export class Xvfb {
         this.xvfb_args = ['-screen', '0', `${this.display.width}x${this.display.height}x${this.display.depth}`];
     }
 
-    public start(){
+    public start():boolean {
         if(!this.process){
             this.setDisplayEnv();
             if(this.checkLockFile()){
                 throw new Error('Display ' + this.display + ' is already in use and the "reuse" option is false.');
+                //return false;
             }else{
                 this.spawnProcess();
 
@@ -42,15 +43,18 @@ export class Xvfb {
                 while(!this.checkLockFile()){
                     if(totalTime > this.timeout){
                         throw new Error('Could not start Xvfb.');
+                        //return false;
                     }
                     this.usleep(10000);
                     totalTime += 10;
                 }
+                return true;
             }
         }
+        return false;
     }
 
-    public stop(){
+    public stop():boolean {
         this.killProcess();
         this.restoreDisplayEnv();
 
@@ -58,10 +62,12 @@ export class Xvfb {
         while(this.checkLockFile()){
             if(totalTime > this.timeout){
                 throw new Error('Could not stop Xvfb.');
+                //return false;
             }
             this.usleep(10000);
             totalTime += 10;
         }
+        return true;
     }
 
     private spawnProcess(){
@@ -75,6 +81,18 @@ export class Xvfb {
             if (!this.silent) {
                 process.stderr.write(data);
             }
+        });
+        this.process.on('exit', (code) => {
+            if (!this.silent) {
+                console.log('CODE', code);
+            }
+            this.stop();
+        });
+        this.process.on('error', (code) => {
+            if (!this.silent) {
+                console.log('CODE', code);
+            }
+            this.stop();
         });
     }
 

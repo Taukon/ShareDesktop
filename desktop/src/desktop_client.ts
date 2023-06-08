@@ -23,6 +23,7 @@ import { io } from 'socket.io-client';
 import { networkInterfaces } from "os";
 import { DesktopRtc } from './desktopRtc.js';
 import { Xvfb } from './xvfb.js';
+import { AppProcess } from './appProcess.js';
 
 const getIpAddress = (): string | undefined => {
   const nets = networkInterfaces();
@@ -33,27 +34,40 @@ const getIpAddress = (): string | undefined => {
 const ip_addr = getIpAddress()?? "127.0.0.1"; // --- IP Address
 
 const interval = 100;//300;
+const displayNum = 1;
 
-const socket = io(`https://${ip_addr}:3100`, { secure: true, rejectUnauthorized: false});
+const startDesktop = () => {
+    const socket = io(`https://${ip_addr}:3100`, { secure: true, rejectUnauthorized: false});
 
-const xvfb = new Xvfb(1, 
-    {
-        width: 1200,
-        height: 720,
-        depth: 24
-    });
+    const xvfb = new Xvfb(displayNum, 
+        {
+            width: 1200,
+            height: 720,
+            depth: 24
+        });
 
-xvfb.start();
+    if(xvfb.start()){
+        new AppProcess(
+            displayNum, 
+            process.argv[2] ?? `xterm`, 
+            [],
+            () => xvfb.stop()
+        );
 
-socket.on('desktopId', msg => {
-    if(typeof msg === 'string'){
-        console.log(`desktopId: ${msg}`);
-        const desktopRtc = new DesktopRtc(msg, socket, interval);
-        //desktopRtc.initDesktopNoAudio();
-        desktopRtc.initDesktop();
+        socket.on('desktopId', msg => {
+            if(typeof msg === 'string'){
+                console.log(`desktopId: ${msg}`);
 
-        socket.on('disconnect', () => {
-            desktopRtc.deleteDesktop();
+                const desktopRtc = new DesktopRtc(displayNum, msg, socket, interval);
+                //desktopRtc.initDesktopNoAudio();
+                desktopRtc.initDesktop();
+    
+                socket.on('disconnect', () => {
+                    desktopRtc.deleteDesktop();
+                });
+            }
         });
     }
-});
+};
+
+startDesktop();

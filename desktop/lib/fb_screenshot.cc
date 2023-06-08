@@ -5,85 +5,8 @@
 #include <iostream>
 #include <stdlib.h>
 
-int app_width = 0;
-int app_height = 0;
-int app_depth = 0;
-int app_fb_bpp = 0;
-bool is_initialize = false;
 
-void initialize()
-{
-    if (!is_initialize)
-    {
-        Display *display;
-        XImage *img;
-        int width = 0;
-        int height = 0;
-        Window window, root_return, parent_return, *children_return;
-        unsigned int nchildren_return;
-        XWindowAttributes attributes;
-
-        display = XOpenDisplay(NULL);
-        window = DefaultRootWindow(display);
-        XQueryTree(display, window, &root_return, &parent_return, &children_return, &nchildren_return);
-
-        if (nchildren_return)
-        {
-
-            bool state = false;
-            int temp_width = 0;
-            int temp_height = 0;
-            while (nchildren_return--)
-            {
-                if (XGetWindowAttributes(display, children_return[nchildren_return], &attributes) && attributes.map_state == IsViewable)
-                {
-                    // window = root_return; // children_return[nchildren_return];
-                    if (temp_width < attributes.width)
-                        temp_width = attributes.width;
-                    if (temp_height < attributes.height)
-                        temp_height = attributes.height;
-
-                    state = true;
-                    // break;
-                }
-            }
-
-            if (state){
-                width = temp_width;
-                height = temp_height;
-            }else
-            {
-                //window = root_return;
-                width = XDisplayWidth(display, 0);
-                height = XDisplayHeight(display, 0);
-            }
-            XFree(children_return);
-        }
-        else
-        {
-            //window = root_return;
-            width = XDisplayWidth(display, 0);
-            height = XDisplayHeight(display, 0);
-        }
-
-        img = XGetImage(display, window, 0, 0, width, height, AllPlanes, ZPixmap);
-
-        app_width = width;
-        app_height = height;
-        app_depth = img->depth;
-        app_fb_bpp = img->bits_per_pixel;
-
-        free(img->data);
-        img->data = NULL;
-        XDestroyImage(img);
-        XCloseDisplay(display);
-
-
-        is_initialize = true;
-    }
-}
-
-char *getImg(size_t *mem_size)
+char *getImg(size_t *mem_size, const char* display_name)
 {
     Display *display;
     XImage *img;
@@ -93,7 +16,14 @@ char *getImg(size_t *mem_size)
     unsigned int nchildren_return;
     XWindowAttributes attributes;
 
-    display = XOpenDisplay(NULL);
+    //display = XOpenDisplay(NULL);
+    display = XOpenDisplay(display_name);
+    // no display
+    if(!display){
+        *mem_size = 0;
+        return NULL;
+    }
+
     window = DefaultRootWindow(display);
     XQueryTree(display, window, &root_return, &parent_return, &children_return, &nchildren_return);
 
@@ -148,11 +78,6 @@ char *getImg(size_t *mem_size)
 
     memcpy(buffer, img->data, bpp * img->width * img->height);
 
-    app_width = width;
-    app_height = height;
-    app_depth = img->depth;
-    app_fb_bpp = img->bits_per_pixel;
-
     free(img->data);
     img->data = NULL;
     XDestroyImage(img);
@@ -170,98 +95,115 @@ Napi::Value screenshot(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
+    std::string arg_str = info[0].As<Napi::String>();
+    const char* display_name = arg_str.c_str();
+
     size_t msize;
-    char *img = getImg(&msize);
+    char *img = getImg(&msize, display_name);
 
     return Napi::Buffer<char>::New(env, img, msize, cleanup);
 }
 
-Napi::Value getWidth(const Napi::CallbackInfo &info)
+Napi::Value getScreenInfo(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    initialize();
+    Display *display;
+    XImage *img;
+    int width = 0;
+    int height = 0;
+    Window window, root_return, parent_return, *children_return;
+    unsigned int nchildren_return;
+    XWindowAttributes attributes;
 
-    Napi::Number width = Napi::Number::New(env, app_width);
+    //display = XOpenDisplay(NULL);
+    std::string arg_str = info[0].As<Napi::String>();
+    const char* display_name = arg_str.c_str();
+    display = XOpenDisplay(display_name);
+    // no display
+    if(!display){
+        Napi::Int32Array screenInfo = Napi::Int32Array::New(env, 4);
 
-    return width;
-}
+        screenInfo[0] = 0;
+        screenInfo[1] = 0;
+        screenInfo[2] = 0;
+        screenInfo[3] = 0;
+        
+        return screenInfo;
+    }
 
-Napi::Value getHeight(const Napi::CallbackInfo &info)
-{
-    Napi::Env env = info.Env();
+    window = DefaultRootWindow(display);
+    XQueryTree(display, window, &root_return, &parent_return, &children_return, &nchildren_return);
 
-    initialize();
+    if (nchildren_return)
+    {
 
-    Napi::Number height = Napi::Number::New(env, app_height);
+        bool state = false;
+        int temp_width = 0;
+        int temp_height = 0;
+        while (nchildren_return--)
+        {
+            if (XGetWindowAttributes(display, children_return[nchildren_return], &attributes) && attributes.map_state == IsViewable)
+            {
+                // window = root_return; // children_return[nchildren_return];
+                if (temp_width < attributes.width)
+                    temp_width = attributes.width;
+                if (temp_height < attributes.height)
+                    temp_height = attributes.height;
 
-    return height;
-}
+                state = true;
+                // break;
+            }
+        }
 
-Napi::Value getDepth(const Napi::CallbackInfo &info)
-{
-    Napi::Env env = info.Env();
+        if (state){
+            width = temp_width;
+            height = temp_height;
+        }else
+        {
+            //window = root_return;
+            width = XDisplayWidth(display, 0);
+            height = XDisplayHeight(display, 0);
+        }
+        XFree(children_return);
+    }
+    else
+    {
+        //window = root_return;
+        width = XDisplayWidth(display, 0);
+        height = XDisplayHeight(display, 0);
+    }
 
-    initialize();
+    img = XGetImage(display, window, 0, 0, width, height, AllPlanes, ZPixmap);
 
-    Napi::Number depth = Napi::Number::New(env, app_depth);
+    Napi::Int32Array screenInfo = Napi::Int32Array::New(env, 4);
 
-    return depth;
-}
+    screenInfo[0] = width;
+    screenInfo[1] = height;
+    screenInfo[2] = img->depth;
+    screenInfo[3] = img->bits_per_pixel;
 
-Napi::Value getFb_bpp(const Napi::CallbackInfo &info)
-{
-    Napi::Env env = info.Env();
+    free(img->data);
+    img->data = NULL;
+    XDestroyImage(img);
+    XCloseDisplay(display);
 
-    initialize();
-
-    Napi::Number fb_bpp = Napi::Number::New(env, app_fb_bpp);
-
-    return fb_bpp;
+    return screenInfo;
 }
 
 //--- full screen
-int full_width = 0;
-int full_height = 0;
-int full_depth = 0;
-int full_fb_bpp = 0;
-bool is_initialize_full = false;
-
-void initializeFull()
-{
-    if (!is_initialize_full)
-    {
-        Display *display;
-        XImage *img;
-                
-        display = XOpenDisplay(NULL);
-
-        Window window = DefaultRootWindow(display);
-        int width = XDisplayWidth(display, 0);
-        int height = XDisplayHeight(display, 0);
-
-        img = XGetImage(display, window, 0, 0, width, height, AllPlanes, ZPixmap);
-
-        full_width = width;
-        full_height = height;
-        full_depth = img->depth;
-        full_fb_bpp = img->bits_per_pixel;
-
-        free(img->data);
-        img->data = NULL;
-        XDestroyImage(img);
-        XCloseDisplay(display);
-
-        is_initialize_full = true;
-    }
-}
-
-char *getImgFull(size_t *mem_size)
+char *getImgFull(size_t *mem_size, const char* display_name)
 {
     Display *display;
     XImage *img;
 
-    display = XOpenDisplay(NULL);
+    //display = XOpenDisplay(NULL);
+    display = XOpenDisplay(display_name);
+    // no display
+    if(!display){
+        *mem_size = 0;
+        return NULL;
+    }
 
     Window window = DefaultRootWindow(display);
     int width = XDisplayWidth(display, 0);
@@ -277,11 +219,6 @@ char *getImgFull(size_t *mem_size)
 
     memcpy(buffer, img->data, bpp * img->width * img->height);
 
-    full_width = width;
-    full_height = height;
-    full_depth = img->depth;
-    full_fb_bpp = img->bits_per_pixel;
-
     free(img->data);
     img->data = NULL;
     XDestroyImage(img);
@@ -294,79 +231,71 @@ Napi::Value screenshotFull(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
+    std::string arg_str = info[0].As<Napi::String>();
+    const char* display_name = arg_str.c_str();
+
     size_t msize;
-    char *img = getImgFull(&msize);
+    char *img = getImgFull(&msize, display_name);
 
     return Napi::Buffer<char>::New(env, img, msize, cleanup);
 }
 
-Napi::Value getWidthFull(const Napi::CallbackInfo &info)
+Napi::Value getFullScreenInfo(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    initializeFull();
+    Display *display;
+    XImage *img;
+            
+    //display = XOpenDisplay(NULL);
+    std::string arg_str = info[0].As<Napi::String>();
+    const char* display_name = arg_str.c_str();
+    display = XOpenDisplay(display_name);
+    // no display
+    if(!display){
+        Napi::Int32Array screenFullInfo = Napi::Int32Array::New(env, 4);
 
-    Napi::Number width = Napi::Number::New(env, full_width);
+        screenFullInfo[0] = 0;
+        screenFullInfo[1] = 0;
+        screenFullInfo[2] = 0;
+        screenFullInfo[3] = 0;
+        return screenFullInfo;
+    }
 
-    return width;
+    Window window = DefaultRootWindow(display);
+    int width = XDisplayWidth(display, 0);
+    int height = XDisplayHeight(display, 0);
+
+    img = XGetImage(display, window, 0, 0, width, height, AllPlanes, ZPixmap);
+
+    Napi::Int32Array screenFullInfo = Napi::Int32Array::New(env, 4);
+
+    screenFullInfo[0] = width;
+    screenFullInfo[1] = height;
+    screenFullInfo[2] = img->depth;
+    screenFullInfo[3] = img->bits_per_pixel;
+
+    free(img->data);
+    img->data = NULL;
+    XDestroyImage(img);
+    XCloseDisplay(display);
+
+    return screenFullInfo;
 }
 
-Napi::Value getHeightFull(const Napi::CallbackInfo &info)
-{
-    Napi::Env env = info.Env();
-
-    initializeFull();
-
-    Napi::Number height = Napi::Number::New(env, full_height);
-
-    return height;
-}
-
-Napi::Value getDepthFull(const Napi::CallbackInfo &info)
-{
-    Napi::Env env = info.Env();
-
-    initializeFull();
-
-    Napi::Number depth = Napi::Number::New(env, full_depth);
-
-    return depth;
-}
-
-Napi::Value getFb_bppFull(const Napi::CallbackInfo &info)
-{
-    Napi::Env env = info.Env();
-
-    initializeFull();
-
-    Napi::Number fb_bpp = Napi::Number::New(env, full_fb_bpp);
-
-    return fb_bpp;
-}
 
 Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
     exports.Set(Napi::String::New(env, "screenshot"),
                 Napi::Function::New(env, screenshot));
-    exports.Set(Napi::String::New(env, "getWidth"),
-                Napi::Function::New(env, getWidth));
-    exports.Set(Napi::String::New(env, "getHeight"),
-                Napi::Function::New(env, getHeight));
-    exports.Set(Napi::String::New(env, "getDepth"),
-                Napi::Function::New(env, getDepth));
-    exports.Set(Napi::String::New(env, "getFb_bpp"),
-                Napi::Function::New(env, getFb_bpp));
+    exports.Set(Napi::String::New(env, "getScreenInfo"),
+                Napi::Function::New(env, getScreenInfo));
 
     exports.Set(Napi::String::New(env, "screenshotFull"),
                 Napi::Function::New(env, screenshotFull));
-    exports.Set(Napi::String::New(env, "getWidthFull"),
-                Napi::Function::New(env, getWidthFull));
-    exports.Set(Napi::String::New(env, "getHeightFull"),
-                Napi::Function::New(env, getHeightFull));
-    exports.Set(Napi::String::New(env, "getDepthFull"),
-                Napi::Function::New(env, getDepthFull));
-    exports.Set(Napi::String::New(env, "getFb_bppFull"),
-                Napi::Function::New(env, getFb_bppFull));
+    exports.Set(Napi::String::New(env, "getFullScreenInfo"),
+                Napi::Function::New(env, getFullScreenInfo));
+
     return exports;
 }
 

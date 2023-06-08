@@ -13,6 +13,7 @@ export class DesktopRtc {
     public desktopId: string;
     public sock: Socket;
 
+    private displayName: string;
     private interval: number;
     private intervalId?: NodeJS.Timer;
 
@@ -27,7 +28,8 @@ export class DesktopRtc {
     private msControlTransport?: mediasoupClient.types.Transport;
     private msScreenTransport?: mediasoupClient.types.Transport;
 
-    constructor(desktopId: string, socket: Socket, interval: number){
+    constructor(displayNum: number, desktopId: string, socket: Socket, interval: number){
+        this.displayName = `:${displayNum}`;
 
         this.desktopId = desktopId;
         this.sock = socket;
@@ -147,29 +149,18 @@ export class DesktopRtc {
 
             const producer = await this.msScreenTransport.produceData();
 
-            let data = {
-                width: screenshot.getWidth(),
-                height: screenshot.getHeight(),
-                depth: screenshot.getDepth(),
-                fb_bpp: screenshot.getFb_bpp()
-            };
-
             //producer.on('open', () => {
                 this.intervalId = setInterval(() => {
                     try{
-                        const img = screenshot.screenshot();
+                        const img = screenshot.screenshot(this.displayName);
               
                         if (Buffer.compare(img, this.preImg) != 0) {
-                            data = {
-                                width: screenshot.getWidth(),
-                                height: screenshot.getHeight(),
-                                depth: screenshot.getDepth(),
-                                fb_bpp: screenshot.getFb_bpp()
-                            };
-              
-                            const imgJpeg = converter.convert(img, data.width, data.height, data.depth, data.fb_bpp);
-                            producer.send(imgJpeg);
-                            this.preImg = Buffer.from(img.buffer);
+                            const [width, height, depth, fb_bpp] = screenshot.getScreenInfo(this.displayName);
+                            if(width && height && depth && fb_bpp){
+                                const imgJpeg = converter.convert(img, width, height, depth, fb_bpp);
+                                producer.send(imgJpeg);
+                                this.preImg = Buffer.from(img.buffer);
+                            }
                         }
                     }catch(err){
                         console.log(err);
@@ -184,30 +175,19 @@ export class DesktopRtc {
         if(this.msScreenTransport){
 
             const producer = await this.msScreenTransport.produceData();
-
-            let data = {
-                width: screenshot.getWidthFull(),
-                height: screenshot.getHeightFull(),
-                depth: screenshot.getDepthFull(),
-                fb_bpp: screenshot.getFb_bppFull()
-            };
           
             //producer.on('open', () => {
                 this.intervalId = setInterval(() => {
                     try {
-                        const img = screenshot.screenshotFull();
+                        const img = screenshot.screenshotFull(this.displayName);
               
                         if (Buffer.compare(img, this.preImg) != 0) {
-                            data = {
-                                width: screenshot.getWidthFull(),
-                                height: screenshot.getHeightFull(),
-                                depth: screenshot.getDepthFull(),
-                                fb_bpp: screenshot.getFb_bppFull()
-                            };
-              
-                            const imgJpeg = converter.convert(img, data.width, data.height, data.depth, data.fb_bpp);
-                            producer.send(imgJpeg);
-                            this.preImg = Buffer.from(img.buffer);
+                            const [width, height, depth, fb_bpp] = screenshot.getFullScreenInfo(this.displayName);
+                            if(width && height && depth && fb_bpp){
+                                const imgJpeg = converter.convert(img, width, height, depth, fb_bpp);
+                                producer.send(imgJpeg);
+                                this.preImg = Buffer.from(img.buffer);
+                            }
                         }
                     } catch (err) {
                         console.log(err);
