@@ -213,7 +213,7 @@ export class DesktopRtc {
                     try {
                         //mymoveMouse(data.move.x, data.move.y);
                         //console.log("try: "+data.move.x +" :"+ data.move.y);
-                        xtest.testMotionEvent(data.move.x, data.move.y)
+                        xtest.testMotionEvent(this.displayName, data.move.x, data.move.y)
                     } catch (error) {
                         console.error(error);
                     }
@@ -221,7 +221,7 @@ export class DesktopRtc {
                 else if (data.button){
                     try {
                         //console.log("try: " + data.button.buttonMask + " : " + data.button.down);
-                        xtest.testButtonEvent(data.button.buttonMask, data.button.down)
+                        xtest.testButtonEvent(this.displayName, data.button.buttonMask, data.button.down)
                     } catch (error) {
                         console.error(error);
                     }
@@ -229,7 +229,7 @@ export class DesktopRtc {
                 else if (data.key){
                     try {
                         //console.log("try: " + data.key.keySim + " : " + data.key.down);
-                        xtest.testKeyEvent(data.key.keySim, data.key.down);
+                        xtest.testKeyEvent(this.displayName, data.key.keySim, data.key.down);
                     } catch (error) {
                         console.error(error);
                     }

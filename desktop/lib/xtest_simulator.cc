@@ -14,12 +14,15 @@ Napi::Value testKeyEvent(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    uint32_t keySim = info[0].As<Napi::Number>().Uint32Value();
-    bool down = info[1].As<Napi::Boolean>().Value();
-
-    Display *display = XOpenDisplay(NULL);
+    //Display *display = XOpenDisplay(NULL);
+    std::string arg_str = info[0].As<Napi::String>();
+    const char* display_name = arg_str.c_str();
+    Display *display = XOpenDisplay(display_name);
 
     if(display){
+        uint32_t keySim = info[1].As<Napi::Number>().Uint32Value();
+        bool down = info[2].As<Napi::Boolean>().Value();
+
         uint32_t keyCode = XKeysymToKeycode(display, keySim);
 
         if (keyCode != 0)
@@ -39,13 +42,16 @@ Napi::Value testMotionEvent(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    int x = info[0].As<Napi::Number>().Int32Value();
-    int y = info[1].As<Napi::Number>().Int32Value();
-
-    Display *display = XOpenDisplay(NULL);
+    //Display *display = XOpenDisplay(NULL);
+    std::string arg_str = info[0].As<Napi::String>();
+    const char* display_name = arg_str.c_str();
+    Display *display = XOpenDisplay(display_name);
 
     if (display)
     {
+        int x = info[1].As<Napi::Number>().Int32Value();
+        int y = info[2].As<Napi::Number>().Int32Value();
+
         XTestFakeMotionEvent(display, -1, x, y, 0L);
 
         XCloseDisplay(display);
@@ -59,13 +65,16 @@ Napi::Value testButtonEvent(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    int buttonMask = info[0].As<Napi::Number>().Int32Value();
-    bool down = info[1].As<Napi::Boolean>().Value();
-
-    Display *display = XOpenDisplay(NULL);
+    //Display *display = XOpenDisplay(NULL);
+    std::string arg_str = info[0].As<Napi::String>();
+    const char* display_name = arg_str.c_str();
+    Display *display = XOpenDisplay(display_name);
 
     if (display)
     {
+        int buttonMask = info[1].As<Napi::Number>().Int32Value();
+        bool down = info[2].As<Napi::Boolean>().Value();
+    
         if (buttonMask == 0x10)
         {
             //printf("scroll down ");
