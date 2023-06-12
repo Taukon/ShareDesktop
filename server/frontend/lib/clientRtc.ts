@@ -110,66 +110,14 @@ export class ClientRtc {
         if (this.msSendTransport) {
             const producer = await this.msSendTransport.produceData();
 
-            producer.on('open', () => {
-
-                this.canvas.addEventListener('mousedown', () => {
-                    const button: ButtonJson = { "button": { "buttonMask": 0x1, "down": true } };
-                    producer.send(JSON.stringify(button));
-                    //console.log("mousedown: " + JSON.stringify(event));
-                }, false);
-                this.canvas.addEventListener('mouseup', () => {
-                    const button: ButtonJson = { "button": { "buttonMask": 0x1, "down": false } };
-                    producer.send(JSON.stringify(button));
-                    //console.log("mouseup: " + JSON.stringify(event));
-                }, false);
-                this.canvas.addEventListener('mousemove', (event) => {
-                    const pos = this.getPos(event);
-                    const motion: MotionJson = { "move": { "x": Math.round(pos.x), "y": Math.round(pos.y) } };
-                    producer.send(JSON.stringify(motion));
-                    //console.log("mousemove : x=" + pos.x + ", y=" + pos.y);
-                }, false);
-
-                this.canvas.addEventListener('contextmenu', (event) => {
-                    event.preventDefault();
-                    const buttonDown: ButtonJson = { "button": { "buttonMask": 0x4, "down": true } };
-                    const buttonUp: ButtonJson = { "button": { "buttonMask": 0x4, "down": false } };
-                    producer.send(JSON.stringify(buttonDown));
-                    producer.send(JSON.stringify(buttonUp));
-                    //console.log(JSON.stringify(event));
-                }, false);
-
-                this.canvas.addEventListener('keydown', (event) => {
-                    event.preventDefault();
-                    const keySim = this.keyborad2(event);
-                    if(keySim){
-                        const key: KeyJson = { "key": {"keySim": keySim, "down": true}};
-                        producer.send(JSON.stringify(key));
-                    }
-                    //console.log("keycode down: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
-                }, false);
-                this.canvas.addEventListener('keyup', (event) => {
-                    event.preventDefault();
-                    const keySim = this.keyborad2(event);
-                    if (keySim) {
-                        const key: KeyJson = { "key": { "keySim": keySim, "down": false } };
-                        producer.send(JSON.stringify(key));
-                    }
-                    //console.log("keycode up: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
-                }, false);
-
-                this.canvas.addEventListener('wheel', (event) => {
-                    event.preventDefault();
-                    if (event.deltaY / 100 > 0){
-                        const button: ButtonJson = { "button": { "buttonMask": 0x10, "down": true } };
-                        producer.send(JSON.stringify(button));
-                    }else {
-                        const button: ButtonJson = { "button": { "buttonMask": 0x8, "down": true } };
-                        producer.send(JSON.stringify(button));
-                    }
-                    //console.log("scroll: "+JSON.stringify(data.wheel));
-                }, false);
-
-            });
+            // console.log(`producer.readyState: ${producer.readyState}`);
+            if(producer.readyState === "open") {
+                this.controlEventListener(producer);
+            }else {
+                producer.on('open', () => {
+                    this.controlEventListener(producer);
+                });
+            }
         }
     }
 
@@ -381,6 +329,65 @@ export class ClientRtc {
 
         //console.log(JSON.stringify(keydata));
         return undefined;
+    }
+
+    private controlEventListener(producer: mediasoupClient.types.DataProducer<mediasoupClient.types.AppData>): void {
+        this.canvas.addEventListener('mousedown', () => {
+            const button: ButtonJson = { "button": { "buttonMask": 0x1, "down": true } };
+            producer.send(JSON.stringify(button));
+            //console.log("mousedown: " + JSON.stringify(event));
+        }, false);
+        this.canvas.addEventListener('mouseup', () => {
+            const button: ButtonJson = { "button": { "buttonMask": 0x1, "down": false } };
+            producer.send(JSON.stringify(button));
+            //console.log("mouseup: " + JSON.stringify(event));
+        }, false);
+        this.canvas.addEventListener('mousemove', (event) => {
+            const pos = this.getPos(event);
+            const motion: MotionJson = { "move": { "x": Math.round(pos.x), "y": Math.round(pos.y) } };
+            producer.send(JSON.stringify(motion));
+            //console.log("mousemove : x=" + pos.x + ", y=" + pos.y);
+        }, false);
+
+        this.canvas.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            const buttonDown: ButtonJson = { "button": { "buttonMask": 0x4, "down": true } };
+            const buttonUp: ButtonJson = { "button": { "buttonMask": 0x4, "down": false } };
+            producer.send(JSON.stringify(buttonDown));
+            producer.send(JSON.stringify(buttonUp));
+            //console.log(JSON.stringify(event));
+        }, false);
+
+        this.canvas.addEventListener('keydown', (event) => {
+            event.preventDefault();
+            const keySim = this.keyborad2(event);
+            if(keySim){
+                const key: KeyJson = { "key": {"keySim": keySim, "down": true}};
+                producer.send(JSON.stringify(key));
+            }
+            //console.log("keycode down: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
+        }, false);
+        this.canvas.addEventListener('keyup', (event) => {
+            event.preventDefault();
+            const keySim = this.keyborad2(event);
+            if (keySim) {
+                const key: KeyJson = { "key": { "keySim": keySim, "down": false } };
+                producer.send(JSON.stringify(key));
+            }
+            //console.log("keycode up: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
+        }, false);
+
+        this.canvas.addEventListener('wheel', (event) => {
+            event.preventDefault();
+            if (event.deltaY / 100 > 0){
+                const button: ButtonJson = { "button": { "buttonMask": 0x10, "down": true } };
+                producer.send(JSON.stringify(button));
+            }else {
+                const button: ButtonJson = { "button": { "buttonMask": 0x8, "down": true } };
+                producer.send(JSON.stringify(button));
+            }
+            //console.log("scroll: "+JSON.stringify(data.wheel));
+        }, false);
     }
 
 // ---------- common use ----------

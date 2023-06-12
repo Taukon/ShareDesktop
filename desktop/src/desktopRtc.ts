@@ -147,9 +147,10 @@ export class DesktopRtc {
     private async sendScreen(): Promise<void> {
         if(this.msScreenTransport){
 
-            const producer = await this.msScreenTransport.produceData();
+            const producer = await this.msScreenTransport.produceData({ordered: false, maxRetransmits: 0});
 
-            //producer.on('open', () => {
+            if(producer.readyState === "open") {
+                // console.log(`producer.readyState: ${producer.readyState}`);
                 this.intervalId = setInterval(() => {
                     try{
                         const img = screenshot.screenshot(this.displayName);
@@ -167,7 +168,28 @@ export class DesktopRtc {
                     }
               
                 }, this.interval);
-            //});
+            }else{
+                console.log(`producer.readyState: ${producer.readyState}`);
+                producer.on('open', () => {
+                    this.intervalId = setInterval(() => {
+                        try{
+                            const img = screenshot.screenshot(this.displayName);
+                  
+                            if (Buffer.compare(img, this.preImg) != 0) {
+                                const [width, height, depth, fb_bpp] = screenshot.getScreenInfo(this.displayName);
+                                if(width && height && depth && fb_bpp){
+                                    const imgJpeg = converter.convert(img, width, height, depth, fb_bpp);
+                                    producer.send(imgJpeg);
+                                    this.preImg = Buffer.from(img.buffer);
+                                }
+                            }
+                        }catch(err){
+                            console.log(err);
+                        }
+                  
+                    }, this.interval);
+                });
+            }
         }
     }
 

@@ -63,7 +63,19 @@ const startDesktop = () => {
                 desktopRtc.initDesktop();
 
                 process.on('exit', (e) => {
-                    console.log(e);
+                    console.log(`exit: ${e}`);
+                    appProcess.stop();
+                    xvfb.stop();
+                });
+
+                process.on('SIGINT', (e) => {
+                    console.log(`SIGINT: ${e}`);
+                    // appProcess.stop();
+                    // xvfb.stop();
+                    process.exit(0);
+                });
+                process.on('uncaughtException', (e) => {
+                    console.log(`uncaughtException: ${e}`);
                     appProcess.stop();
                     xvfb.stop();
                 });
