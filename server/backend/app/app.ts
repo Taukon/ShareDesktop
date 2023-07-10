@@ -10,7 +10,7 @@ import {
 } from 'mediasoup/node/lib/types';
 import * as mediasoupClientType from "mediasoup-client/lib/types";
 import { Server } from 'socket.io';
-import { serverRtc } from "../lib/index.js";
+import { serverRtc } from "../lib/serverRtc";
 
 
 //import { exec } from "child_process";

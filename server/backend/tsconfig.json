@@ -1,17 +1,13 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    //"module": "commonjs",
-    "module": "ESNext",
+    "module": "commonjs",
     "lib": [
       "es2020"
     ],
-    "sourceMap": true,
-    "outDir": "./dist",
-    "rootDir": "./",
     "strict": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedParameters": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
@@ -20,24 +16,6 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationMap": true,
+    "forceConsistentCasingInFileNames": true
   },
-  
-  //"files": [
-    //"./lib/class.ts",
-    //"./app/app.ts",
-    //"./app_no_audio/app_no_audio.ts"
-  //],
-  "include": [
-    "app/**/*",
-    "app_no_audio/**/*",
-    "lib/**/*",
-  ],
-  "exclude": [
-    "dist",
-    "node_modules"
-  ],
-  "compileOnSave": false
 }
