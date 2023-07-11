@@ -2,8 +2,8 @@ const path = require('path');
 const nodeExternals = require('webpack-node-externals');
 
 module.exports = {
-  mode: 'development',
-  //mode: "production",
+  //mode: 'development',
+  mode: "production",
 
   target: 'node',
   externals: [nodeExternals()], 
@@ -22,6 +22,7 @@ module.exports = {
     rules: [
       {
         test: /\.ts$/,
+        exclude: /node_modules/,
         use: [
             {
               loader: "ts-loader", 
