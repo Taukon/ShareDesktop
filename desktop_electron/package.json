@@ -1,0 +1,50 @@
+{
+  "name": "desktop_electron",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/main.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install": "node-gyp rebuild",
+    "configure": "node-gyp configure",
+    "build": "node-gyp build",
+    "dev": "webpack --mode development --progress",
+    "prod": "webpack --mode production --progress",
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "gypfile": true,
+  "devDependencies": {
+    "@types/bindings": "^1.5.1",
+    "@types/mini-css-extract-plugin": "^2.5.1",
+    "@types/node": "^20.4.1",
+    "@types/react": "^18.2.14",
+    "@types/react-dom": "^18.2.6",
+    "css-loader": "^6.8.1",
+    "html-webpack-plugin": "^5.5.3",
+    "mini-css-extract-plugin": "^2.7.6",
+    "ts-loader": "^9.4.4",
+    "typescript": "^5.1.6",
+    "webpack": "^5.88.1",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "bindings": "^1.5.0",
+    "buffer": "^6.0.3",
+    "copyfiles": "^2.4.1",
+    "electron": "^25.2.0",
+    "mediasoup-client": "^3.6.93",
+    "node": "^20.4.0",
+    "node-addon-api": "^7.0.0",
+    "node-gyp": "^9.4.0",
+    "node-loader": "^2.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "socket.io-client": "^4.7.1"
+  }
+}
