@@ -1,10 +1,9 @@
 import { io, Socket } from 'socket.io-client';
 import * as mediasoupClient from 'mediasoup-client';
-
 import { Chrome111 } from 'mediasoup-client/lib/handlers/Chrome111.js';
 
-// import { ChildProcess, exec } from "child_process";
 import { Buffer } from 'buffer';
+import { AudioData, ControlData } from '../util/type';
 // @ts-ignore
 window.Buffer = Buffer;
 
@@ -18,9 +17,9 @@ export class DesktopRtc {
     private intervalId?: NodeJS.Timer;
 
     private preImg = Buffer.alloc(0);   // --- Screen Image Buffer jpeg 
-    // private ffmpegPS?: ChildProcess;   // ---ffmpeg process
+    private ffmpegPid?: number;   // ---ffmpeg process
     // // --- for ffmpeg
-    // private pulseAudioDevice = 1;
+    private pulseAudioDevice = 1;
     // // --- end ffmpeg
 
 
@@ -42,7 +41,7 @@ export class DesktopRtc {
         this.msControlTransport = await this.createControlTransport();
         this.msScreenTransport = await this.createScreenTransport();
 
-        // this.getAudio();
+        this.getAudio();
         this.getControl();
         this.sendScreen();
         //this.sendFullScreen();
@@ -60,16 +59,9 @@ export class DesktopRtc {
     }
 
     public deleteDesktop(): void {
-        // if (this.ffmpegPS?.pid) {
-        //     try {
-        //         const pid = this.ffmpegPS.pid;
-        //         process.kill(pid + 1);
-        //         process.kill(pid);
-        //         console.log("delete ffmpeg process Id: " + pid + ", " + (pid + 1));
-        //     } catch (error) {
-        //         console.log(error);
-        //     }
-        // }
+        if (this.ffmpegPid) {
+            window.api.stopAudio(this.ffmpegPid);
+        }
 
         console.log("disconnect clear intervalId: " + this.intervalId);
         clearInterval(this.intervalId);
@@ -238,20 +230,7 @@ export class DesktopRtc {
 
             consumer.on('message', msg => {
                 const buf = Buffer.from(msg as ArrayBuffer);
-                const data: {
-                    move?: {
-                        x: number|undefined,
-                        y: number|undefined,
-                    },
-                    button?: {
-                        buttonMask: number|undefined,
-                        down: boolean|undefined
-                    },
-                    key?: {
-                        keySim: number|undefined,
-                        down: boolean|undefined
-                    }
-                } = JSON.parse(buf.toString());
+                const data: ControlData = JSON.parse(buf.toString());
                 //console.log(data);
 
                 window.api.testControl(this.displayName, data);
@@ -260,35 +239,17 @@ export class DesktopRtc {
     }
 
     // ----------- audio -------------
-    // private async getAudio(): Promise<void> {
-    //     const params = await this.sendRequest('establishDesktopAudio', this.desktopId);
-    //     if(params){
-    //         // const buf = Buffer.from(data as ArrayBuffer);
-    //         // const msg = JSON.parse(buf.toString());
-    //         const msg = params;
-    //         console.log(msg);
+    private async getAudio(): Promise<void> {
+        const params: AudioData = await this.sendRequest('establishDesktopAudio', this.desktopId);
+        if(params){
+            // const buf = Buffer.from(data as ArrayBuffer);
+            // const msg = JSON.parse(buf.toString());
+            const msg = params;
+            console.log(msg);
 
-    //         let command: string|undefined = undefined;
-
-    //         if (msg.ip_addr && msg.rtp && !(msg.rtcp) && !(msg.srtpParameters)){
-    //         command = `ffmpeg -f pulse -i ${this.pulseAudioDevice} -map 0:a:0 -acodec libopus -ab 128k -ac 2 -ar 48000 -ssrc 11111111 -payload_type 101 -f rtp rtp://${msg.ip_addr}:${msg.rtp}`;
-
-    //         } else if (msg.ip_addr && msg.rtp && msg.rtcp && !(msg.srtpParameters)) {
-    //             command = `ffmpeg -f pulse -i ${this.pulseAudioDevice} -map 0:a:0 -acodec libopus -ab 128k -ac 2 -ar 48000 -ssrc 11111111 -payload_type 101 -f rtp rtp://${msg.ip_addr}:${msg.rtp}?rtcpport=${msg.rtcp}`;
-
-    //         } else if (msg.ip_addr && msg.rtp && !(msg.rtcp) && msg.srtpParameters) {
-    //             command = `ffmpeg -f pulse -i ${this.pulseAudioDevice} -map 0:a:0 -acodec libopus -ab 128k -ac 2 -ar 48000 -ssrc 11111111 -payload_type 101 -f rtp -srtp_out_suite ${msg.srtpParameters.cryptoSuite} -srtp_out_params ${msg.srtpParameters.keyBase64} srtp://${msg.ip_addr}:${msg.rtp}`;
-
-    //         } else if (msg.ip_addr && msg.rtp && msg.rtcp && msg.srtpParameters){
-    //             command = `ffmpeg -f pulse -i ${this.pulseAudioDevice} -map 0:a:0 -acodec libopus -ab 128k -ac 2 -ar 48000 -ssrc 11111111 -payload_type 101 -f rtp -srtp_out_suite ${msg.srtpParameters.cryptoSuite} -srtp_out_params ${msg.srtpParameters.keyBase64} srtp://${msg.ip_addr}:${msg.rtp}?rtcpport=${msg.rtcp}`;
-    //         }
-
-    //         if(command){
-    //             //console.log(command);
-    //             this.ffmpegPS = exec(command);
-    //         }
-    //     }
-    // }
+            this.ffmpegPid = await window.api.getAudio(this.pulseAudioDevice, msg);
+        }
+    }
 
 
     // ---------- common use ----------

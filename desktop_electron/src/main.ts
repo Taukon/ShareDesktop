@@ -8,11 +8,12 @@ import { app, BrowserWindow, ipcMain } from "electron";
 
 import {screenshot, converter, xtest} from "./x11lib";
 
-//import { ChildProcess, exec } from "child_process";
+import { exec } from "child_process";
 
 import { Xvfb } from './xvfb';
 import { AppProcess } from './appProcess';
 import { networkInterfaces } from "os";
+import { AudioData, ControlData } from './util/type';
 
 
 const createWindow = () => {
@@ -41,7 +42,7 @@ app.whenReady().then(async () => {
 app.once('window-all-closed', () => app.quit());
 
 
-ipcMain.handle("testControl", (event: Electron.IpcMainInvokeEvent, displayName: string, data: any) => {
+ipcMain.handle("testControl", (event: Electron.IpcMainInvokeEvent, displayName: string, data: ControlData) => {
     if (data.move?.x != undefined && data.move?.y != undefined) {
         try {
             //mymoveMouse(data.move.x, data.move.y);
@@ -51,7 +52,7 @@ ipcMain.handle("testControl", (event: Electron.IpcMainInvokeEvent, displayName: 
             console.error(error);
         }
     }
-    else if (data.button && "buttonMask" in data.button && "down" in data.button){
+    else if (data.button?.buttonMask != undefined && data.button.down != undefined){
         try {
             //console.log("try: " + data.button.buttonMask + " : " + data.button.down);
             xtest.testButtonEvent(displayName, data.button.buttonMask, data.button.down)
@@ -59,7 +60,7 @@ ipcMain.handle("testControl", (event: Electron.IpcMainInvokeEvent, displayName: 
             console.error(error);
         }
     }
-    else if (data.key && "keySim" in data.key && "down" in data.key){
+    else if (data.key?.keySim != undefined && data.key.down != undefined){
         try {
             //console.log("try: " + data.key.keySim + " : " + data.key.down);
             xtest.testKeyEvent(displayName, data.key.keySim, data.key.down);
@@ -139,7 +140,40 @@ ipcMain.handle("startApp", (event: Electron.IpcMainInvokeEvent, displayNum: numb
   }
 );
 
+ipcMain.handle("getAudio", (event: Electron.IpcMainInvokeEvent, pulseAudioDevice: number, data: AudioData) => {
+    let command: string|undefined = undefined;
 
+    if (data.ip_addr && data.rtp && !(data.rtcp) && !(data.srtpParameters)){
+    command = `ffmpeg -f pulse -i ${pulseAudioDevice} -map 0:a:0 -acodec libopus -ab 128k -ac 2 -ar 48000 -ssrc 11111111 -payload_type 101 -f rtp rtp://${data.ip_addr}:${data.rtp}`;
+
+    } else if (data.ip_addr && data.rtp && data.rtcp && !(data.srtpParameters)) {
+        command = `ffmpeg -f pulse -i ${pulseAudioDevice} -map 0:a:0 -acodec libopus -ab 128k -ac 2 -ar 48000 -ssrc 11111111 -payload_type 101 -f rtp rtp://${data.ip_addr}:${data.rtp}?rtcpport=${data.rtcp}`;
+
+    } else if (data.ip_addr && data.rtp && !(data.rtcp) && data.srtpParameters) {
+        command = `ffmpeg -f pulse -i ${pulseAudioDevice} -map 0:a:0 -acodec libopus -ab 128k -ac 2 -ar 48000 -ssrc 11111111 -payload_type 101 -f rtp -srtp_out_suite ${data.srtpParameters.cryptoSuite} -srtp_out_params ${data.srtpParameters.keyBase64} srtp://${data.ip_addr}:${data.rtp}`;
+
+    } else if (data.ip_addr && data.rtp && data.rtcp && data.srtpParameters){
+        command = `ffmpeg -f pulse -i ${pulseAudioDevice} -map 0:a:0 -acodec libopus -ab 128k -ac 2 -ar 48000 -ssrc 11111111 -payload_type 101 -f rtp -srtp_out_suite ${data.srtpParameters.cryptoSuite} -srtp_out_params ${data.srtpParameters.keyBase64} srtp://${data.ip_addr}:${data.rtp}?rtcpport=${data.rtcp}`;
+    }
+
+    if(command){
+        //console.log(command);
+        return exec(command).pid;
+    }
+    return undefined;
+  }
+);
+
+ipcMain.handle("stopAudio", (event: Electron.IpcMainInvokeEvent, ffmpegPid: number) => {
+    try {
+        process.kill(ffmpegPid + 1);
+        process.kill(ffmpegPid);
+        console.log("delete ffmpeg process Id: " + ffmpegPid + ", " + (ffmpegPid + 1));
+    } catch (error) {
+        console.log(error);
+    }
+  }
+);
 
 const getIpAddress = (): string | undefined => {
     const nets = networkInterfaces();

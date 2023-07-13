@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import { AudioData } from "./util/type";
 
 export const controlObject = {
   testControl: async (displayName: string, data: any) : Promise<void> => {
@@ -17,9 +18,16 @@ export const controlObject = {
     return result;
   },
   getAddress: async (): Promise<string> => {
-    const ipAddr = await ipcRenderer.invoke('getAddress');
+    const ipAddr: string = await ipcRenderer.invoke('getAddress');
     return ipAddr;
   },
+  getAudio: async (pulseAudioDevice: number, data: AudioData): Promise<number|undefined> => {
+    const ffmpegPid: number|undefined = await ipcRenderer.invoke('getAudio', pulseAudioDevice, data);
+    return ffmpegPid;
+  },
+  stopAudio: async (ffmpegPid :number): Promise<void> => {
+    await ipcRenderer.invoke('stopAudio', ffmpegPid);
+  }
 }
 
 contextBridge.exposeInMainWorld('api', controlObject);
