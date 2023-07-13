@@ -14,7 +14,7 @@
     "build": "node-gyp build",
     "rebuild": "node-gyp rebuild",
     "tsc": "tsc",
-    "start": "DISPLAY=:1 NODE_TLS_REJECT_UNAUTHORIZED='0' node ./dist/desktop_client.js"
+    "start": "NODE_TLS_REJECT_UNAUTHORIZED='0' node ./dist/desktop_client.js"
   },
   "keywords": [],
   "author": "",

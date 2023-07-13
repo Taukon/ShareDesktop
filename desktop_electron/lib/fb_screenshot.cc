@@ -101,7 +101,8 @@ Napi::Value screenshot(const Napi::CallbackInfo &info)
     size_t msize;
     char *img = getImg(&msize, display_name);
 
-    return Napi::Buffer<char>::New(env, img, msize, cleanup);
+    //return Napi::Buffer<char>::New(env, img, msize, cleanup);
+    return Napi::Buffer<char>::NewOrCopy(env, img, msize, cleanup);
 }
 
 Napi::Value getScreenInfo(const Napi::CallbackInfo &info)
@@ -237,7 +238,8 @@ Napi::Value screenshotFull(const Napi::CallbackInfo &info)
     size_t msize;
     char *img = getImgFull(&msize, display_name);
 
-    return Napi::Buffer<char>::New(env, img, msize, cleanup);
+    //return Napi::Buffer<char>::New(env, img, msize, cleanup);
+    return Napi::Buffer<char>::NewOrCopy(env, img, msize, cleanup);
 }
 
 Napi::Value getFullScreenInfo(const Napi::CallbackInfo &info)

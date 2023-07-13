@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { ClientRtc } from "../lib/index.js";
+import { ClientRtc } from "../lib/clientRtc";
 let clientList: ClientRtc[] = [];
 let socket: Socket;
 

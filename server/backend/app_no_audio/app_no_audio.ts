@@ -10,7 +10,7 @@ import {
 } from 'mediasoup/node/lib/types';
 import * as mediasoupClientType from "mediasoup-client/lib/types";
 import { Server } from 'socket.io';
-import { serverRtc } from "../lib/index.js";
+import { serverRtc } from "../lib/serverRtc";
 
 
 //import { exec } from "child_process";
@@ -41,6 +41,9 @@ const transportOption: WebRtcTransportOptions = {
             ip: ip_addr
         },
     ],
+    enableUdp: true,
+    enableTcp: true,
+    preferUdp: true,
     enableSctp: true,
 };
 
@@ -72,7 +75,7 @@ const options = {
 // --- WebSocket Server For Client ---
 const httpsServerForClient = https.createServer(options, app);
 httpsServerForClient.listen(clientPort, () => {
-    console.log('https://' + ip_addr + ':' + clientPort + '/webRTC_client.html');
+    console.log('https://' + ip_addr + ':' + clientPort + '/webRTC_client_no_audio.html');
 });
 const clientServer = new Server(httpsServerForClient);
 
