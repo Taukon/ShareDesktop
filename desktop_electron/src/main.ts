@@ -1,18 +1,10 @@
 import path from 'path';
-import { app, BrowserWindow, ipcMain } from "electron";
-
-// import bindings from 'bindings';
-// const screenshot = bindings('screenshot');
-// const converter = bindings('converter');
-// const xtest = bindings('xtest');
-
-import {screenshot, converter, xtest} from "./x11lib";
-
+import { networkInterfaces } from "os";
 import { exec } from "child_process";
-
+import { app, BrowserWindow, ipcMain } from "electron";
+import {screenshot, converter, xtest} from "./x11lib";
 import { Xvfb } from './xvfb';
 import { AppProcess } from './appProcess';
-import { networkInterfaces } from "os";
 import { AudioData, ControlData } from './util/type';
 
 
@@ -45,7 +37,6 @@ app.once('window-all-closed', () => app.quit());
 ipcMain.handle("testControl", (event: Electron.IpcMainInvokeEvent, displayName: string, data: ControlData) => {
     if (data.move?.x != undefined && data.move?.y != undefined) {
         try {
-            //mymoveMouse(data.move.x, data.move.y);
             //console.log("try: "+data.move.x +" :"+ data.move.y);
             xtest.testMotionEvent(displayName, data.move.x, data.move.y)
         } catch (error) {

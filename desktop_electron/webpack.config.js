@@ -1,6 +1,4 @@
 const path = require('path');
-
-/** エディタで補完を効かせるために型定義をインポート */
 const { DefinePlugin } = require('webpack');
 
 const HtmlWebpackPlugin = require('html-webpack-plugin');
