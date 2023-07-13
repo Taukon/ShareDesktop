@@ -4,6 +4,7 @@ import { Chrome111 } from 'mediasoup-client/lib/handlers/Chrome111.js';
 
 import { Buffer } from 'buffer';
 import { AudioData, ControlData } from '../util/type';
+import { keyboradX11 } from '../util/keyboardX11';
 // @ts-ignore
 window.Buffer = Buffer;
 
@@ -16,6 +17,11 @@ export class DesktopRtc {
     private interval: number;
     private intervalId?: NodeJS.Timer;
 
+    public localScreen?: {
+        canvas: HTMLCanvasElement,
+        image: HTMLImageElement
+    }
+
     private preImg = Buffer.alloc(0);   // --- Screen Image Buffer jpeg 
     private ffmpegPid?: number;   // ---ffmpeg process
     // // --- for ffmpeg
@@ -27,12 +33,25 @@ export class DesktopRtc {
     private msControlTransport?: mediasoupClient.types.Transport;
     private msScreenTransport?: mediasoupClient.types.Transport;
 
-    constructor(displayNum: number, desktopId: string, socket: Socket, interval: number){
+    constructor(displayNum: number, desktopId: string, socket: Socket, interval: number, canvas?: HTMLCanvasElement){
         this.displayName = `:${displayNum}`;
 
         this.desktopId = desktopId;
         this.sock = socket;
         this.interval = interval;
+
+        if(canvas){
+            this.localScreen = {canvas: canvas, image: new Image()};
+            this.localScreen.canvas.setAttribute('tabindex', String(0));
+            this.localScreen.image.onload = () => {
+                if(this.localScreen){
+                    this.localScreen.canvas.width = this.localScreen.image.width;
+                    this.localScreen.canvas.height = this.localScreen.image.height;
+                    this.localScreen.canvas.getContext('2d')?.drawImage(this.localScreen.image, 0, 0);
+                }
+            }
+        }
+
     }
 
     public async initDesktop(): Promise<void> {
@@ -43,6 +62,9 @@ export class DesktopRtc {
 
         this.getAudio();
         this.getControl();
+        if(this.localScreen){
+            this.controlEventListener(this.localScreen.canvas);
+        }
         this.sendScreen();
         //this.sendFullScreen();
     }
@@ -54,6 +76,9 @@ export class DesktopRtc {
         this.msScreenTransport = await this.createScreenTransport();
 
         this.getControl();
+        if(this.localScreen){
+            this.controlEventListener(this.localScreen.canvas);
+        }
         await this.sendScreen();
         //this.sendFullScreen();
     }
@@ -148,6 +173,9 @@ export class DesktopRtc {
                         const img = await window.api.getScreenshot(this.displayName);
                         if(img){
                             if (Buffer.compare(img, this.preImg) != 0) {
+                                //
+                                this.displayScreen(img);
+                                //
                                 producer.send(img);
                                 this.preImg = Buffer.from(img.buffer);
                             }
@@ -165,6 +193,9 @@ export class DesktopRtc {
                             const img = await window.api.getScreenshot(this.displayName);
                             if(img){
                                 if (Buffer.compare(img, this.preImg) != 0) {
+                                    //
+                                    this.displayScreen(img);
+                                    //
                                     producer.send(img);
                                     this.preImg = Buffer.from(img.buffer);
                                 }
@@ -191,6 +222,9 @@ export class DesktopRtc {
                         const img = await window.api.getFullScreenshot(this.displayName);
                         if(img){
                             if (Buffer.compare(img, this.preImg) != 0) {
+                                //
+                                this.displayScreen(img);
+                                //
                                 producer.send(img);
                                 this.preImg = Buffer.from(img.buffer);
                             }
@@ -208,6 +242,9 @@ export class DesktopRtc {
                             const img = await window.api.getFullScreenshot(this.displayName);
                             if(img){
                                 if (Buffer.compare(img, this.preImg) != 0) {
+                                    //
+                                    this.displayScreen(img);
+                                    //
                                     producer.send(img);
                                     this.preImg = Buffer.from(img.buffer);
                                 }
@@ -251,12 +288,81 @@ export class DesktopRtc {
         }
     }
 
-
     // ---------- common use ----------
 
     private async sendRequest(type: string, data: any): Promise<any> {
         return new Promise((resolve) => {
             this.sock.emit(type, data, (res: any) => resolve(res));
         });
-    }  
+    }
+    
+    // ------------ for local canvas ----------------
+
+    private displayScreen(img: Buffer): void {
+        if(this.localScreen){
+            const imgBase64 = btoa(new Uint8Array(img).reduce((data, byte) => data + String.fromCharCode(byte), ''));
+            this.localScreen.image.src = 'data:image/jpeg;base64,' + imgBase64;
+        }
+    }
+
+    private controlEventListener(canvas: HTMLCanvasElement): void {
+        canvas.addEventListener('mousedown', () => {
+            const button = { "button": { "buttonMask": 0x1, "down": true } };
+            window.api.testControl(this.displayName, button);
+            //console.log("mousedown: " + JSON.stringify(event));
+        }, false);
+        canvas.addEventListener('mouseup', () => {
+            const button = { "button": { "buttonMask": 0x1, "down": false } };
+            window.api.testControl(this.displayName, button);
+            //console.log("mouseup: " + JSON.stringify(event));
+        }, false);
+        canvas.addEventListener('mousemove', (event) => {
+            const mouseX = event.clientX - canvas.getBoundingClientRect().left;
+            const mouseY = event.clientY - canvas.getBoundingClientRect().top;;
+            const motion = { "move": { "x": Math.round(mouseX), "y": Math.round(mouseY) } };
+            window.api.testControl(this.displayName, motion);
+            //console.log("mousemove : x=" + mouseX + ", y=" + mouseY);
+        }, false);
+
+        canvas.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            const buttonDown = { "button": { "buttonMask": 0x4, "down": true } };
+            const buttonUp = { "button": { "buttonMask": 0x4, "down": false } };
+            window.api.testControl(this.displayName, buttonDown);
+            window.api.testControl(this.displayName, buttonUp);
+            //console.log(JSON.stringify(event));
+        }, false);
+
+        canvas.addEventListener('keydown', (event) => {
+            event.preventDefault();
+            const keySim = keyboradX11(event);
+            if(keySim){
+                const key = { "key": {"keySim": keySim, "down": true}};
+                window.api.testControl(this.displayName, key);
+            }
+            //console.log("keycode down: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
+        }, false);
+        canvas.addEventListener('keyup', (event) => {
+            event.preventDefault();
+            const keySim = keyboradX11(event);
+            if (keySim) {
+                const key = { "key": { "keySim": keySim, "down": false } };
+                window.api.testControl(this.displayName, key);
+            }
+            //console.log("keycode up: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
+        }, false);
+
+        canvas.addEventListener('wheel', (event) => {
+            event.preventDefault();
+            if (event.deltaY / 100 > 0){
+                const button = { "button": { "buttonMask": 0x10, "down": true } };
+                window.api.testControl(this.displayName, button);
+            }else {
+                const button = { "button": { "buttonMask": 0x8, "down": true } };
+                window.api.testControl(this.displayName, button);
+            }
+            //console.log("scroll: "+JSON.stringify(data.wheel));
+        }, false);
+    }
+     
 }

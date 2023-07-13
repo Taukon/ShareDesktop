@@ -12,15 +12,24 @@ const start = async () => {
   const socket = io(`https://${ip_addr}:3100`, { secure: true, rejectUnauthorized: false});
   //const socket = io(`https://${ip_addr}:3100`);
 
+  const elementScreen = document.getElementById('screen');
+
   const isStart = await window.api.startApp(displayNum);
   if(isStart){
     socket.on('desktopId', msg => {
       if(typeof msg === 'string'){
           console.log(`desktopId: ${msg}`);
           
-          const desktopRtc = new DesktopRtc(displayNum, msg, socket, interval);
+          const canvas = elementScreen ? document.createElement("canvas") : undefined;
+          if (elementScreen && canvas) {
+            elementScreen.appendChild(canvas);
+          }
+
+          const desktopRtc = new DesktopRtc(displayNum, msg, socket, interval, canvas);
+          //const desktopRtc = new DesktopRtc(displayNum, msg, socket, interval);
           desktopRtc.initDesktopNoAudio();
           //desktopRtc.initDesktop();
+          
   
           socket.on('disconnect', () => {
               desktopRtc.deleteDesktop();
