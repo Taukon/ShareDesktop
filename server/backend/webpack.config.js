@@ -8,7 +8,6 @@ module.exports = {
   target: 'node',
   externals: [nodeExternals()], 
 
-  // エントリポイントとなるコード
   entry: {
     app: path.join(__dirname, 'app','app.ts'),
     app_no_audio: path.join(__dirname, 'app_no_audio','app_no_audio.ts'),

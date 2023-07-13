@@ -3,9 +3,6 @@
 // export const converter = bindings('converter');
 // export const xtest = bindings('xtest');
 
-
-//const nodePath = path.dirname(__dirname) + '/build/Release/.node';
-
 const path = require('path'); 
 const screenshotPath = path.join(__dirname, '../build/Release/screenshot.node');
 export const screenshot = __non_webpack_require__(screenshotPath);

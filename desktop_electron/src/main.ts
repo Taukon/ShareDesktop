@@ -15,9 +15,6 @@ import { AppProcess } from './appProcess';
 import { networkInterfaces } from "os";
 
 
-/**
- * BrowserWindowインスタンスを作成する関数
- */
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
     webPreferences: {
@@ -27,29 +24,23 @@ const createWindow = () => {
     },
   });
 
-  // 開発時にはデベロッパーツールを開く
+
   if (process.env.NODE_ENV === 'development') {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 
-  // レンダラープロセスをロード
   mainWindow.loadFile('dist/index.html');
 };
 
-/**
- * アプリを起動する準備が完了したら BrowserWindow インスタンスを作成し、
- * レンダラープロセス（index.htmlとそこから呼ばれるスクリプト）を
- * ロードする
- */
+
 app.whenReady().then(async () => {
-  // BrowserWindow インスタンスを作成
   createWindow();
 });
 
-// すべてのウィンドウが閉じられたらアプリを終了する
+
 app.once('window-all-closed', () => app.quit());
 
-//////
+
 ipcMain.handle("testControl", (event: Electron.IpcMainInvokeEvent, displayName: string, data: any) => {
     if (data.move?.x != undefined && data.move?.y != undefined) {
         try {
@@ -148,14 +139,13 @@ ipcMain.handle("startApp", (event: Electron.IpcMainInvokeEvent, displayNum: numb
   }
 );
 
-//////
+
 
 const getIpAddress = (): string | undefined => {
     const nets = networkInterfaces();
     const net = nets["eth0"]?.find((v) => v.family == "IPv4");
     return net ? net.address : undefined;
 }
-
 ipcMain.handle("getAddress", (event: Electron.IpcMainInvokeEvent) => {
     const ip_addr = getIpAddress()?? "127.0.0.1"; // --- IP Address
     return ip_addr;
@@ -163,10 +153,6 @@ ipcMain.handle("getAddress", (event: Electron.IpcMainInvokeEvent) => {
 );
 
 app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
-  
-    // Prevent having error
     event.preventDefault()
-    // and continue
     callback(true)
-
-})
+});

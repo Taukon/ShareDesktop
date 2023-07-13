@@ -6,13 +6,11 @@ module.exports = {
 
   target: 'web',
 
-  // エントリポイントとなるコード
   entry: {
     app: path.join(__dirname, 'app','app.ts'),
     app_no_audio: path.join(__dirname, 'app_no_audio','app_no_audio.ts'),
   },
 
-  // バンドル後の js ファイルの出力先
   output: {
     path: path.resolve("..", "public"),
     filename: "[name].js",
