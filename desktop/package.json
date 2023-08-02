@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "type": "module",
   "directories": {
     "lib": "lib"
   },
@@ -13,7 +12,8 @@
     "configure": "node-gyp configure",
     "build": "node-gyp build",
     "rebuild": "node-gyp rebuild",
-    "tsc": "tsc",
+    "dev": "webpack --mode development --progress",
+    "prod": "webpack --mode production --progress",
     "start": "NODE_TLS_REJECT_UNAUTHORIZED='0' node ./dist/desktop_client.js"
   },
   "keywords": [],
@@ -32,6 +32,10 @@
   },
   "devDependencies": {
     "@types/bindings": "^1.5.1",
-    "@types/node": "^18.16.3"
+    "@types/node": "^18.16.3",
+    "node-loader": "^2.0.0",
+    "ts-loader": "^9.4.4",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.1.4"
   }
 }

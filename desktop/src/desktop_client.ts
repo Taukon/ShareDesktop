@@ -1,6 +1,6 @@
 // sudo apt install libx11-dev libjpeg-dev libxtst-dev
 
-import { loadWrtc } from './wrtc.js';
+import { loadWrtc } from './wrtc';
 
 loadWrtc();
 
@@ -21,9 +21,9 @@ loadWrtc();
 import { io } from 'socket.io-client';
 
 import { networkInterfaces } from "os";
-import { DesktopRtc } from './desktopRtc.js';
-import { Xvfb } from './xvfb.js';
-import { AppProcess } from './appProcess.js';
+import { DesktopRtc } from './desktopRtc';
+import { Xvfb } from './xvfb';
+import { AppProcess } from './appProcess';
 
 const getIpAddress = (): string | undefined => {
   const nets = networkInterfaces();

@@ -1,12 +1,9 @@
-import { io, Socket } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
 import * as mediasoupClient from 'mediasoup-client';
 
 import { Chrome111 } from 'mediasoup-client/lib/handlers/Chrome111.js';
 
-import bindings from 'bindings';
-const screenshot = bindings('screenshot');
-const converter = bindings('converter');
-const xtest = bindings('xtest');
+import {screenshot, converter, xtest} from "./x11lib";
 import { ChildProcess, exec } from "child_process";
 
 export class DesktopRtc {

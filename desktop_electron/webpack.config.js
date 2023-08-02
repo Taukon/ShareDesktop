@@ -9,6 +9,13 @@ const isDev = process.env.NODE_ENV === 'development';
 
 const main = {
   mode: isDev ? 'development' : 'production',
+
+  target: 'electron-main',
+  //target: 'node',
+  entry: {
+    main: './src/main.ts',
+  },
+
   node: {
     __dirname: false,
     __filename: false,
@@ -34,16 +41,17 @@ const main = {
       },
     ],
   },
-  target: 'electron-main',
-  //target: 'node',
-  entry: {
-    main: './src/main.ts',
-  },
 };
 
 
 const preload = {
   mode: isDev ? 'development' : 'production',
+
+  target: 'electron-preload',
+  entry: {
+    preload: './src/preload.ts',
+  },
+
   node: {
     __dirname: false,
     __filename: false,
@@ -65,15 +73,17 @@ const preload = {
       },
     ],
   },
-  target: 'electron-preload',
-  entry: {
-    preload: './src/preload.ts',
-  },
 };
 
 
 const renderer = {
   mode: 'production',
+
+  target: 'web',
+  entry: {
+    renderer: './src/web/renderer.ts',
+  },
+  
   node: {
     __dirname: false,
     __filename: false,
@@ -116,10 +126,6 @@ const renderer = {
     })
   ],
 
-  target: 'web',
-  entry: {
-    renderer: './src/web/renderer.ts',
-  },
   plugins: [
     new HtmlWebpackPlugin({
       template: './src/index.html',
