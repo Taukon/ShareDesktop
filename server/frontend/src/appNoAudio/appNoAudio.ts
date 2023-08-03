@@ -1,10 +1,13 @@
 import { io, Socket } from 'socket.io-client';
-import { ClientRtc } from "../lib/clientRtc";
-let clientList: ClientRtc[] = [];
+import { BrowserWebRTC } from '../browser'
+
+let clientList: BrowserWebRTC[] = [];
 let socket: Socket;
+
 
 const sendButton: HTMLButtonElement = <HTMLButtonElement>document.getElementById("sendButton");
 sendButton.onclick = () => start();
+
 
 function start() {
     const elementInputMessage: HTMLInputElement = <HTMLInputElement>document.getElementById('inputText');
@@ -15,17 +18,17 @@ function start() {
     }
     //document.getElementById('inputText').value = '';
 
-    if (!socket) {
+    if (socket == null) {
         socket = createWebSocket();
     }
 
-    const clientRtc = new ClientRtc(inputMessage, socket, true);
+    const client = new BrowserWebRTC(inputMessage, socket, false);
 
     const elementScreen = document.getElementById('screen');
     if (elementScreen) {
-        elementScreen.appendChild(clientRtc.canvas);
+        elementScreen.appendChild(client.canvas);
         clientList.forEach((value, key) => {
-            if (value.desktopId == clientRtc.desktopId) {
+            if (value.desktopId == client.desktopId) {
                 elementScreen.removeChild(elementScreen.childNodes.item(key));
                 //console.log("key: " + key + ", " + clientList[key].desktopAddress);
                 //console.log(document.getElementById('screen').childNodes);
@@ -34,9 +37,8 @@ function start() {
             }
         })
     }
-    
-    clientList.push(clientRtc);
-    clientRtc.join();
+
+    clientList.push(client);
 }
 
 const createWebSocket = (): Socket => {

@@ -1,4 +1,5 @@
 const path = require('path');
+const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = {
   //mode: 'development',
@@ -7,8 +8,8 @@ module.exports = {
   target: 'web',
 
   entry: {
-    app: path.join(__dirname, 'app','app.ts'),
-    app_no_audio: path.join(__dirname, 'app_no_audio','app_no_audio.ts'),
+    app: path.join(__dirname, 'src', 'app', 'app.ts'),
+    appNoAudio: path.join(__dirname, 'src', 'appNoAudio', 'appNoAudio.ts'),
   },
 
   output: {
@@ -22,22 +23,17 @@ module.exports = {
         use: [
             {
               loader: "ts-loader", 
-            //   options: {
-            //     transpileOnly: true,
-            //   },
             },
           ],
       }
     ]
   },
-//   externals: {
-//     bufferutil: "bufferutil",
-//     "utf-8-validate": "utf-8-validate",
-//   },
   resolve: {
     extensions:['.ts', '.js']
   },
-//   optimization: {
-//     minimize: false, // enabling this reduces file size and readability
-//   },
+  optimization: {
+    minimizer: [new TerserPlugin({
+      extractComments: false,
+    })],
+  },
 };
