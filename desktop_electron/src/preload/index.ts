@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { AudioData } from "./util/type";
+import { AudioData } from "../util/type";
 
 export const controlObject = {
   testControl: async (displayName: string, data: any) : Promise<void> => {
