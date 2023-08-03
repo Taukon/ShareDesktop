@@ -3,6 +3,7 @@ const { DefinePlugin } = require('webpack');
 
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -13,7 +14,7 @@ const main = {
   target: 'electron-main',
   //target: 'node',
   entry: {
-    main: './src/main.ts',
+    main: './src/main/index.ts',
   },
 
   node: {
@@ -49,7 +50,7 @@ const preload = {
 
   target: 'electron-preload',
   entry: {
-    preload: './src/preload.ts',
+    preload: './src/preload/index.ts',
   },
 
   node: {
@@ -81,7 +82,7 @@ const renderer = {
 
   target: 'web',
   entry: {
-    renderer: './src/web/renderer.ts',
+    renderer: './src/renderer/index.ts',
   },
   
   node: {
@@ -136,6 +137,11 @@ const renderer = {
     }),
     new MiniCssExtractPlugin(),
   ],
+  optimization: {
+    minimizer: [new TerserPlugin({
+      extractComments: false,
+    })],
+  },
 };
 
 

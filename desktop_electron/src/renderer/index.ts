@@ -1,5 +1,5 @@
 import { io } from 'socket.io-client';
-import { DesktopRtc } from './desktopRtc';
+import { DesktopWebRTC } from './desktop';
 
 const interval = 100;//300;
 const displayNum = 1;
@@ -19,20 +19,25 @@ const start = async () => {
     socket.on('desktopId', msg => {
       if(typeof msg === 'string'){
           console.log(`desktopId: ${msg}`);
-          
-          const canvas = elementScreen ? document.createElement("canvas") : undefined;
-          if (elementScreen && canvas) {
-            elementScreen.appendChild(canvas);
+
+          const desktopWebRTC = new DesktopWebRTC(
+            displayNum, 
+            msg, 
+            socket, 
+            interval,
+            true,
+            false,
+            false
+          );
+
+          if (elementScreen) {
+            elementScreen.appendChild(desktopWebRTC.canvas);
           }
 
-          const desktopRtc = new DesktopRtc(displayNum, msg, socket, interval, canvas);
-          //const desktopRtc = new DesktopRtc(displayNum, msg, socket, interval);
-          desktopRtc.initDesktopNoAudio();
-          //desktopRtc.initDesktop();
           
   
           socket.on('disconnect', () => {
-              desktopRtc.deleteDesktop();
+            desktopWebRTC.deleteDesktop();
           });
       }
     });
