@@ -23,7 +23,6 @@ export class DesktopWebRTC {
     public image: HTMLImageElement;
     public audio?: HTMLAudioElement;
 
-    // private preImg = Buffer.alloc(0);   // --- Screen Image Buffer jpeg 
     private ffmpegPid?: number;   // ---ffmpeg process
     // // --- for ffmpeg
     private pulseAudioDevice = 1;

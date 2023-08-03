@@ -8,8 +8,8 @@ import {
     getControlProducer, 
     getScreenConsumer, 
     recvAudioEventEmitter, 
-    recvScreenEventEmitter, 
-    sendEventEmitter 
+    recvScreenEventEmitter,
+    sendEventEmitter, 
 } from './mediasoup';
 import { controlEventListener } from './canvas';
 

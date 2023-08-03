@@ -72,8 +72,6 @@ export const getControlProducer = async (
     return producer;
 }
 
-// --- Cousumer ---
-//createMediaScreenOrAudio
 export const createRecvTransport = async (
     device: mediasoupClient.types.Device,
     socket: Socket,
@@ -87,6 +85,7 @@ export const createRecvTransport = async (
     );
 
     const transport = device.createRecvTransport(params);
+
     return transport;
 }
 
