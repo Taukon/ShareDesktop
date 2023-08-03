@@ -10,7 +10,7 @@ import {
     createDirectProducer,
     createPlainProducer,
     createRtcTransport
-} from "../common/transport"
+} from "../common"
 import { 
     RtcTransportParams, 
     DataConsumerParams, 

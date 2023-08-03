@@ -1,4 +1,3 @@
-import { startWorker } from "../common/transport";
 import {
     Router,
     RtpCodecCapability,
@@ -6,11 +5,12 @@ import {
     WorkerSettings,
     DtlsParameters
 } from "mediasoup/node/lib/types";
-import { Desktop } from "../desktop/desktop";
-import { Browser } from "../browser/browser";
+import { startWorker } from "./common";
+import { Desktop } from "./desktop";
+import { Browser } from "./browser";
 import * as mediasoupClientType from "mediasoup-client/lib/types";
 
-export class ServerRtc {
+export class ServerWebRTC {
 
     private ipAddr: string;
     private router!: Router;

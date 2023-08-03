@@ -10,7 +10,7 @@ import {
 } from 'mediasoup/node/lib/types';
 import * as mediasoupClientType from "mediasoup-client/lib/types";
 import { Server } from 'socket.io';
-import { ServerRtc } from "../integrate/serverRtc";
+import { ServerWebRTC } from "../serverWebRTC";
 
 
 //import { exec } from "child_process";
@@ -88,7 +88,7 @@ const desktopServer = new Server(httpsServerForDesktop);
 
 // --- MediaSoup Server ---
 
-const serverWebRtc = new ServerRtc(
+const serverWebRtc = new ServerWebRTC(
     limitDesktop,
     limitClient, 
     transportOption, 

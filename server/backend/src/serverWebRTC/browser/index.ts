@@ -7,7 +7,7 @@ import {
 } from 'mediasoup/node/lib/types';
 import * as mediasoupClientType from "mediasoup-client/lib/types";
 import { BrowserTransports, BrowserList, BrowserClientList } from './manage';
-import { createDirectConsumer, createRtcTransport } from '../common/transport';
+import { createDirectConsumer, createRtcTransport } from '../common';
 import { AudioResponse, DataConsumerParams, RtcTransportParams } from './type';
 
 export class Browser {
