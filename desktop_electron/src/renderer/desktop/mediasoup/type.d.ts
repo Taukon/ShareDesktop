@@ -1,12 +1,12 @@
 import * as mediasoupClient from "mediasoup-client";
 
-export type RtcTransportParams = {
-    id: string;
-    iceParameters: mediasoupClient.types.IceParameters;
-    iceCandidates: mediasoupClient.types.IceCandidate[];
-    dtlsParameters: mediasoupClient.types.DtlsParameters;
-    sctpParameters: mediasoupClient.types.SctpParameters;
-};
+// export type RtcTransportParams = {
+//     id: string;
+//     iceParameters: mediasoupClient.types.IceParameters;
+//     iceCandidates: mediasoupClient.types.IceCandidate[];
+//     dtlsParameters: mediasoupClient.types.DtlsParameters;
+//     sctpParameters: mediasoupClient.types.SctpParameters;
+// };
 
 export type TransportParams = { 
     id: string; 
@@ -36,14 +36,5 @@ export type ConsumeDataParams = {
     protocol: string|undefined;
     // appData: any;
 };
-
-export type ConsumeParams = { 
-    id: string|undefined;
-    producerId: string|undefined;
-    kind: "audio"|"video"|undefined; 
-    rtpParameters: mediasoupClient.types.RtpParameters; 
-    streamId: string|undefined;
-    // appData: any;
-}
 
 export type Signaling<T, U> = (params: T) => Promise<U>;

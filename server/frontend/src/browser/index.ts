@@ -1,17 +1,15 @@
 import { Socket } from 'socket.io-client';
 import * as mediasoupClient from "mediasoup-client";
-import { 
-    createDevice, 
-    createRecvTransport, 
-    createSendTransport, 
-    getAudioConsumer, 
-    getControlProducer, 
-    getScreenConsumer, 
-    recvAudioEventEmitter, 
-    recvScreenEventEmitter,
-    sendEventEmitter, 
-} from './mediasoup';
 import { controlEventListener } from './canvas';
+import { 
+    createControlTransport, 
+    createDevice, 
+    createScreenTransport, 
+    getScreenConsumer,
+    getControlProducer,
+    createAudioTransport,
+    getAudioConsumer
+} from './browser';
 
 export class BrowserWebRTC {
     public desktopId: string;
@@ -20,11 +18,6 @@ export class BrowserWebRTC {
     public canvas: HTMLCanvasElement;
     public image: HTMLImageElement;
     public audio?: HTMLAudioElement;
-
-    // private msDevice?: mediasoupClient.types.Device;
-    // private msSendTransport?: mediasoupClient.types.Transport;
-    // private msRecvScreenTransport?: mediasoupClient.types.Transport;
-    // private msRecvAudioTransport?: mediasoupClient.types.Transport;
 
     constructor(desktopId: string, socket: Socket, onAudio: boolean) {
         this.desktopId = desktopId;
@@ -56,7 +49,7 @@ export class BrowserWebRTC {
         desktopId: string
     ): Promise<mediasoupClient.types.Device> {
         const device = await createDevice(socket, desktopId);
-        // this.msDevice = device;
+
         return device;
     }
 
@@ -66,9 +59,7 @@ export class BrowserWebRTC {
         canvas: HTMLCanvasElement,
         desktopId: string
     ): Promise<void> {
-        const transport = await createSendTransport(device, socket, desktopId);
-        sendEventEmitter(transport, socket, desktopId);
-
+        const transport = await createControlTransport(device, socket, desktopId);
         const producer = await getControlProducer(transport);
         // console.log(`producer.readyState: ${producer.readyState}`);
         if(producer.readyState === "open") {
@@ -78,8 +69,6 @@ export class BrowserWebRTC {
                 controlEventListener(canvas, producer);
             });
         }
-
-        // this.msSendTransport = transport;
     }
 
     private async startScreen(
@@ -88,17 +77,13 @@ export class BrowserWebRTC {
         image: HTMLImageElement,
         desktopId: string
     ): Promise<void> {
-        const transport = await createRecvTransport(device, socket, desktopId, false);
-        recvScreenEventEmitter(transport, socket, desktopId);
-
+        const transport = await createScreenTransport(device, socket, desktopId);
         const consumer = await getScreenConsumer(transport, socket, desktopId);
-
+        
         consumer.on('message', buf => {
             const imgBase64 = btoa(new Uint8Array(buf).reduce((data, byte) => data + String.fromCharCode(byte), ''));
             image.src = 'data:image/jpeg;base64,' + imgBase64;
         });
-
-        // this.msRecvScreenTransport = transport;
     }
 
     private async startAudio(
@@ -107,16 +92,12 @@ export class BrowserWebRTC {
         audio: HTMLAudioElement,
         desktopId: string
     ): Promise<void> {
-        const transport = await createRecvTransport(device, socket, desktopId, true);
-        recvAudioEventEmitter(transport, socket, desktopId);
-
-        const consumer = await getAudioConsumer(device, transport, socket, desktopId);
+        const transport = await createAudioTransport(device, socket, desktopId);
+        const consumer = await getAudioConsumer(device.rtpCapabilities, transport, socket, desktopId);
         //console.log("get audio");
         const { track } = consumer;
 
         audio.srcObject = new MediaStream([track]);
-
-        // this.msRecvAudioTransport = transport;
     }
 
 

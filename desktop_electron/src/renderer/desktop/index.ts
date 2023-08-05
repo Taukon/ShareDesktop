@@ -3,11 +3,11 @@ import * as mediasoupClient from 'mediasoup-client';
 import { 
     createControlTransport,
     createDevice, createScreenTransport, getControlConsumer, getScreenProducer 
-} from './mediasoup';
+} from './desktop';
 import { Buffer } from 'buffer';
 import { controlEventListener, displayScreen } from './canvas';
-import { sendRequest } from './util';
-import { AudioData, ControlData } from '../../util/type';
+import { ControlData } from '../../util/type';
+import { establishDesktopAudio } from './signaling';
 
 // @ts-ignore
 window.Buffer = Buffer;
@@ -196,8 +196,7 @@ export class DesktopWebRTC {
         socket: Socket,
         desktopId: string
     ): Promise<number|undefined> {
-        const params: AudioData
-             = await sendRequest(socket, 'establishDesktopAudio', desktopId);
+        const params = await establishDesktopAudio(socket, desktopId);
         
         // const buf = Buffer.from(data as ArrayBuffer);
         // const msg = JSON.parse(buf.toString());
