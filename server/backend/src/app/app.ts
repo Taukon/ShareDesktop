@@ -4,11 +4,11 @@ import express from 'express';
 import { networkInterfaces } from "os";
 import {
     DtlsParameters,
+    RtpCapabilities,
     RtpCodecCapability,
     WebRtcTransportOptions,
     WorkerSettings,
 } from 'mediasoup/node/lib/types';
-import * as mediasoupClientType from "mediasoup-client/lib/types";
 import { Server } from 'socket.io';
 import { ServerWebRTC } from "../serverWebRTC";
 
@@ -149,7 +149,7 @@ clientServer.on('connection', sock => {
     sock.on('connectMediaScreenOrAudio', async (
         req: {
             desktopId: string, 
-            dtlsParameters: mediasoupClientType.DtlsParameters, 
+            dtlsParameters: DtlsParameters, 
             isAudio: boolean
         },
         callback: any
@@ -170,7 +170,7 @@ clientServer.on('connection', sock => {
     sock.on('establishMediaAudio', async (
         req: {
             desktopId: string, 
-            rtpCapabilities: mediasoupClientType.RtpCapabilities
+            rtpCapabilities: RtpCapabilities
         }, 
         callback: any
     ) => {
@@ -236,7 +236,7 @@ desktopServer.on('connection', sock => {
     sock.on('connectDesktopScreen', async (
         req: {
             desktopId: string, 
-            dtlsParameters: mediasoupClientType.DtlsParameters
+            dtlsParameters: DtlsParameters
         },
         callback: any
     ) => {

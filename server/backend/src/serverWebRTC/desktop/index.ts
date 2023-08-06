@@ -5,7 +5,6 @@ import {
     RtpCapabilities,
     WebRtcTransportOptions,
 } from 'mediasoup/node/lib/types';
-import * as mediasoupClientType from "mediasoup-client/lib/types";
 import { 
     createDirectProducer,
     createPlainProducer,
@@ -146,7 +145,7 @@ export class Desktop {
     // connect event of ConsumerTransport for control
     public async connectDesktopControl(
         desktopId: string, 
-        dtlsParameters: mediasoupClientType.DtlsParameters
+        dtlsParameters: DtlsParameters
     ):Promise<boolean> {
         const desktopTransports = this.getDesktopTransports(desktopId);
         const controlRtcTransport = desktopTransports?.controlRtcTransport;

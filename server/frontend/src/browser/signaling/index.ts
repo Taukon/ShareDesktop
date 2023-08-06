@@ -8,13 +8,13 @@ import {
 } from "../mediasoup/type";
 import { Signaling } from "./type";
 
-const sendRequest = async (
+const sendRequest = async <T>(
     socket: Socket,
     type: string, 
     data: any
-): Promise<any> => {
+): Promise<T> => {
     return new Promise((resolve) => {
-        socket.emit(type, data, (res: any) => resolve(res));
+        socket.emit(type, data, (res: T) => resolve(res));
     });
 }
 
