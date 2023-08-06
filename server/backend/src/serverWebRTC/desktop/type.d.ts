@@ -14,12 +14,20 @@ export type RtcTransportParams = {
     sctpParameters?: SctpParameters | undefined;
 };
 
-export type DataConsumerParams = {
+export type ConsumeDataParams = {
     id: string;
     dataProducerId: string;
     sctpStreamParameters: SctpStreamParameters | undefined;
     label: string;
     protocol: string;
+};
+
+export type ProduceDataParams = { 
+    id: string;
+    sctpStreamParameters: SctpStreamParameters|undefined;
+    label: string|undefined;
+    protocol: string|undefined;
+    // appData: any 
 };
 
 export type AudioResponse = { 

@@ -13,20 +13,26 @@ import {
     connectMediaAudio,
     connectMediaControl,
     connectMediaScreen,
+    connectRecvFile,
+    connectSendFile,
+    createMediaAudio,
     createMediaControl, 
     createMediaScreen, 
+    createRecvFile, 
+    createSendFile, 
     establishMediaAudio, 
     establishMediaControl,
     establishMediaScreen,
+    establishRecvFile,
+    establishSendFile,
     getRtpCapabilities
 } from "./signaling";
-import { ProduceDataParam } from "./mediasoup/type";
 
 export const createDevice = async (
     socket: Socket,
     desktopId: string
 ): Promise<mediasoupClient.types.Device> => {
-    const forDevice = async () => await getRtpCapabilities(socket, desktopId);
+    const forDevice = getRtpCapabilities(socket, desktopId);
     const device = await loadDevice(forDevice);        
     return device;
 }
@@ -38,15 +44,11 @@ export const createControlTransport = async (
     socket: Socket,
     desktopId: string
 ): Promise<mediasoupClient.types.Transport> => {
-    const forTransport = async () => await createMediaControl(socket, desktopId);
+    const forTransport = createMediaControl(socket, desktopId);
     const transport = await createSendTransport(device, forTransport);
     
-    const forConnect = async(
-        dtlsParameters: mediasoupClient.types.DtlsParameters
-    ) => await connectMediaControl(socket, desktopId, dtlsParameters);
-    const forProduceData = async (
-        params: ProduceDataParam
-    ) => await establishMediaControl(socket, desktopId, params); 
+    const forConnect = connectMediaControl(socket, desktopId);
+    const forProduceData = establishMediaControl(socket, desktopId); 
     sendEventEmitter(transport, forConnect, forProduceData);
     
     return transport;
@@ -66,12 +68,10 @@ export const createScreenTransport = async(
     socket: Socket,
     desktopId: string
 ): Promise<mediasoupClient.types.Transport> => {
-    const forTransport = async () => await createMediaScreen(socket, desktopId);
+    const forTransport = createMediaScreen(socket, desktopId);
     const transport = await createRecvTransport(device, forTransport);
 
-    const forConnect = async(
-        dtlsParameters: mediasoupClient.types.DtlsParameters
-    ) => await connectMediaScreen(socket, desktopId, dtlsParameters);
+    const forConnect = connectMediaScreen(socket, desktopId);
     recvEventEmitter(transport, forConnect); 
 
     return transport;
@@ -82,7 +82,7 @@ export const getScreenConsumer = async (
     socket: Socket,
     desktopId: string
 ): Promise<mediasoupClient.types.DataConsumer> => {
-    const forConsumeData = async () => await establishMediaScreen(socket, desktopId);
+    const forConsumeData = establishMediaScreen(socket, desktopId);
     const consumer = await getConsumeData(transport, forConsumeData);
     return consumer;
 };
@@ -94,12 +94,10 @@ export const createAudioTransport = async(
     socket: Socket,
     desktopId: string
 ): Promise<mediasoupClient.types.Transport> => {
-    const forTransport = async () => await createMediaControl(socket, desktopId);
+    const forTransport = createMediaAudio(socket, desktopId);
     const transport = await createRecvTransport(device, forTransport);
 
-    const forConnect = async(
-        dtlsParameters: mediasoupClient.types.DtlsParameters
-    ) => await connectMediaAudio(socket, desktopId, dtlsParameters);
+    const forConnect = connectMediaAudio(socket, desktopId);
     recvEventEmitter(transport, forConnect);
 
     return transport;
@@ -111,9 +109,56 @@ export const getAudioConsumer = async (
     socket: Socket,
     desktopId: string,
 ): Promise<mediasoupClient.types.Consumer> => {
-    const forConsume = async () => 
-        await establishMediaAudio(socket, desktopId, rtpCapabilities);
+    const forConsume = establishMediaAudio(socket, desktopId, rtpCapabilities);
     const consumer = await getConsume(transport, forConsume);
 
+    return consumer;
+}
+
+// ----- SendFile
+export const createSendFileTransport = async (
+    device: mediasoupClient.types.Device,
+    socket: Socket,
+    desktopId: string
+): Promise<mediasoupClient.types.Transport> => {
+    const forTransport =  createSendFile(socket, desktopId);
+    const transport = await createSendTransport(device, forTransport);
+
+    const forConnect = connectSendFile(socket, desktopId); 
+    const forProducedata = establishSendFile(socket, desktopId);
+    sendEventEmitter(transport, forConnect, forProducedata);
+
+    return transport;
+}
+
+export const getSendFileProducer =async (
+    transport: mediasoupClient.types.Transport
+): Promise<mediasoupClient.types.DataProducer> => {
+    const producer = await transport.produceData({ordered: true});
+    return producer;
+}
+
+// ----- RecvFile
+export const createRecvFileTransport = async (
+    device: mediasoupClient.types.Device,
+    socket: Socket,
+    desktopId: string
+): Promise<mediasoupClient.types.Transport> => {
+    const forTransport = createRecvFile(socket, desktopId);
+    const transport = await createRecvTransport(device, forTransport);
+
+    const forConnect = connectRecvFile(socket, desktopId); 
+    recvEventEmitter(transport, forConnect);
+
+    return transport;
+}
+
+export const getRecvFileConsumer = async (
+    transport: mediasoupClient.types.Transport,
+    socket: Socket,
+    desktopId: string
+): Promise<mediasoupClient.types.DataConsumer> => {
+    const forConsumeData = establishRecvFile(socket, desktopId);
+    const consumer = await getConsumeData(transport, forConsumeData);
     return consumer;
 }

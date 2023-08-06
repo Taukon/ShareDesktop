@@ -13,8 +13,9 @@ import {
 } from "../common"
 import { 
     RtcTransportParams, 
-    DataConsumerParams, 
-    AudioResponse 
+    ConsumeDataParams, 
+    AudioResponse, 
+    ProduceDataParams
 } from './type';
 import { DesktopList, DesktopTransports } from './manage';
 
@@ -160,7 +161,7 @@ export class Desktop {
     // consumeData event of ConsumerTransport for control
     public async establishDesktopControl(
         desktopId: string
-    ): Promise<DataConsumerParams|undefined> {
+    ): Promise<ConsumeDataParams|undefined> {
         const desktopTransports = this.getDesktopTransports(desktopId);
         const controlRtcTransport = desktopTransports?.controlRtcTransport;
         const controlDirProducerId = desktopTransports?.controlDirTransport?.producer?.id
@@ -225,7 +226,7 @@ export class Desktop {
     // produceData event of ProducerTransport for screen
     public async establishDesktopScreen(
         desktopId: string, 
-        produceParameters: any
+        produceParameters: ProduceDataParams
     ):Promise<string|undefined> {
         const desktopTransports = this.getDesktopTransports(desktopId);
         const screenTransport = desktopTransports?.screenTransport;

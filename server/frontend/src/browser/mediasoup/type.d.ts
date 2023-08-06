@@ -1,13 +1,5 @@
 import * as mediasoupClient from "mediasoup-client";
 
-export type RtcTransportParams = {
-    id: string;
-    iceParameters: mediasoupClient.types.IceParameters;
-    iceCandidates: mediasoupClient.types.IceCandidate[];
-    dtlsParameters: mediasoupClient.types.DtlsParameters;
-    sctpParameters: mediasoupClient.types.SctpParameters;
-};
-
 export type TransportParams = { 
     id: string; 
     iceParameters: mediasoupClient.types.IceParameters;
@@ -45,5 +37,3 @@ export type ConsumeParams = {
     streamId: string|undefined;
     // appData: any;
 }
-
-export type Signaling<T, U> = (params: T) => Promise<U>;

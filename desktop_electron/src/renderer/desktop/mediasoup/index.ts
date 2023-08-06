@@ -3,9 +3,9 @@ import { Chrome111 } from 'mediasoup-client/lib/handlers/Chrome111.js';
 import { 
     ConsumeDataParams, 
     ProduceDataParam, 
-    Signaling, 
     TransportParams 
 } from './type';
+import { Signaling } from '../signaling/type';
 
 
 export const loadDevice = async (

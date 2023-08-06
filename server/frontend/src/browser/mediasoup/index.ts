@@ -3,9 +3,9 @@ import {
     ConsumeDataParams, 
     ConsumeParams, 
     ProduceDataParam, 
-    Signaling, 
     TransportParams 
 } from './type';
+import { Signaling } from '../signaling/type';
 
 
 export const loadDevice = async (

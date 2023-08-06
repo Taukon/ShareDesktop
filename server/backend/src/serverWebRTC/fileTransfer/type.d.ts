@@ -3,8 +3,7 @@ import {
     IceCandidate,
     DtlsParameters,
     SctpParameters,
-    MediaKind,
-    RtpParameters
+    SctpStreamParameters
 } from 'mediasoup/node/lib/types';
 
 export type RtcTransportParams = {
@@ -18,7 +17,7 @@ export type RtcTransportParams = {
 export type ConsumeDataParams = {
     id: string;
     dataProducerId: string;
-    sctpStreamParameters: SctpStreamParameters | undefined;
+    sctpStreamParameters: SctpStreamParameters|undefined;
     label: string;
     protocol: string;
 };
@@ -30,10 +29,3 @@ export type ProduceDataParams = {
     protocol: string|undefined;
     // appData: any 
 };
-
-export type AudioResponse = {
-    id: string;
-    producerId: string;
-    kind: MediaKind;
-    rtpParameters: RtpParameters;
-}

@@ -3,12 +3,14 @@ import {
     RtpCodecCapability,
     WebRtcTransportOptions,
     WorkerSettings,
-    DtlsParameters
+    DtlsParameters,
+    RtpCapabilities
 } from "mediasoup/node/lib/types";
 import { startWorker } from "./common";
 import { Desktop } from "./desktop";
 import { Browser } from "./browser";
-import * as mediasoupClientType from "mediasoup-client/lib/types";
+import { FileTransfer } from "./fileTransfer";
+import { ProduceDataParams } from "./fileTransfer/type";
 
 export class ServerWebRTC {
 
@@ -20,9 +22,11 @@ export class ServerWebRTC {
 
     private limitBrowser: number;
     private limitDesktop: number;
+    private limitFileTransfer: number= 10;
 
     private desktop = new Desktop();
     private browser = new Browser();
+    private fileTransfer = new FileTransfer();
 
     constructor(
         limitDesktop: number,
@@ -83,7 +87,7 @@ export class ServerWebRTC {
 
     public async connectDesktopControl(
         desktopId: string, 
-        dtlsParameters: mediasoupClientType.DtlsParameters
+        dtlsParameters: DtlsParameters
     ) {
         return await this.desktop.connectDesktopControl(desktopId, dtlsParameters);
     }
@@ -183,7 +187,7 @@ export class ServerWebRTC {
     public async establishBrowserControl(
         browserId: string, 
         desktopId: string, 
-        produceParameters: any
+        produceParameters: ProduceDataParams
     ) {
         return await this.browser.establishBrowserControl(
             browserId, 
@@ -211,7 +215,7 @@ export class ServerWebRTC {
     public async connectBrowserScreenOrAudio(
         browserId: string, 
         desktopId: string, 
-        dtlsParameters: mediasoupClientType.DtlsParameters, 
+        dtlsParameters: DtlsParameters, 
         isAudio: boolean
     ) {
         return await this.browser.connectBrowserScreenOrAudio(
@@ -236,7 +240,7 @@ export class ServerWebRTC {
     public async establishBrowserAudio(
         browserId: string, 
         desktopId: string,
-        rtpCapabilities: mediasoupClientType.RtpCapabilities
+        rtpCapabilities: RtpCapabilities
     ) {
         return await this.browser.establishBrowserAudio(
             browserId,
@@ -252,6 +256,81 @@ export class ServerWebRTC {
 
     public verifyTotalBrowser() {
         return this.browser.verifyTotal(this.limitBrowser);
+    }
+
+    // ------------ File Transfer ---------------
+
+    public initFileTransfer() {
+        if(!this.fileTransfer.verifyTotal(this.limitFileTransfer)){
+            console.log(`limit FieTransfer Total`);
+            return undefined;
+        }
+
+        const transferId = this.fileTransfer.getRandomId();
+        if(this.fileTransfer.initFileTransports(transferId)){
+            return transferId;
+        }
+        return undefined;
+    }
+
+    public disconnectFileTransfer(fileTransferId: string) {
+        return this.fileTransfer.deleteFileTransports(fileTransferId);
+    }
+
+    public async createRecvFile(fileTransferId: string) {
+        return await this.fileTransfer.createRecvFile(
+            fileTransferId,
+            this.router,
+            this.transportOptions
+        );
+    }
+
+    public async connectRecvFile(
+        fileTransferId: string,
+        dtlsParameters: DtlsParameters
+    ) {
+        return await this.fileTransfer.connectRecvFile(
+            fileTransferId,
+            dtlsParameters
+        );
+    }
+
+    public async establishRecvFile(
+        fileTransferId: string,
+        FileProducerId: string|undefined   
+    ) {
+        return await this.fileTransfer.establishRecvFile(
+            fileTransferId,
+            FileProducerId
+        );
+    }
+
+    public async createSendFile(fileTransferId: string) {
+        return await this.fileTransfer.createSendFile(
+            fileTransferId,
+            this.router,
+            this.transportOptions
+        );
+    }
+
+    public async connectSendFile(
+        fileTransferId: string, 
+        dtlsParameters: DtlsParameters
+    ) {
+        return await this.fileTransfer.connectSendFile(
+            fileTransferId, 
+            dtlsParameters
+        );
+    }
+
+    public async establishSendFile(
+        fileTransferId: string, 
+        produceParameters: ProduceDataParams
+    ) {
+        return await this.fileTransfer.establishSendFile(
+            fileTransferId,
+            produceParameters
+        );
     }
 
 }

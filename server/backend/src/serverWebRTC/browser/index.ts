@@ -5,10 +5,14 @@ import {
     RtpCapabilities,
     WebRtcTransportOptions,
 } from 'mediasoup/node/lib/types';
-import * as mediasoupClientType from "mediasoup-client/lib/types";
 import { BrowserTransports, BrowserList, BrowserClientList } from './manage';
 import { createDirectConsumer, createRtcTransport } from '../common';
-import { AudioResponse, DataConsumerParams, RtcTransportParams } from './type';
+import { 
+    AudioResponse, 
+    ConsumeDataParams, 
+    ProduceDataParams, 
+    RtcTransportParams 
+} from './type';
 
 export class Browser {
 
@@ -174,7 +178,7 @@ export class Browser {
         browserId: string, 
         desktopId: string, 
         router: Router,
-        produceParameters: any,
+        produceParameters: ProduceDataParams,
         establishControl: (
                 browserId: string, 
                 desktopId: string
@@ -234,7 +238,7 @@ export class Browser {
     public async connectBrowserScreenOrAudio(
         browserId: string, 
         desktopId: string, 
-        dtlsParameters: mediasoupClientType.DtlsParameters, 
+        dtlsParameters: DtlsParameters, 
         isAudio: boolean
     ):Promise<boolean> {
         const transports = this.getBrowserTransports(browserId, desktopId);
@@ -251,7 +255,7 @@ export class Browser {
         browserId: string, 
         desktopId: string,
         screenSendProducerId: string|undefined
-    ): Promise<DataConsumerParams|undefined> {
+    ): Promise<ConsumeDataParams|undefined> {
         const clientTransports = this.getBrowserTransports(browserId, desktopId);
         const screenRecvTransport = clientTransports?.screenTransport;
         //const screenSendProducerId = this.getDesktopTransports(desktopId)?.screenTransport?.producer?.id;
@@ -279,7 +283,7 @@ export class Browser {
         browserId: string, 
         desktopId: string,
         audioSendProducerId: string|undefined,
-        rtpCapabilities: mediasoupClientType.RtpCapabilities
+        rtpCapabilities: RtpCapabilities
     ): Promise<AudioResponse|undefined> {
 
         const browserTransports = this.getBrowserTransports(browserId, desktopId);

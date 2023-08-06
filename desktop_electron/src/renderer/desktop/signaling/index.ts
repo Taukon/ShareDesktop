@@ -1,7 +1,12 @@
 import { Socket } from 'socket.io-client';
 import * as mediasoupClient from 'mediasoup-client';
-import { ConsumeDataParams, ProduceDataParam, TransportParams } from '../mediasoup/type';
+import { 
+    ConsumeDataParams, 
+    ProduceDataParam, 
+    TransportParams 
+} from '../mediasoup/type';
 import { AudioData } from '../../../util/type';
+import { Signaling } from './type';
 
 const sendRequest = async (
     socket: Socket,
@@ -13,40 +18,38 @@ const sendRequest = async (
     });
 }
 
-export const getRtpCapabilities = async (
+export const getRtpCapabilities = (
     socket: Socket,
     desktopId: string
-): Promise<mediasoupClient.types.RtpCapabilities> => {
-    return await sendRequest(socket, 'getRtpCapabilities', desktopId);
+): Signaling<void, mediasoupClient.types.RtpCapabilities> => {
+    return () => sendRequest(socket, 'getRtpCapabilities', desktopId);
 }
 
 // -------- DesktopScreen --------
 
-export const createDesktopScreen = async (
+export const createDesktopScreen = (
     socket: Socket,
     desktopId: string
-): Promise<TransportParams> => {
-    return await sendRequest(socket, 'createDesktopScreen', desktopId);
+): Signaling<void, TransportParams> => {
+    return () => sendRequest(socket, 'createDesktopScreen', desktopId);
 }
 
-export const connectDesktopScreen = async (
+export const connectDesktopScreen = (
     socket: Socket,
-    desktopId: string,
-    dtlsParameters:mediasoupClient.types.DtlsParameters
-): Promise<void> => {
- return await sendRequest(
+    desktopId: string
+): Signaling<mediasoupClient.types.DtlsParameters, void> => {
+ return (dtlsParameters: mediasoupClient.types.DtlsParameters) => sendRequest(
                 socket,
                 'connectDesktopScreen', 
                 { desktopId: desktopId, dtlsParameters: dtlsParameters }
             );
 }
 
-export const establishDesktopScreen = async (
+export const establishDesktopScreen = (
     socket: Socket,
-    desktopId: string,
-    params: ProduceDataParam
-): Promise<string> => {
-    return await sendRequest(
+    desktopId: string
+): Signaling<ProduceDataParam, string> => {
+    return (params: ProduceDataParam) => sendRequest(
         socket,
         'establishDesktopScreen', 
         { desktopId: desktopId, produceParameters: params }
@@ -55,19 +58,18 @@ export const establishDesktopScreen = async (
 
 // -------- DesktopControl --------
 
-export const createDesktopControl = async (
+export const createDesktopControl = (
     socket: Socket,
     desktopId: string  
-): Promise<TransportParams> => {
-    return await sendRequest(socket, 'createDesktopControl', desktopId);
+): Signaling<void, TransportParams> => {
+    return () => sendRequest(socket, 'createDesktopControl', desktopId);
 }
 
-export const connectDesktopControl = async (
+export const connectDesktopControl = (
     socket: Socket,
-    desktopId: string,
-    dtlsParameters: mediasoupClient.types.DtlsParameters
-): Promise<void> => {
-    return await sendRequest(
+    desktopId: string
+): Signaling<mediasoupClient.types.DtlsParameters, void> => {
+    return (dtlsParameters: mediasoupClient.types.DtlsParameters) => sendRequest(
         socket,
         'connectDesktopControl', 
         { 
@@ -77,11 +79,11 @@ export const connectDesktopControl = async (
     );
 }
 
-export const establishDesktopControl = async (
+export const establishDesktopControl = (
     socket: Socket,
     desktopId: string
-): Promise<ConsumeDataParams> => {
-    return await sendRequest(socket, 'establishDesktopControl', desktopId);
+): Signaling<void, ConsumeDataParams> => {
+    return () => sendRequest(socket, 'establishDesktopControl', desktopId);
 }
 
 export const establishDesktopAudio = async (
@@ -93,31 +95,29 @@ export const establishDesktopAudio = async (
 
 // -------- SendFile --------
 
-export const createSendFile = async (
+export const createSendFile = (
     socket: Socket,
     desktopId: string
-): Promise<TransportParams> => {
-    return await sendRequest(socket, 'createSendFile', desktopId);
+): Signaling<void, TransportParams> => {
+    return () => sendRequest(socket, 'createSendFile', desktopId);
 }
 
-export const connectSendFile = async (
+export const connectSendFile =(
     socket: Socket,
-    desktopId: string,
-    dtlsParameters:mediasoupClient.types.DtlsParameters
-): Promise<void> => {
-    return await sendRequest(
+    desktopId: string
+): Signaling<mediasoupClient.types.DtlsParameters, void> => {
+    return (dtlsParameters:mediasoupClient.types.DtlsParameters) => sendRequest(
         socket,
         'connectSendFile',
         { desktopId: desktopId, dtlsParameters: dtlsParameters }
     );
 }
 
-export const establishSendFile = async (
+export const establishSendFile = (
     socket: Socket,
-    desktopId: string,
-    params: ProduceDataParam
-): Promise<string> => {
-    return await sendRequest(
+    desktopId: string
+): Signaling<ProduceDataParam, string> => {
+    return (params: ProduceDataParam) => sendRequest(
         socket,
         'establishSendFile', 
         { desktopId: desktopId, produceParameters: params }
@@ -126,19 +126,18 @@ export const establishSendFile = async (
 
 // -------- RecvFile --------
 
-export const createRecvFile = async (
+export const createRecvFile = (
     socket: Socket,
     desktopId: string
-): Promise<TransportParams> => {
-    return await sendRequest(socket, 'createRecvFile', {desktopId: desktopId});
+): Signaling<void, TransportParams> => {
+    return () => sendRequest(socket, 'createRecvFile', {desktopId: desktopId});
 }
 
-export const connectRecvFile = async (
+export const connectRecvFile = (
     socket: Socket,
-    desktopId: string,
-    dtlsParameters: mediasoupClient.types.DtlsParameters
-): Promise<void> => {
-    return await sendRequest(
+    desktopId: string
+):  Signaling<mediasoupClient.types.DtlsParameters, void> => {
+    return (dtlsParameters: mediasoupClient.types.DtlsParameters) => sendRequest(
         socket,
         'connectRecvFile', 
         {
@@ -148,9 +147,9 @@ export const connectRecvFile = async (
     );
 }
 
-export const establishRecvFile = async (
+export const establishRecvFile = (
     socket: Socket,
     desktopId: string
-): Promise<ConsumeDataParams> => {
-    return await sendRequest(socket, 'establishRecvFile', desktopId);
+): Signaling<void, ConsumeDataParams> => {
+    return () => sendRequest(socket, 'establishRecvFile', desktopId);
 }
