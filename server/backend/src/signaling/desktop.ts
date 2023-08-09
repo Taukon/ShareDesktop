@@ -8,6 +8,7 @@ import {
 } from "../serverWebRTC/common/type";
 import { SignalingEventEmitter } from "./signalingEvent";
 import { Callback } from "./type";
+import * as desktopType from '../serverWebRTC/desktop/type';
 
 export const setSignalingDesktop = (
     desktopServer: Server,
@@ -83,6 +84,49 @@ export const setSignalingDesktop = (
         callback: Callback<string>
     ) => {
         const params = await serverWebRTC.establishDesktopScreen(req.desktopId, req.produceParameters);
+        if (params) {
+            callback(params);
+        }
+    });
+
+    socket.on('establishDesktopAudio', async (
+        desktopId: string, 
+        callback: Callback<desktopType.AudioResponse>
+    ) => {
+        if(await serverWebRTC.createDesktopAudio(desktopId, false)){
+            const params = serverWebRTC.establishDesktopAudio(desktopId);
+            if (params) {
+                callback(params);
+            }
+        }
+    });
+
+    // ------ File Watch
+    socket.on('createFileWatch', async (desktopId: string, callback: Callback<RtcTransportParams>) => {
+        const params = await serverWebRTC.createDesktopFileWatch(desktopId);
+        if (params) {
+            callback(params);
+        }
+    });
+
+    socket.on('connectFileWatch', async (
+        req: {
+            desktopId: string, 
+            dtlsParameters: DtlsParameters
+        },
+        callback: Callback<true>
+    ) => {
+        const params = await serverWebRTC.connectDesktopFileWatch(req.desktopId, req.dtlsParameters);
+        if (params) {
+            callback(params);
+        }
+    });
+
+    socket.on('establishFileWatch', async (
+        req: {desktopId: string, produceParameters: ProduceDataParams},
+        callback: Callback<string>
+    ) => {
+        const params = await serverWebRTC.establishDesktopFileWatch(req.desktopId, req.produceParameters);
         if (params) {
             callback(params);
         }

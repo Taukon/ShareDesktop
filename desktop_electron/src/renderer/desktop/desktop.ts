@@ -2,14 +2,17 @@ import { Socket } from 'socket.io-client';
 import * as mediasoupClient from 'mediasoup-client';
 import { 
     connectDesktopControl, 
+    connectDesktopFileWatch, 
     connectDesktopScreen, 
     connectRecvFile, 
     connectSendFile, 
     createDesktopControl, 
+    createDesktopFileWatch, 
     createDesktopScreen, 
     createRecvFile, 
     createSendFile, 
     establishDesktopControl, 
+    establishDesktopFileWatch, 
     establishDesktopScreen, 
     establishRecvFile, 
     establishSendFile, 
@@ -82,6 +85,29 @@ export const getControlConsumer = async (
     const forConsumeData = establishDesktopControl(socket, desktopId);
     const consumer = await getConsumeData(transport, forConsumeData);
     return consumer;
+}
+
+// ----- FileWatch
+export const createFileWatchTransport = async (
+    device: mediasoupClient.types.Device,
+    socket: Socket,
+    desktopId: string
+): Promise<mediasoupClient.types.Transport> => {
+    const forTransport =  createDesktopFileWatch(socket, desktopId);
+    const transport = await createSendTransport(device, forTransport);
+
+    const forConnect = connectDesktopFileWatch(socket, desktopId);
+    const forProducedata = establishDesktopFileWatch(socket, desktopId);
+    sendEventEmitter(transport, forConnect, forProducedata);
+    
+    return transport;
+}
+
+export const getFileWatchProducer =async (
+    transport: mediasoupClient.types.Transport
+): Promise<mediasoupClient.types.DataProducer> => {
+    const producer = await transport.produceData({ordered: true});
+    return producer;
 }
 
 // ----- SendFile

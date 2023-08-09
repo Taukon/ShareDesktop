@@ -133,6 +133,31 @@ export class ServerWebRTC {
         );
     }
 
+    public async createDesktopFileWatch(desktopId: string) {
+        return await this.desktop.createFileWatch(
+            desktopId, 
+            this.router, 
+            this.transportOptions
+        );
+    }
+
+    public async connectDesktopFileWatch(
+        desktopId: string, 
+        dtlsParameters: DtlsParameters
+    ) {
+        return await this.desktop.connectFileWatch(desktopId, dtlsParameters);
+    }
+
+    public async establishDesktopFileWatch(
+        desktopId: string, 
+        produceParameters: ProduceDataParams
+    ) {
+        return await this.desktop.establishFileWatch(
+            desktopId, 
+            produceParameters
+        );
+    }
+
     public establishDesktopAudio(desktopId: string) {
         return this.desktop.establishDesktopAudio(desktopId);
     }
@@ -248,6 +273,41 @@ export class ServerWebRTC {
             this.desktop.getAudioSendProducerId(desktopId),
             rtpCapabilities
         )
+    }
+
+    public async createBrowserFileWatch(
+        browserId: string, 
+        desktopId: string
+    ) {
+        return await this.browser.createFileWatch(
+            browserId, 
+            desktopId, 
+            this.router, 
+            this.transportOptions
+        );
+    }
+
+    public async connectBrowserFileWatch(
+        browserId: string, 
+        desktopId: string, 
+        dtlsParameters: DtlsParameters
+    ) {
+        return await this.browser.connectFileWatch(
+            browserId,
+            desktopId,
+            dtlsParameters
+        );
+    }
+
+    public async establishBrowserFileWatch(
+        browserId: string, 
+        desktopId: string
+    ) {
+        return await this.browser.establishFileWatch(
+            browserId, 
+            desktopId, 
+            this.desktop.getFileWatchProducerId(desktopId)
+        );
     }
 
     public disconnectBrowserClient(browserId: string) {

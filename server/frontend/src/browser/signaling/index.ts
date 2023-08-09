@@ -136,6 +136,41 @@ export const establishMediaAudio = (
     });
 }
 
+// ------ FileWatch
+
+export const createBrowserFileWatch = (
+    socket: Socket,
+    desktopId: string
+): Signaling<void, TransportParams> => {
+    return () => sendRequest(
+        socket,
+        'createFileWatch', 
+        desktopId
+    );
+}
+
+export const connectBrowserFileWatch = (
+    socket: Socket,
+    desktopId: string
+): Signaling<mediasoupClient.types.DtlsParameters, void> => {
+    return ( dtlsParameters: mediasoupClient.types.DtlsParameters) => sendRequest(
+        socket,
+        'connectFileWatch', 
+        {
+        desktopId: desktopId,
+        dtlsParameters: dtlsParameters
+        }
+    )
+}
+
+export const establishBrowserFileWatch = (
+    socket: Socket,
+    desktopId: string
+): Signaling<void, ConsumeDataParams> => {
+    return () => sendRequest(socket, 'establishFileWatch', desktopId);
+}
+
+
 // -------- SendFile --------
 
 export const initSendFileTransfer = (

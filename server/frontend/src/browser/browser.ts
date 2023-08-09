@@ -10,16 +10,19 @@ import {
     sendEventEmitter
 } from "./mediasoup";
 import { 
+    connectBrowserFileWatch,
     connectMediaAudio,
     connectMediaControl,
     connectMediaScreen,
     connectRecvFile,
     connectSendFile,
+    createBrowserFileWatch,
     createMediaAudio,
     createMediaControl, 
     createMediaScreen, 
     createRecvFile, 
     createSendFile, 
+    establishBrowserFileWatch, 
     establishMediaAudio, 
     establishMediaControl,
     establishMediaScreen,
@@ -115,6 +118,31 @@ export const getAudioConsumer = async (
 
     return consumer;
 }
+
+// ------- FileWatch
+export const createFileWatchTransport = async(
+    device: mediasoupClient.types.Device,
+    socket: Socket,
+    desktopId: string
+): Promise<mediasoupClient.types.Transport> => {
+    const forTransport = createBrowserFileWatch(socket, desktopId);
+    const transport = await createRecvTransport(device, forTransport);
+
+    const forConnect = connectBrowserFileWatch(socket, desktopId);
+    recvEventEmitter(transport, forConnect); 
+
+    return transport;
+};
+
+export const getFileWatchConsumer = async (
+    transport: mediasoupClient.types.Transport,
+    socket: Socket,
+    desktopId: string
+): Promise<mediasoupClient.types.DataConsumer> => {
+    const forConsumeData = establishBrowserFileWatch(socket, desktopId);
+    const consumer = await getConsumeData(transport, forConsumeData);
+    return consumer;
+};
 
 // ----- SendFile
 export const createSendFileTransport = async (

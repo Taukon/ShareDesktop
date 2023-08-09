@@ -86,6 +86,8 @@ export const establishDesktopControl = (
     return () => sendRequest(socket, 'establishDesktopControl', desktopId);
 }
 
+// -------- DesktopAUdio ---------
+
 export const establishDesktopAudio = async (
     socket: Socket,
     desktopId: string
@@ -94,6 +96,36 @@ export const establishDesktopAudio = async (
 }
 
 
+// -------- DesktopFileWatch --------
+
+export const createDesktopFileWatch = (
+    socket: Socket,
+    desktopId: string
+): Signaling<void, TransportParams> => {
+    return () => sendRequest(socket, 'createFileWatch', desktopId);
+}
+
+export const connectDesktopFileWatch = (
+    socket: Socket,
+    desktopId: string
+): Signaling<mediasoupClient.types.DtlsParameters, void> => {
+ return (dtlsParameters: mediasoupClient.types.DtlsParameters) => sendRequest(
+                socket,
+                'connectFileWatch', 
+                { desktopId: desktopId, dtlsParameters: dtlsParameters }
+            );
+}
+
+export const establishDesktopFileWatch = (
+    socket: Socket,
+    desktopId: string
+): Signaling<ProduceDataParam, string> => {
+    return (params: ProduceDataParam) => sendRequest(
+        socket,
+        'establishFileWatch', 
+        { desktopId: desktopId, produceParameters: params }
+    );
+}
 // -------- SendFile --------
 
 export const createSendFile = (

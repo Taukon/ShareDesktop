@@ -5,7 +5,7 @@ import {
     RtpCapabilities,
     WebRtcTransportOptions,
 } from 'mediasoup/node/lib/types';
-import { BrowserTransports, BrowserList, BrowserClientList } from './manage';
+import { BrowserTransports, BrowserList, BrowserClientList, ControlBrowserRtcTransport, ControlBrowserDirTransport, ScreenBrowserTransport, AudioBrowserTransport, FileWatchTransport } from './manage';
 import { createDirectConsumer, createRtcTransport } from '../common';
 import { AudioResponse } from './type';
 import { 
@@ -47,34 +47,94 @@ export class Browser {
         return undefined;
     }
 
-    private setBrowserTransports(browserId: string, desktopId:string, browserTransports: BrowserTransports): boolean {
+    private setControlTransports(
+        browserId: string, 
+        desktopId:string, 
+        controlRtcTransport: ControlBrowserRtcTransport,
+        controlDirTransport?: ControlBrowserDirTransport
+    ): boolean {
         const browserList= this.browserClientList[browserId];
-        if(this.isBrowserList(browserList) && this.isBrowserTransports(browserTransports)){
-            browserList[desktopId] = browserTransports;
-            this.browserClientList[browserId] = browserList;
-            return true;
+        if(this.isBrowserList(browserList)){
+            const transports = browserList[desktopId];
+            if(this.isBrowserTransports(transports)){
+                transports.controlRtcTransport = controlRtcTransport;
+                transports.controlDirTransport = controlDirTransport;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private setScreenTransport(
+        browserId: string, 
+        desktopId:string, 
+        screenBrowserTransport: ScreenBrowserTransport
+    ): boolean {
+        const browserList= this.browserClientList[browserId];
+        if(this.isBrowserList(browserList)){
+            const transports = browserList[desktopId];
+            if(this.isBrowserTransports(transports)){
+                transports.screenTransport = screenBrowserTransport;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private setAudioTransport(
+        browserId: string, 
+        desktopId:string, 
+        audioBrowserTransport: AudioBrowserTransport
+    ): boolean {
+        const browserList= this.browserClientList[browserId];
+        if(this.isBrowserList(browserList)){
+            const transports = browserList[desktopId];
+            if(this.isBrowserTransports(transports)){
+                transports.audioTransport = audioBrowserTransport;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private setFileWatchTransport(
+        browserId: string, 
+        desktopId:string, 
+        fileWatchTransport: FileWatchTransport
+    ): boolean {
+        const browserList= this.browserClientList[browserId];
+        if(this.isBrowserList(browserList)){
+            const transports = browserList[desktopId];
+            if(this.isBrowserTransports(transports)){
+                transports.fileWatchTransport = fileWatchTransport;
+                return true;
+            }
         }
         return false;
     }
 
     private initBrowserTransports(browserId: string, desktopId:string, enableAudio: boolean): boolean {
+        
+        const browserTransports =this.getBrowserTransports(browserId, desktopId);
+        if (browserTransports?.exits) {
+            console.log("already created browser transports");
+
+            this.deleteBrowserTransports(browserTransports);
+        }
+
         if(enableAudio){
+            console.log(`In Browser enableAudio DesktopID: ${desktopId}`);
+        }
+
+        const browserList= this.browserClientList[browserId];
+        if(this.isBrowserList(browserList)){
             const transports: BrowserTransports = {
-                controlRtcTransport: undefined,
-                controlDirTransport: undefined,
-                screenTransport: undefined,
-                audioTransport: undefined,
                 exits: true
             };
-            return this.setBrowserTransports(browserId, desktopId, transports);
+            browserList[desktopId] = transports;
+            return true;
         }else{
-            const transports: BrowserTransports = {
-                controlRtcTransport: undefined,
-                controlDirTransport: undefined,
-                screenTransport: undefined,
-                exits: true
-            };
-            return this.setBrowserTransports(browserId, desktopId, transports);
+            return false;
         }
     }
 
@@ -103,6 +163,12 @@ export class Browser {
             console.log("delete audioRecvTransportId: " + audioRecvTransport.id);
             audioRecvTransport.close();
         }
+
+        const fileWatchTransport = browserTransports.fileWatchTransport;
+        if (fileWatchTransport) {
+            console.log(`delete fileWatchTransportId: ${fileWatchTransport.id}`);
+            fileWatchTransport.close();
+        }
     }
 
     public async getRtpCapabilitiesForBrowser(
@@ -114,13 +180,6 @@ export class Browser {
 
         // initialize 
         this.initBrowserClient(browserId);
-
-        const browserTransports =this.getBrowserTransports(browserId, desktopId);
-        if (browserTransports?.exits) {
-            console.log("already created browser transports");
-
-            this.deleteBrowserTransports(browserTransports);
-        }
 
         // initialize ClientTransports
         if(this.initBrowserTransports(browserId, desktopId, enableAudio)){
@@ -137,9 +196,9 @@ export class Browser {
         transportOptions :WebRtcTransportOptions
     ): Promise<RtcTransportParams|undefined> {
 
-        const browserTransports = this.getBrowserTransports(browserId, desktopId);
+        const exits = this.getBrowserTransports(browserId, desktopId)?.exits;
 
-        if (browserTransports?.exits) {
+        if (exits) {
 
             const { transport, params } = await createRtcTransport(router, transportOptions);
 
@@ -148,9 +207,7 @@ export class Browser {
                 //delete this.producerList[transport.id];
             });
             
-            browserTransports.controlRtcTransport = transport;
-            
-            this.setBrowserTransports(browserId, desktopId, browserTransports);
+            this.setControlTransports(browserId, desktopId, transport);
 
             return params;
         }
@@ -211,9 +268,9 @@ export class Browser {
         transportOptions :WebRtcTransportOptions
     ): Promise<RtcTransportParams|undefined> {
         
-        const clientTransports = this.getBrowserTransports(browserId, desktopId);
+        const exits = this.getBrowserTransports(browserId, desktopId)?.exits;
 
-        if (clientTransports) {
+        if (exits) {
             const { transport, params } = await createRtcTransport(router, transportOptions);
             transport.observer.on('close', () => {
                 transport.close();
@@ -221,12 +278,10 @@ export class Browser {
             });
 
             if(isAudio){
-                clientTransports.audioTransport = transport;
+                this.setAudioTransport(browserId, desktopId, transport);
             }else{
-                clientTransports.screenTransport = transport;
+                this.setScreenTransport(browserId, desktopId, transport);
             }
-
-            this.setBrowserTransports(browserId, desktopId, clientTransports);
 
             return params;
         }
@@ -320,6 +375,73 @@ export class Browser {
             return params;
         }
         return undefined;
+    }
+
+    // create ConsumerTransport for screen or audio
+    public async createFileWatch(
+        browserId: string, 
+        desktopId: string, 
+        router: Router,
+        transportOptions :WebRtcTransportOptions
+    ): Promise<RtcTransportParams|undefined> {
+        
+        const exits = this.getBrowserTransports(browserId, desktopId)?.exits;
+
+        if (exits) {
+            const { transport, params } = await createRtcTransport(router, transportOptions);
+            transport.observer.on('close', () => {
+                transport.close();
+                //delete this.consumerList[transport.id];
+            });
+
+            this.setFileWatchTransport(browserId, desktopId, transport);
+
+            return params;
+        }
+
+        return undefined;
+    }
+
+    // connect event of ConsumerTransport for screen or audio
+    public async connectFileWatch(
+        browserId: string, 
+        desktopId: string, 
+        dtlsParameters: DtlsParameters, 
+    ):Promise<boolean> {
+        const transports = this.getBrowserTransports(browserId, desktopId);
+        const transport = transports?.fileWatchTransport;
+
+        if (transport) {
+            await transport.connect({ dtlsParameters: dtlsParameters });
+            return true;
+        }
+        return false;
+    }
+
+    public async establishFileWatch(
+        browserId: string, 
+        desktopId: string,
+        watchProducerId: string|undefined
+    ): Promise<ConsumeDataParams|undefined> {
+        const clientTransports = this.getBrowserTransports(browserId, desktopId);
+        const watchRecvTransport = clientTransports?.fileWatchTransport;
+
+        if (watchRecvTransport && watchProducerId) {
+
+            const dataConsumer = await watchRecvTransport.consumeData({ dataProducerId: watchProducerId });
+            const params = {
+                id: dataConsumer.id,
+                dataProducerId: dataConsumer.dataProducerId,
+                sctpStreamParameters: dataConsumer.sctpStreamParameters,
+                label: dataConsumer.label,
+                protocol: dataConsumer.protocol,
+            };
+
+            watchRecvTransport.consumer = dataConsumer;
+
+            return params;
+        }
+        return undefined;        
     }
 
     public disconnectBrowserClient(browserId: string): void {

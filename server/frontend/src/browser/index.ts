@@ -13,7 +13,9 @@ import {
     getRecvFileConsumer,
     createSendFileTransport,
     getSendFileProducer,
-    WaitFileConsumer
+    WaitFileConsumer,
+    createFileWatchTransport,
+    getFileWatchConsumer
 } from './browser';
 import { initRecvFileTransfer, initSendFileTransfer, setFileConsumer } from './signaling';
 
@@ -47,6 +49,8 @@ export class BrowserWebRTC {
                 this.audio.play();
                 this.startAudio(msDevice, socket, this.audio, desktopId);
             }
+
+            this.startFileWatch(msDevice, socket, desktopId);
 
             // this.initRecvFile(msDevice, socket, desktopId);
             // this.initSendFile(msDevice, socket, desktopId);
@@ -116,6 +120,27 @@ export class BrowserWebRTC {
         const { track } = consumer;
 
         audio.srcObject = new MediaStream([track]);
+    }
+
+    private async startFileWatch(
+        device: mediasoupClient.types.Device,
+        socket: Socket,
+        desktopId: string
+    ): Promise<void> {
+        const transport = await createFileWatchTransport(device, socket, desktopId);
+        const consumer = await getFileWatchConsumer(transport, socket, desktopId);
+        
+        if(consumer.readyState === "open"){
+            consumer.on('message', msg => {
+                console.log(msg);
+            });
+        }else{
+            consumer.on('open', () => {
+                consumer.on('message', msg => {
+                    console.log(msg);
+                });
+            });
+        }
     }
 
     public async initRecvFile(

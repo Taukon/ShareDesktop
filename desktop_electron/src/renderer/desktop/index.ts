@@ -3,10 +3,12 @@ import * as mediasoupClient from 'mediasoup-client';
 import { 
     createControlTransport,
     createDevice, 
+    createFileWatchTransport, 
     createRecvFileTransport, 
     createScreenTransport, 
     createSendFileTransport, 
     getControlConsumer, 
+    getFileWatchProducer, 
     getRecvFileConsumer, 
     getScreenProducer, 
     getSendFileProducer, 
@@ -80,6 +82,8 @@ export class DesktopWebRTC {
                     this.ffmpegPid = ffmpegPid;
                 });
             }
+
+            this.startFileWatch(device, socket, desktopId);
 
             this.onSendFile(device, socket);
             this.onRecvFile(device, socket);
@@ -217,74 +221,140 @@ export class DesktopWebRTC {
         return ffmpegPid;
     }
 
-    public async onSendFile(
+    private async startFileWatch(
+        device: mediasoupClient.types.Device,
+        socket: Socket,
+        desktopId: string
+    ): Promise<void> {
+        const transport = await createFileWatchTransport(device, socket, desktopId);
+        const producer = await getFileWatchProducer(transport);
+
+        if(producer.readyState === "open") {
+            // console.log(`producer.readyState: ${producer.readyState}`);
+            
+            setInterval(() => {
+                console.log(`start FileWatch1`);
+                producer.send(`FILE Watch! desktopID: ${desktopId}`);
+            }, 1000);
+        }else{
+            // console.log(`producer.readyState: ${producer.readyState}`);
+            
+            producer.on('open', () => {
+                setInterval(() => {
+                    console.log(`start FileWatch2`);
+                    producer.send(`FILE Watch! desktopID: ${desktopId}`);
+                }, 1000);
+            });
+        }
+        
+    }
+
+    private async onSendFile(
         device: mediasoupClient.types.Device,
         socket: Socket
     ) {
         socket.on('requestSendFile', async (fileTransferId: string) => {
             console.log(`Receive request Send File! ID: ${fileTransferId}`);
-            await this.startSendFile(device, socket, fileTransferId);
+            // await this.startSendFile(device, socket, fileTransferId);
+
+            const transport = await createSendFileTransport(device, socket, fileTransferId);
+            const producer = await getSendFileProducer(transport);
+
+            const status = await WaitFileConsumer(socket, fileTransferId);
+            console.log(status);
+            if(status === fileTransferId){
+                if(producer.readyState === "open") {
+                    producer.send(`FILE Send! desktopID: ${this.desktopId}`);
+                    socket.emit('endTransferFile', fileTransferId);
+                }else{
+                    //console.log(`producer.readyState: ${producer.readyState}`);
+        
+                    producer.on('open', () => {
+                        producer.send(`FILE Send! desktopID: ${this.desktopId}`);
+                        socket.emit('endTransferFile', fileTransferId);
+                    });
+                }
+            }
         })
     }
 
-    private async startSendFile(
-        device: mediasoupClient.types.Device,
-        socket: Socket,
-        fileTransferId: string
-    ): Promise<void> {
-        const transport = await createSendFileTransport(device, socket, fileTransferId);
-        const producer = await getSendFileProducer(transport);
+    // private async startSendFile(
+    //     device: mediasoupClient.types.Device,
+    //     socket: Socket,
+    //     fileTransferId: string
+    // ): Promise<void> {
+    //     const transport = await createSendFileTransport(device, socket, fileTransferId);
+    //     const producer = await getSendFileProducer(transport);
 
-        const status = await WaitFileConsumer(socket, fileTransferId);
-        console.log(status);
-        if(status === fileTransferId){
-            if(producer.readyState === "open") {
-                producer.send(`FILE Send! desktopID: ${this.desktopId}`);
-                socket.emit('endTransferFile', fileTransferId);
-            }else{
-                console.log(`producer.readyState: ${producer.readyState}`);
+    //     const status = await WaitFileConsumer(socket, fileTransferId);
+    //     console.log(status);
+    //     if(status === fileTransferId){
+    //         if(producer.readyState === "open") {
+    //             producer.send(`FILE Send! desktopID: ${this.desktopId}`);
+    //             socket.emit('endTransferFile', fileTransferId);
+    //         }else{
+    //             //console.log(`producer.readyState: ${producer.readyState}`);
     
-                producer.on('open', () => {
-                    producer.send(`FILE Send! desktopID: ${this.desktopId}`);
-                    socket.emit('endTransferFile', fileTransferId);
-                });
-            }
-        }
-    }
+    //             producer.on('open', () => {
+    //                 producer.send(`FILE Send! desktopID: ${this.desktopId}`);
+    //                 socket.emit('endTransferFile', fileTransferId);
+    //             });
+    //         }
+    //     }
+    // }
 
-    public async onRecvFile(
+    private async onRecvFile(
         device: mediasoupClient.types.Device,
         socket: Socket
     ) {
         socket.on('requestRecvFile', async (fileTransferId: string) => {
             console.log(`Request request Recv File! ID: ${fileTransferId}`);
-            await this.startRecvFile(device, socket, fileTransferId);
-        })
-    }
+            // await this.startRecvFile(device, socket, fileTransferId);
 
-    private async startRecvFile(
-        device: mediasoupClient.types.Device,
-        socket: Socket,
-        fileTransferId: string
-    ): Promise<void> {
-        const transport = await createRecvFileTransport(device, socket, fileTransferId);        
-        const consumer = await getRecvFileConsumer(transport, socket, fileTransferId);
+            const transport = await createRecvFileTransport(device, socket, fileTransferId);        
+            const consumer = await getRecvFileConsumer(transport, socket, fileTransferId);
 
-        if(consumer.readyState === "open"){
-            consumer.on('message', msg => {
-                console.log(msg);
-            });
-            console.log(`readyRecvFile1`);
-            setFileConsumer(socket, fileTransferId);
-        }else{
-            consumer.on('open', () => {
-                consumer.on('message', (msg) => {
+            if(consumer.readyState === "open"){
+                consumer.on('message', msg => {
                     console.log(msg);
                 });
-                console.log(`readyRecvFile2`);
+                console.log(`readyRecvFile1`);
                 setFileConsumer(socket, fileTransferId);
-            });
-        }
+            }else{
+                consumer.on('open', () => {
+                    consumer.on('message', (msg) => {
+                        console.log(msg);
+                    });
+                    console.log(`readyRecvFile2`);
+                    setFileConsumer(socket, fileTransferId);
+                });
+            }
+        });
     }
+
+    // private async startRecvFile(
+    //     device: mediasoupClient.types.Device,
+    //     socket: Socket,
+    //     fileTransferId: string
+    // ): Promise<void> {
+    //     const transport = await createRecvFileTransport(device, socket, fileTransferId);        
+    //     const consumer = await getRecvFileConsumer(transport, socket, fileTransferId);
+
+    //     if(consumer.readyState === "open"){
+    //         consumer.on('message', msg => {
+    //             console.log(msg);
+    //         });
+    //         console.log(`readyRecvFile1`);
+    //         setFileConsumer(socket, fileTransferId);
+    //     }else{
+    //         consumer.on('open', () => {
+    //             consumer.on('message', (msg) => {
+    //                 console.log(msg);
+    //             });
+    //             console.log(`readyRecvFile2`);
+    //             setFileConsumer(socket, fileTransferId);
+    //         });
+    //     }
+    // }
 
 }

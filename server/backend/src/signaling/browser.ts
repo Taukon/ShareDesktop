@@ -8,6 +8,7 @@ import {
 } from "../serverWebRTC/common/type";
 import { SignalingEventEmitter } from "./signalingEvent";
 import { Callback } from "./type";
+import * as browserType from '../serverWebRTC/browser/type';
 
 export const setSignalingBrowser = (
     clientServer: Server,
@@ -92,6 +93,53 @@ export const setSignalingBrowser = (
         callback: Callback<ConsumeDataParams>
     ) => {
         const params = await serverWebRTC.establishBrowserScreen(socket.id, desktopId);
+        if (params) {
+            callback(params);
+        }
+    });
+
+    socket.on('establishMediaAudio', async (
+        req: {
+            desktopId: string, 
+            rtpCapabilities: RtpCapabilities
+        }, 
+        callback: Callback<browserType.AudioResponse>
+    ) => {
+        const params = await serverWebRTC.establishBrowserAudio(socket.id, req.desktopId, req.rtpCapabilities);
+        if (params) {
+            callback(params);
+        }
+    });
+
+    socket.on('createFileWatch', async (
+        desktopId: string, 
+        callback: Callback<RtcTransportParams>
+    ) => {
+        const params = await serverWebRTC.createBrowserFileWatch(socket.id, desktopId);
+        //console.log(params);
+        if (params) {
+            callback(params);
+        }
+    });
+
+    socket.on('connectFileWatch', async (
+        req: {
+            desktopId: string, 
+            dtlsParameters: DtlsParameters
+        },
+        callback: Callback<true>
+    ) => {
+        const params = await serverWebRTC.connectBrowserFileWatch(socket.id, req.desktopId, req.dtlsParameters);
+        if (params) {
+            callback(params);
+        }
+    });
+
+    socket.on('establishFileWatch', async (
+        desktopId: string, 
+        callback: Callback<ConsumeDataParams>
+    ) => {
+        const params = await serverWebRTC.establishBrowserFileWatch(socket.id, desktopId);
         if (params) {
             callback(params);
         }
