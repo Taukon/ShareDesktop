@@ -10,13 +10,13 @@ import {
     createPlainProducer,
     createRtcTransport
 } from "../common"
-import { 
-    RtcTransportParams, 
-    ConsumeDataParams, 
-    AudioResponse, 
-    ProduceDataParams
-} from './type';
+import { AudioResponse } from './type';
 import { DesktopList, DesktopTransports } from './manage';
+import { 
+    ConsumeDataParams, 
+    ProduceDataParams, 
+    RtcTransportParams 
+} from '../common/type';
 
 
 export class Desktop {

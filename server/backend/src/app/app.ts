@@ -11,17 +11,20 @@ import {
 } from 'mediasoup/node/lib/types';
 import { Server } from 'socket.io';
 import { ServerWebRTC } from "../serverWebRTC";
+import { 
+    ConsumeDataParams, 
+    ProduceDataParams, 
+    RtcTransportParams 
+} from '../serverWebRTC/common/type';
+import * as browserType from '../serverWebRTC/browser/type';
+import * as desktopType from '../serverWebRTC/desktop/type';
 
-
-//import { exec } from "child_process";
-//exec("node desktop/desktop_server.mjs 5900");
 
 const getIpAddress = (): string | undefined => {
     const nets = networkInterfaces();
     const net = nets["eth0"]?.find((v) => v.family == "IPv4");
     return net ? net.address : undefined;
 }
-
 
 const MinPort = 2000;   // --- RtcMinPort
 const MaxPort = 2020;   // --- RtcMaxport
@@ -96,9 +99,11 @@ const serverWebRtc = new ServerWebRTC(
     mediaCodecs, ip_addr
 );
 
+type Callback<T> = (res: T) => void;
+
 clientServer.on('connection', sock => {
 
-    sock.on('getRtpCapabilities', async (desktopId: string, callback: any) => {
+    sock.on('getRtpCapabilities', async (desktopId: string, callback: Callback<RtpCapabilities>) => {
         const dropId = serverWebRtc.verifyTotalBrowser();
         if(dropId){
             clientServer.to(dropId).emit("end");
@@ -109,7 +114,7 @@ clientServer.on('connection', sock => {
         }
     });
 
-    sock.on('createMediaControl', async (desktopId: string, callback: any) => {
+    sock.on('createMediaControl', async (desktopId: string, callback: Callback<RtcTransportParams>) => {
         const params = await serverWebRtc.createBrowserControl(sock.id, desktopId);
         if (params) {
             callback(params);
@@ -118,7 +123,7 @@ clientServer.on('connection', sock => {
 
     sock.on('connectMediaControl', async (
         req: {desktopId: string, dtlsParameters: DtlsParameters}, 
-        callback: any
+        callback: Callback<true>
     ) => {
         const params = await serverWebRtc.connectBrowserControl(sock.id, req.desktopId, req.dtlsParameters);
         if (params) {
@@ -127,8 +132,8 @@ clientServer.on('connection', sock => {
     });
 
     sock.on('establishMediaControl', async (
-        req: {desktopId: string, produceParameters: any}, 
-        callback: any
+        req: {desktopId: string, produceParameters: ProduceDataParams}, 
+        callback: Callback<string>
     ) => {
         const params = await serverWebRtc.establishBrowserControl(sock.id, req.desktopId, req.produceParameters);
         if (params) {
@@ -138,7 +143,7 @@ clientServer.on('connection', sock => {
 
     sock.on('createMediaScreenOrAudio', async (
         req: {desktopId: string, isAudio: boolean}, 
-        callback: any
+        callback: Callback<RtcTransportParams>
     ) => {
         const params = await serverWebRtc.createBrowserScreenOrAudio(sock.id, req.desktopId, req.isAudio);
         if (params) {
@@ -152,7 +157,7 @@ clientServer.on('connection', sock => {
             dtlsParameters: DtlsParameters, 
             isAudio: boolean
         },
-        callback: any
+        callback: Callback<true>
     ) => {
         const params = await serverWebRtc.connectBrowserScreenOrAudio(sock.id, req.desktopId, req.dtlsParameters, req.isAudio);
         if (params) {
@@ -160,7 +165,7 @@ clientServer.on('connection', sock => {
         }
     });
 
-    sock.on('establishMediaScreen', async (desktopId: string, callback: any) => {
+    sock.on('establishMediaScreen', async (desktopId: string, callback: Callback<ConsumeDataParams>) => {
         const params = await serverWebRtc.establishBrowserScreen(sock.id, desktopId);
         if (params) {
             callback(params);
@@ -172,7 +177,7 @@ clientServer.on('connection', sock => {
             desktopId: string, 
             rtpCapabilities: RtpCapabilities
         }, 
-        callback: any
+        callback: Callback<browserType.AudioResponse>
     ) => {
         const params = await serverWebRtc.establishBrowserAudio(sock.id, req.desktopId, req.rtpCapabilities);
         if (params) {
@@ -191,7 +196,7 @@ desktopServer.on('connection', sock => {
     console.log(`desktopId: ${sock.id}`);
     sock.emit('desktopId', sock.id);
 
-    sock.on('getRtpCapabilities', async (desktopId: string, callback: any) => {
+    sock.on('getRtpCapabilities', async (desktopId: string, callback: Callback<RtpCapabilities>) => {
         const dropId = serverWebRtc.verifyTotalDesktop();
         if(dropId){
             desktopServer.to(dropId).emit("end");
@@ -202,7 +207,7 @@ desktopServer.on('connection', sock => {
         }
     });
 
-    sock.on('createDesktopControl', async (desktopId: string, callback: any) => {
+    sock.on('createDesktopControl', async (desktopId: string, callback: Callback<RtcTransportParams>) => {
         const params = await serverWebRtc.createDesktopControl(desktopId);
         if (params) {
             callback(params);
@@ -211,7 +216,7 @@ desktopServer.on('connection', sock => {
 
     sock.on('connectDesktopControl', async (
         req: {desktopId: string, dtlsParameters: DtlsParameters}, 
-        callback: any
+        callback: Callback<true>
     ) => {
         const params = await serverWebRtc.connectDesktopControl(req.desktopId, req.dtlsParameters);
         if (params) {
@@ -219,14 +224,14 @@ desktopServer.on('connection', sock => {
         }
     });
 
-    sock.on('establishDesktopControl', async (desktopId: string, callback: any) => {
+    sock.on('establishDesktopControl', async (desktopId: string, callback: Callback<ConsumeDataParams>) => {
         const params = await serverWebRtc.establishDesktopControl(desktopId);
         if (params) {
             callback(params);
         }
     });
 
-    sock.on('createDesktopScreen', async (desktopId: string, callback: any) => {
+    sock.on('createDesktopScreen', async (desktopId: string, callback: Callback<RtcTransportParams>) => {
         const params = await serverWebRtc.createDesktopScreen(desktopId);
         if (params) {
             callback(params);
@@ -238,7 +243,7 @@ desktopServer.on('connection', sock => {
             desktopId: string, 
             dtlsParameters: DtlsParameters
         },
-        callback: any
+        callback: Callback<true>
     ) => {
         const params = await serverWebRtc.connectDesktopScreen(req.desktopId, req.dtlsParameters);
         if (params) {
@@ -247,8 +252,8 @@ desktopServer.on('connection', sock => {
     });
 
     sock.on('establishDesktopScreen', async (
-        req: {desktopId: string, produceParameters: any},
-        callback: any
+        req: {desktopId: string, produceParameters: ProduceDataParams},
+        callback: Callback<string>
     ) => {
         const params = await serverWebRtc.establishDesktopScreen(req.desktopId, req.produceParameters);
         if (params) {
@@ -258,7 +263,7 @@ desktopServer.on('connection', sock => {
 
     sock.on('establishDesktopAudio', async (
         desktopId: string, 
-        callback: any
+        callback: Callback<desktopType.AudioResponse>
     ) => {
         if(await serverWebRtc.createDesktopAudio(desktopId, false)){
             const params = serverWebRtc.establishDesktopAudio(desktopId);

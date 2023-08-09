@@ -10,7 +10,7 @@ import { startWorker } from "./common";
 import { Desktop } from "./desktop";
 import { Browser } from "./browser";
 import { FileTransfer } from "./fileTransfer";
-import { ProduceDataParams } from "./fileTransfer/type";
+import { ProduceDataParams } from "./common/type";
 
 export class ServerWebRTC {
 
@@ -113,7 +113,7 @@ export class ServerWebRTC {
 
     public async establishDesktopScreen(
         desktopId: string, 
-        produceParameters: any
+        produceParameters: ProduceDataParams
     ) {
         return await this.desktop.establishDesktopScreen(
             desktopId, 
@@ -296,13 +296,9 @@ export class ServerWebRTC {
     }
 
     public async establishRecvFile(
-        fileTransferId: string,
-        FileProducerId: string|undefined   
+        fileTransferId: string
     ) {
-        return await this.fileTransfer.establishRecvFile(
-            fileTransferId,
-            FileProducerId
-        );
+        return await this.fileTransfer.establishRecvFile(fileTransferId);
     }
 
     public async createSendFile(fileTransferId: string) {

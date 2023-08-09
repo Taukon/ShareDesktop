@@ -5,19 +5,33 @@ import {
 } from 'mediasoup/node/lib/types';
 import * as crypto from "crypto";
 import { createRtcTransport } from '../common';
-import { ConsumeDataParams, ProduceDataParams, RtcTransportParams } from './type';
-import { FileTransferList, FileTransports } from './manage';
+import { FileTransferList, FileTransports, RecvFileTransport, SendFileTransport } from './manage';
+import { 
+    ConsumeDataParams, 
+    ProduceDataParams, 
+    RtcTransportParams 
+} from '../common/type';
 
 export class FileTransfer {
 
     private fileTransferList: FileTransferList = {};
 
-    private setFileTransports(fileTransferId: string, fileTransports: FileTransports): boolean {
-        // if(this.isFileTransports(fileTransports)){
-            this.fileTransferList[fileTransferId] = fileTransports;
+    private setRecvFileTransport(fileTransferId: string, recvFileTransport: RecvFileTransport): boolean {
+        const fileTransports = this.fileTransferList[fileTransferId];
+        if(this.isFileTransports(fileTransports)){
+            fileTransports.RecvTransport = recvFileTransport;
             return true;
-        // }
-        // return false;
+        }
+        return false;
+    }
+
+    private setSendFileTransport(fileTransferId: string, sendFileTransport: SendFileTransport): boolean {
+        const fileTransports = this.fileTransferList[fileTransferId];
+        if(this.isFileTransports(fileTransports)){
+            fileTransports.SendTransport = sendFileTransport;
+            return true;
+        }
+        return false;
     }
 
     public initFileTransports(fileTransferId: string): boolean {
@@ -37,9 +51,25 @@ export class FileTransfer {
         return typeof fileTransports === 'object' && fileTransports.exits;
     }
 
-    public getFileTransports(fileTransferId: string): FileTransports|undefined {
+    private getFileTransports(fileTransferId: string): FileTransports|undefined {
         const fileTransports = this.fileTransferList[fileTransferId];
         return this.isFileTransports(fileTransports) ? fileTransports : undefined;
+    }
+
+    private getRecvFileTransport(fileTransferId: string): RecvFileTransport|undefined {
+        const fileTransports = this.fileTransferList[fileTransferId];
+        if(this.isFileTransports(fileTransports)){
+            return fileTransports.RecvTransport;
+        }
+        return undefined;
+    }
+
+    private getSendFileTransport(fileTransferId: string): SendFileTransport|undefined {
+        const fileTransports = this.fileTransferList[fileTransferId];
+        if(this.isFileTransports(fileTransports)){
+            return fileTransports.SendTransport;
+        }
+        return undefined;
     }
 
     public deleteFileTransports(fileTransferId: string) {
@@ -70,19 +100,16 @@ export class FileTransfer {
     ): Promise<RtcTransportParams|undefined> {
         
         const fileTransports = this.getFileTransports(fileTransferId);
-
         if(fileTransports?.exits) {
             const { transport, params } = await createRtcTransport(router, transportOptions);
             transport.observer.on('close', () => {
                 transport.close();
             });
-            fileTransports.RecvTransport = transport;
 
-            this.setFileTransports(fileTransferId, fileTransports);
+            this.setRecvFileTransport(fileTransferId, transport);
 
             return params;
         }
-
 
         return undefined;
     }
@@ -91,8 +118,7 @@ export class FileTransfer {
         fileTransferId: string,
         dtlsParameters: DtlsParameters,
     ):Promise<boolean> {
-        const fileTransports = this.getFileTransports(fileTransferId);
-        const recvTransport = fileTransports?.RecvTransport;
+        const recvTransport = this.getRecvFileTransport(fileTransferId);
 
         if(recvTransport){
             await recvTransport.connect({ dtlsParameters: dtlsParameters });
@@ -102,14 +128,13 @@ export class FileTransfer {
     }
 
     public async establishRecvFile(
-        fileTransferId: string,
-        FileProducerId: string|undefined
+        fileTransferId: string
     ): Promise<ConsumeDataParams|undefined> {
-        const fileTransports = this.getFileTransports(fileTransferId);
-        const recvTransport = fileTransports?.RecvTransport;
+        const recvTransport = this.getRecvFileTransport(fileTransferId);
+        const fileProducerId = this.getSendFileTransport(fileTransferId)?.producer?.id;
 
-        if(recvTransport && FileProducerId){
-            const dataConsumer = await recvTransport.consumeData({ dataProducerId: FileProducerId });
+        if(recvTransport && fileProducerId){
+            const dataConsumer = await recvTransport.consumeData({ dataProducerId: fileProducerId });
             const params = {
                 id: dataConsumer.id,
                 dataProducerId: dataConsumer.dataProducerId,
@@ -143,9 +168,7 @@ export class FileTransfer {
                 transport.close();
             });
 
-            fileTransports.SendTransport = transport;
-
-            this.setFileTransports(fileTransferId, fileTransports);
+            this.setSendFileTransport(fileTransferId, transport);
 
             return params;
         }
@@ -157,8 +180,7 @@ export class FileTransfer {
         fileTransferId: string, 
         dtlsParameters: DtlsParameters
     ):Promise<boolean> {
-        const fileTransports = this.getFileTransports(fileTransferId);
-        const sendTransport = fileTransports?.SendTransport;
+        const sendTransport = this.getSendFileTransport(fileTransferId);
 
         if(sendTransport) {
             await sendTransport.connect({ dtlsParameters: dtlsParameters });
@@ -171,8 +193,7 @@ export class FileTransfer {
         fileTransferId: string, 
         produceParameters: ProduceDataParams
     ):Promise<string|undefined> {
-        const fileTransports = this.getFileTransports(fileTransferId);
-        const sendTransport = fileTransports?.SendTransport;
+        const sendTransport = this.getSendFileTransport(fileTransferId);
 
         if(sendTransport){
             const dataProducer = await sendTransport.produceData(produceParameters);

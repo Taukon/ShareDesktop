@@ -8,8 +8,14 @@ import {
     getScreenConsumer,
     getControlProducer,
     createAudioTransport,
-    getAudioConsumer
+    getAudioConsumer,
+    createRecvFileTransport,
+    getRecvFileConsumer,
+    createSendFileTransport,
+    getSendFileProducer,
+    WaitFileConsumer
 } from './browser';
+import { initRecvFileTransfer, initSendFileTransfer, setFileConsumer } from './signaling';
 
 export class BrowserWebRTC {
     public desktopId: string;
@@ -41,6 +47,9 @@ export class BrowserWebRTC {
                 this.audio.play();
                 this.startAudio(msDevice, socket, this.audio, desktopId);
             }
+
+            // this.initRecvFile(msDevice, socket, desktopId);
+            // this.initSendFile(msDevice, socket, desktopId);
         })
     }
 
@@ -80,10 +89,19 @@ export class BrowserWebRTC {
         const transport = await createScreenTransport(device, socket, desktopId);
         const consumer = await getScreenConsumer(transport, socket, desktopId);
         
-        consumer.on('message', buf => {
-            const imgBase64 = btoa(new Uint8Array(buf).reduce((data, byte) => data + String.fromCharCode(byte), ''));
-            image.src = 'data:image/jpeg;base64,' + imgBase64;
-        });
+        if(consumer.readyState === "open"){
+            consumer.on('message', buf => {
+                const imgBase64 = btoa(new Uint8Array(buf).reduce((data, byte) => data + String.fromCharCode(byte), ''));
+                image.src = 'data:image/jpeg;base64,' + imgBase64;
+            });
+        }else{
+            consumer.on('open', () => {
+                consumer.on('message', buf => {
+                    const imgBase64 = btoa(new Uint8Array(buf).reduce((data, byte) => data + String.fromCharCode(byte), ''));
+                    image.src = 'data:image/jpeg;base64,' + imgBase64;
+                });
+            });
+        }
     }
 
     private async startAudio(
@@ -100,5 +118,75 @@ export class BrowserWebRTC {
         audio.srcObject = new MediaStream([track]);
     }
 
+    public async initRecvFile(
+        device: mediasoupClient.types.Device,
+        socket: Socket,
+        desktopId: string
+    ): Promise<void> {
+        const init = initRecvFileTransfer(socket, desktopId);
+        const fileTransferId = await init();
+        await this.startRecvFile(device, socket, fileTransferId);
+    }
+
+    private async startRecvFile(
+        device: mediasoupClient.types.Device,
+        socket: Socket,
+        fileTransferId: string
+    ): Promise<void> {
+        const transport = await createRecvFileTransport(device, socket, fileTransferId);        
+        const consumer = await getRecvFileConsumer(transport, socket, fileTransferId);
+
+        if(consumer.readyState === "open"){
+            consumer.on('message', msg => {
+                console.log(msg);
+            });
+            console.log(`readyRecvFile1`);
+            setFileConsumer(socket, fileTransferId);
+        }else{
+            consumer.on('open', () => {
+                consumer.on('message', (msg) => {
+                    console.log(msg);
+                });
+                console.log(`readyRecvFile2`);
+                setFileConsumer(socket, fileTransferId);
+            });
+        }
+    }
+
+    public async initSendFile(
+        device: mediasoupClient.types.Device,
+        socket: Socket,
+        desktopId: string
+    ): Promise<void> {
+        const init = initSendFileTransfer(socket, desktopId);
+        const fileTransferId = await init();
+        await this.startSendFile(device, socket, fileTransferId);
+    }
+
+    private async startSendFile(
+        device: mediasoupClient.types.Device,
+        socket: Socket,
+        fileTransferId: string
+    ): Promise<void> {
+        const transport = await createSendFileTransport(device, socket, fileTransferId);
+        const producer = await getSendFileProducer(transport);
+
+        const status = await WaitFileConsumer(socket, fileTransferId);
+        console.log(status);
+        if(status === fileTransferId){
+            if(producer.readyState === "open") {
+                producer.send(`FILE Send! from Browser: ${this.desktopId}`);
+                socket.emit('endTransferFile', fileTransferId);
+            }else{
+                console.log(`producer.readyState: ${producer.readyState}`);
+    
+                producer.on('open', () => {
+                    producer.send(`FILE Send! from Browser: ${this.desktopId}`);
+                    socket.emit('endTransferFile', fileTransferId);
+                });
+            }
+        }        
+
+    }
 
 }

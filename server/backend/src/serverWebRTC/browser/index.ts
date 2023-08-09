@@ -7,12 +7,12 @@ import {
 } from 'mediasoup/node/lib/types';
 import { BrowserTransports, BrowserList, BrowserClientList } from './manage';
 import { createDirectConsumer, createRtcTransport } from '../common';
+import { AudioResponse } from './type';
 import { 
-    AudioResponse, 
     ConsumeDataParams, 
     ProduceDataParams, 
     RtcTransportParams 
-} from './type';
+} from '../common/type';
 
 export class Browser {
 

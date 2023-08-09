@@ -2,12 +2,20 @@ import { io, Socket } from 'socket.io-client';
 import * as mediasoupClient from 'mediasoup-client';
 import { 
     createControlTransport,
-    createDevice, createScreenTransport, getControlConsumer, getScreenProducer 
+    createDevice, 
+    createRecvFileTransport, 
+    createScreenTransport, 
+    createSendFileTransport, 
+    getControlConsumer, 
+    getRecvFileConsumer, 
+    getScreenProducer, 
+    getSendFileProducer, 
+    WaitFileConsumer 
 } from './desktop';
 import { Buffer } from 'buffer';
 import { controlEventListener, displayScreen } from './canvas';
 import { ControlData } from '../../util/type';
-import { establishDesktopAudio } from './signaling';
+import { establishDesktopAudio, setFileConsumer } from './signaling';
 
 // @ts-ignore
 window.Buffer = Buffer;
@@ -73,6 +81,8 @@ export class DesktopWebRTC {
                 });
             }
 
+            this.onSendFile(device, socket);
+            this.onRecvFile(device, socket);
         });
 
     }
@@ -110,7 +120,7 @@ export class DesktopWebRTC {
                                     isFullScreen
                                 );
         }else{
-            console.log(`producer.readyState: ${producer.readyState}`);
+            //console.log(`producer.readyState: ${producer.readyState}`);
             producer.on('open', () => {
                 this.intervalId = this.loopGetScreen(
                     producer,
@@ -205,6 +215,76 @@ export class DesktopWebRTC {
 
         const ffmpegPid = await window.api.getAudio(this.pulseAudioDevice, msg);
         return ffmpegPid;
+    }
+
+    public async onSendFile(
+        device: mediasoupClient.types.Device,
+        socket: Socket
+    ) {
+        socket.on('requestSendFile', async (fileTransferId: string) => {
+            console.log(`Receive request Send File! ID: ${fileTransferId}`);
+            await this.startSendFile(device, socket, fileTransferId);
+        })
+    }
+
+    private async startSendFile(
+        device: mediasoupClient.types.Device,
+        socket: Socket,
+        fileTransferId: string
+    ): Promise<void> {
+        const transport = await createSendFileTransport(device, socket, fileTransferId);
+        const producer = await getSendFileProducer(transport);
+
+        const status = await WaitFileConsumer(socket, fileTransferId);
+        console.log(status);
+        if(status === fileTransferId){
+            if(producer.readyState === "open") {
+                producer.send(`FILE Send! desktopID: ${this.desktopId}`);
+                socket.emit('endTransferFile', fileTransferId);
+            }else{
+                console.log(`producer.readyState: ${producer.readyState}`);
+    
+                producer.on('open', () => {
+                    producer.send(`FILE Send! desktopID: ${this.desktopId}`);
+                    socket.emit('endTransferFile', fileTransferId);
+                });
+            }
+        }
+    }
+
+    public async onRecvFile(
+        device: mediasoupClient.types.Device,
+        socket: Socket
+    ) {
+        socket.on('requestRecvFile', async (fileTransferId: string) => {
+            console.log(`Request request Recv File! ID: ${fileTransferId}`);
+            await this.startRecvFile(device, socket, fileTransferId);
+        })
+    }
+
+    private async startRecvFile(
+        device: mediasoupClient.types.Device,
+        socket: Socket,
+        fileTransferId: string
+    ): Promise<void> {
+        const transport = await createRecvFileTransport(device, socket, fileTransferId);        
+        const consumer = await getRecvFileConsumer(transport, socket, fileTransferId);
+
+        if(consumer.readyState === "open"){
+            consumer.on('message', msg => {
+                console.log(msg);
+            });
+            console.log(`readyRecvFile1`);
+            setFileConsumer(socket, fileTransferId);
+        }else{
+            consumer.on('open', () => {
+                consumer.on('message', (msg) => {
+                    console.log(msg);
+                });
+                console.log(`readyRecvFile2`);
+                setFileConsumer(socket, fileTransferId);
+            });
+        }
     }
 
 }

@@ -93,63 +93,86 @@ export const establishDesktopAudio = async (
     return await sendRequest(socket, 'establishDesktopAudio', desktopId);
 }
 
+
 // -------- SendFile --------
 
 export const createSendFile = (
     socket: Socket,
-    desktopId: string
+    fileTransferId: string
 ): Signaling<void, TransportParams> => {
-    return () => sendRequest(socket, 'createSendFile', desktopId);
+    return () => sendRequest(socket, 'createSendFile', fileTransferId);
 }
 
 export const connectSendFile =(
     socket: Socket,
-    desktopId: string
+    fileTransferId: string
 ): Signaling<mediasoupClient.types.DtlsParameters, void> => {
     return (dtlsParameters:mediasoupClient.types.DtlsParameters) => sendRequest(
         socket,
         'connectSendFile',
-        { desktopId: desktopId, dtlsParameters: dtlsParameters }
+        {fileTransferId: fileTransferId, dtlsParameters: dtlsParameters}
     );
 }
 
 export const establishSendFile = (
     socket: Socket,
-    desktopId: string
+    fileTransferId: string
 ): Signaling<ProduceDataParam, string> => {
     return (params: ProduceDataParam) => sendRequest(
         socket,
         'establishSendFile', 
-        { desktopId: desktopId, produceParameters: params }
+        {fileTransferId: fileTransferId, produceParameters: params}
+    );
+}
+
+export const waitSetFileConsumer = (
+    socket: Socket,
+    fileTransferId: string
+): Signaling<void, string> => {
+    return () => sendRequest(
+        socket,
+        'waitFileConsumer', 
+        fileTransferId
     );
 }
 
 // -------- RecvFile --------
 
-export const createRecvFile = (
+export const initRecvFileTransfer = (
     socket: Socket,
     desktopId: string
+): Signaling<void, string> => {
+    return () => sendRequest(socket, 'initRecvFileTransfer', desktopId);
+}
+
+export const createRecvFile = (
+    socket: Socket,
+    fileTransferId: string
 ): Signaling<void, TransportParams> => {
-    return () => sendRequest(socket, 'createRecvFile', {desktopId: desktopId});
+    return () => sendRequest(socket, 'createRecvFile', fileTransferId);
 }
 
 export const connectRecvFile = (
     socket: Socket,
-    desktopId: string
+    fileTransferId: string
 ):  Signaling<mediasoupClient.types.DtlsParameters, void> => {
     return (dtlsParameters: mediasoupClient.types.DtlsParameters) => sendRequest(
         socket,
         'connectRecvFile', 
-        {
-            desktopId: desktopId,
-            dtlsParameters: dtlsParameters
-        }
+        {fileTransferId: fileTransferId, dtlsParameters: dtlsParameters}
     );
 }
 
 export const establishRecvFile = (
     socket: Socket,
-    desktopId: string
+    fileTransferId: string
 ): Signaling<void, ConsumeDataParams> => {
-    return () => sendRequest(socket, 'establishRecvFile', desktopId);
+    return () => sendRequest(socket, 'establishRecvFile', fileTransferId);
+}
+
+export const setFileConsumer = (
+    socket: Socket,
+    fileTransferId: string
+):Socket => {
+    return socket.emit('setFileConsumer', fileTransferId);
 }

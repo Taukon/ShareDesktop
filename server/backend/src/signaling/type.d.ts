@@ -1,0 +1,1 @@
+export type Callback<T> = (res: T) => void;
