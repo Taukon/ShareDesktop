@@ -6,7 +6,7 @@ import {
     ProduceDataParam, 
     TransportParams 
 } from "../mediasoup/type";
-import { Signaling } from "./type";
+import { FileInfo, Signaling } from "./type";
 
 const sendRequest = async <T>(
     socket: Socket,
@@ -211,18 +211,12 @@ export const establishSendFile = (
 
 export const waitSetFileConsumer = (
     socket: Socket,
-    fileTransferId: string,
-    fileName: string,
-    fileSize: number
+    fileInfo: FileInfo
 ): Signaling<void, string> => {
     return () => sendRequest(
         socket,
         'waitFileConsumer', 
-        {
-            fileTransferId: fileTransferId, 
-            fileName: fileName,
-            fileSize: fileSize
-        }
+        fileInfo
     );
 }
 
@@ -231,7 +225,7 @@ export const waitSetFileConsumer = (
 export const initRecvFileTransfer = (
     socket: Socket,
     desktopId: string
-): Signaling<void, {fileTransferId: string, fileName: string, fileSize: number}> => {
+): Signaling<void, FileInfo> => {
     return () => sendRequest(socket, 'initRecvFileTransfer', desktopId);
 }
 

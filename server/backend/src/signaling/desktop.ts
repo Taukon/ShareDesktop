@@ -7,7 +7,7 @@ import {
     RtcTransportParams 
 } from "../serverWebRTC/common/type";
 import { SignalingEventEmitter } from "./signalingEvent";
-import { Callback } from "./type";
+import { Callback, FileInfo } from "./type";
 import * as desktopType from '../serverWebRTC/desktop/type';
 
 export const setSignalingDesktop = (
@@ -183,14 +183,10 @@ export const setSignalingDesktop = (
 
     // for produce send
     socket.on('waitFileConsumer', async (
-        req: {
-            fileTransferId: string,
-            fileName: string,
-            fileSize: number
-        },
+        req: FileInfo,
         callback: Callback<string>
     ) => {
-        fileEventEmitter.setFileProducer(req.fileTransferId, req.fileName, req.fileSize); //p(D)=>c(B)
+        fileEventEmitter.setFileProducer(req); //p(D)=>c(B)
         fileEventEmitter.waitFileConsumer(req.fileTransferId, callback); //c(B)=>p(D)
     });
 

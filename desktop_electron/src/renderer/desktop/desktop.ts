@@ -27,6 +27,7 @@ import {
     recvEventEmitter, 
     sendEventEmitter
  } from './mediasoup';
+import { FileInfo } from './signaling/type';
 
 export const createDevice = async (
     socket: Socket,
@@ -137,9 +138,16 @@ export const WaitFileConsumer = async (
     socket: Socket,
     fileTransferId: string,
     fileName: string,
-    fileSize: number
+    fileSize: number,
+    fileMimeType: string
 ): Promise<string> => {
-    const onReady = waitSetFileConsumer(socket, fileTransferId, fileName, fileSize);
+    const fileInfo: FileInfo ={
+        fileTransferId,
+        fileName,
+        fileSize,
+        fileMimeType
+    };
+    const onReady = waitSetFileConsumer(socket, fileInfo);
     return await onReady();
 }
 

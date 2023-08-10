@@ -18,6 +18,7 @@ import { Buffer } from 'buffer';
 import { controlEventListener, displayScreen } from './canvas';
 import { ControlData } from '../../util/type';
 import { establishDesktopAudio, setFileConsumer } from './signaling';
+import { FileInfo } from './signaling/type';
 // import { readFile } from 'fs';
 
 // @ts-ignore
@@ -298,24 +299,37 @@ export class DesktopWebRTC {
         socket: Socket
     ) {
         socket.on('requestSendFile', async (fileTransferId: string) => {
-            console.log(`Receive request Send File! ID: ${fileTransferId}`);
+
             // await this.startSendFile(device, socket, fileTransferId);
 
             const transport = await createSendFileTransport(device, socket, fileTransferId);
             const producer = await getSendFileProducer(transport);
 
-            const status = await WaitFileConsumer(socket, fileTransferId, `aaa.txt`, 1000);
+            const aaa = Buffer.from('abcdefg');
+
+            const status = 
+                await WaitFileConsumer(
+                    socket, 
+                    fileTransferId, 
+                    `aaa.txt`, 
+                    aaa.byteLength, 
+                    `text/plain`
+                );
             console.log(status);
             if(status === fileTransferId){
                 if(producer.readyState === "open") {
-                    producer.send(`FILE Send! desktopID: ${this.desktopId}`);
+                    
+                    producer.send(aaa);
+                    // producer.send(`FILE Send! desktopID: ${this.desktopId}`);
+
                     socket.emit('endTransferFile', fileTransferId);
                 }else{
                     //console.log(`producer.readyState: ${producer.readyState}`);
                     
-        
                     producer.on('open', () => {
-                        producer.send(`FILE Send! desktopID: ${this.desktopId}`);
+                        // producer.send(`FILE Send! desktopID: ${this.desktopId}`);
+                        producer.send(aaa);
+
                         socket.emit('endTransferFile', fileTransferId);
                     });
                 }
@@ -323,84 +337,34 @@ export class DesktopWebRTC {
         });
     }
 
-    // private async startSendFile(
-    //     device: mediasoupClient.types.Device,
-    //     socket: Socket,
-    //     fileTransferId: string
-    // ): Promise<void> {
-    //     const transport = await createSendFileTransport(device, socket, fileTransferId);
-    //     const producer = await getSendFileProducer(transport);
-
-    //     const status = await WaitFileConsumer(socket, fileTransferId);
-    //     console.log(status);
-    //     if(status === fileTransferId){
-    //         if(producer.readyState === "open") {
-    //             producer.send(`FILE Send! desktopID: ${this.desktopId}`);
-    //             socket.emit('endTransferFile', fileTransferId);
-    //         }else{
-    //             //console.log(`producer.readyState: ${producer.readyState}`);
-    
-    //             producer.on('open', () => {
-    //                 producer.send(`FILE Send! desktopID: ${this.desktopId}`);
-    //                 socket.emit('endTransferFile', fileTransferId);
-    //             });
-    //         }
-    //     }
-    // }
-
     private async onRecvFile(
         device: mediasoupClient.types.Device,
         socket: Socket
     ) {
-        socket.on('requestRecvFile', async (fileTransferId: string, fileName: string, fileSize: number) => {
-            console.log(`fileName: ${fileName} | fileSize: ${fileSize}`);
-            console.log(`Request request Recv File! ID: ${fileTransferId}`);
+        socket.on('requestRecvFile', async (fileInfo: FileInfo) => {
+            console.log(`fileName: ${fileInfo.fileName} | fileSize: ${fileInfo.fileSize} | fileMimeType: ${fileInfo.fileMimeType}`);
+            console.log(`Request request Recv File! ID: ${fileInfo.fileTransferId}`);
             // await this.startRecvFile(device, socket, fileTransferId);
 
-            const transport = await createRecvFileTransport(device, socket, fileTransferId);        
-            const consumer = await getRecvFileConsumer(transport, socket, fileTransferId);
+            const transport = await createRecvFileTransport(device, socket, fileInfo.fileTransferId);        
+            const consumer = await getRecvFileConsumer(transport, socket, fileInfo.fileTransferId);
 
             if(consumer.readyState === "open"){
                 consumer.on('message', msg => {
                     console.log(msg);
                 });
                 console.log(`readyRecvFile1`);
-                setFileConsumer(socket, fileTransferId);
+                setFileConsumer(socket, fileInfo.fileTransferId);
             }else{
                 consumer.on('open', () => {
                     consumer.on('message', (msg) => {
                         console.log(msg);
                     });
                     console.log(`readyRecvFile2`);
-                    setFileConsumer(socket, fileTransferId);
+                    setFileConsumer(socket, fileInfo.fileTransferId);
                 });
             }
         });
     }
-
-    // private async startRecvFile(
-    //     device: mediasoupClient.types.Device,
-    //     socket: Socket,
-    //     fileTransferId: string
-    // ): Promise<void> {
-    //     const transport = await createRecvFileTransport(device, socket, fileTransferId);        
-    //     const consumer = await getRecvFileConsumer(transport, socket, fileTransferId);
-
-    //     if(consumer.readyState === "open"){
-    //         consumer.on('message', msg => {
-    //             console.log(msg);
-    //         });
-    //         console.log(`readyRecvFile1`);
-    //         setFileConsumer(socket, fileTransferId);
-    //     }else{
-    //         consumer.on('open', () => {
-    //             consumer.on('message', (msg) => {
-    //                 console.log(msg);
-    //             });
-    //             console.log(`readyRecvFile2`);
-    //             setFileConsumer(socket, fileTransferId);
-    //         });
-    //     }
-    // }
 
 }

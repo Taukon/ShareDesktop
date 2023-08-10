@@ -220,14 +220,10 @@ export const setSignalingBrowser = (
 
     // for produce send
     socket.on('waitFileConsumer', async (
-        req: {
-            fileTransferId: string,
-            fileName: string,
-            fileSize: number
-        },
+        req: FileInfo,
         callback: Callback<string>
     ) => {
-        fileEventEmitter.setFileProducer(req.fileTransferId, req.fileName, req.fileSize); //p(B)=>c(D)
+        fileEventEmitter.setFileProducer(req); //p(B)=>c(D)
         fileEventEmitter.waitFileConsumer(req.fileTransferId, callback); //c(D)=>p(B)
     });
 

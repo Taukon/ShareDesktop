@@ -41,6 +41,7 @@
     "copyfiles": "^2.4.1",
     "electron": "^25.2.0",
     "mediasoup-client": "^3.6.93",
+    "mime-types": "^2.1.35",
     "node": "^20.4.0",
     "node-addon-api": "^7.0.0",
     "node-gyp": "^9.4.0",

@@ -20,10 +20,12 @@ export class SignalingEventEmitter {
     }
 
     public requestRecvFile(desktopSocketId: string, fileTransferId: string) {
-        this.eventEmitter.once(`${fileTransferId}:ProducerSet`, (fileName: string, fileSize: number) => {
-            this.eventEmitter.emit(`requestRecvFile`, desktopSocketId, fileTransferId, fileName, fileSize);
-            console.log(`requestRecvFile: ${fileTransferId}`);
-        })
+        this.eventEmitter.once(
+            `${fileTransferId}:ProducerSet`, 
+            (fileInfo: FileInfo) => {
+                this.eventEmitter.emit(`requestRecvFile`, desktopSocketId, fileInfo);
+                console.log(`requestRecvFile: ${fileTransferId}`);
+        });
     }
 
     public requestSendFile(desktopSocketId: string, fileTransferId: string) {
@@ -35,11 +37,9 @@ export class SignalingEventEmitter {
             `requestRecvFile`, 
             (
                 desktopSocketId: string, 
-                fileTransferId: string,
-                fileName: string,
-                fileSize: number
+                fileInfo: FileInfo
             ) => {
-                desktopServer.to(desktopSocketId).emit(`requestRecvFile`, fileTransferId, fileName, fileSize);
+                desktopServer.to(desktopSocketId).emit(`requestRecvFile`, fileInfo);
         });
 
         this.eventEmitter.on(
@@ -65,16 +65,21 @@ export class SignalingEventEmitter {
         });
     }
 
-    public setFileProducer(fileTransferId: string, fileName: string, fileSize: number) {
-        this.eventEmitter.emit(`${fileTransferId}:ProducerSet`, fileName, fileSize);
+    public setFileProducer(
+        fileInfo: FileInfo
+    ) {
+        this.eventEmitter.emit(
+            `${fileInfo.fileTransferId}:ProducerSet`, fileInfo);
     }
 
     public waitFileProducer(
         fileTransferId: string,
         callback:Callback<FileInfo>
     ) {
-        this.eventEmitter.once(`${fileTransferId}:ProducerSet`, (fileName: string, fileSize: number) => {
-            callback({fileTransferId: fileTransferId, fileName: fileName, fileSize: fileSize});
+        this.eventEmitter.once(
+            `${fileTransferId}:ProducerSet`, 
+            (fileInfo: FileInfo) => {
+                callback(fileInfo);
         });
     }
 

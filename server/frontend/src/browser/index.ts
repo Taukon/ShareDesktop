@@ -18,6 +18,7 @@ import {
     getFileWatchConsumer
 } from './browser';
 import { initRecvFileTransfer, initSendFileTransfer, setFileConsumer } from './signaling';
+import { FileInfo } from './signaling/type';
 
 export class BrowserWebRTC {
     public desktopId: string;
@@ -149,38 +150,77 @@ export class BrowserWebRTC {
         desktopId: string
     ): Promise<void> {
         const init = initRecvFileTransfer(socket, desktopId);
-        const res = await init();
-        await this.startRecvFile(device, socket, res.fileTransferId, res.fileName, res.fileSize);
+        const fileInfo = await init();
+        await this.startRecvFile(device, socket, fileInfo);
     }
 
     private async startRecvFile(
         device: mediasoupClient.types.Device,
         socket: Socket,
-        fileTransferId: string,
-        fileName: string,
-        fileSize: number
+        fileInfo: FileInfo
     ): Promise<void> {
-        const transport = await createRecvFileTransport(device, socket, fileTransferId);        
-        const consumer = await getRecvFileConsumer(transport, socket, fileTransferId);
-
-        console.log(`fileName: ${fileName} | fileSize: ${fileSize}`);
+        const fileTransferId = fileInfo.fileTransferId;
+        
+        const transport = await createRecvFileTransport(device, socket, fileInfo.fileTransferId);        
+        const consumer = await getRecvFileConsumer(transport, socket, fileInfo.fileTransferId);
 
         if(consumer.readyState === "open"){
-            consumer.on('message', msg => {
-                console.log(msg);
-            });
+            this.receiveFile(
+                consumer, 
+                fileInfo.fileName, 
+                fileInfo.fileSize,
+                fileInfo.fileMimeType
+            );
             console.log(`readyRecvFile1`);
             setFileConsumer(socket, fileTransferId);
         }else{
             consumer.on('open', () => {
-                consumer.on('message', (msg) => {
-                    console.log(msg);
-                });
+                this.receiveFile(
+                    consumer, 
+                    fileInfo.fileName, 
+                    fileInfo.fileSize,
+                    fileInfo.fileMimeType
+                );
                 console.log(`readyRecvFile2`);
                 setFileConsumer(socket, fileTransferId);
             });
         }
     }
+
+    private receiveFile(
+        consumer: mediasoupClient.types.DataConsumer,
+        fileName: string,
+        fileSize: number,
+        fileMimeType: string
+    ) {
+        let receivedSize = 0;
+        let receivedBuffer: ArrayBuffer = new ArrayBuffer(0);
+        consumer.on('message', (msg: ArrayBuffer) => {
+            receivedSize += msg.byteLength;
+            receivedBuffer = this.appendBuffer(receivedBuffer, new Uint8Array(msg).buffer);
+            
+            // console.log(receivedBuffer);
+
+            if(receivedSize == fileSize){
+                console.log(`get File: ${fileName} ${receivedBuffer}`);
+                const blob = new Blob([receivedBuffer], {type: fileMimeType});
+
+                const element = document.createElement("a");
+                element.download = fileName;
+                console.log(element);
+                element.href = window.URL.createObjectURL(blob);
+                element.click();
+                console.log(element);
+            }
+        });
+    }
+
+    private appendBuffer(buffer1: ArrayBuffer, buffer2: ArrayBuffer) {
+        const tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
+        tmp.set(new Uint8Array(buffer1), 0);
+        tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
+        return tmp.buffer;
+    };
 
     public async initSendFile(
         device: mediasoupClient.types.Device,
@@ -200,7 +240,14 @@ export class BrowserWebRTC {
         const transport = await createSendFileTransport(device, socket, fileTransferId);
         const producer = await getSendFileProducer(transport);
 
-        const status = await WaitFileConsumer(socket, fileTransferId, `bbb.txt`, 1000);
+        const status = 
+            await WaitFileConsumer(
+                socket, 
+                fileTransferId, 
+                `bbb.txt`, 
+                1000,
+                `text/plain`
+            );
         console.log(status);
         if(status === fileTransferId){
             if(producer.readyState === "open") {
