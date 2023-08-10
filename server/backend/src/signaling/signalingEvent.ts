@@ -20,8 +20,8 @@ export class SignalingEventEmitter {
     }
 
     public requestRecvFile(desktopSocketId: string, fileTransferId: string) {
-        this.eventEmitter.once(`${fileTransferId}:ProducerSet`, () => {
-            this.eventEmitter.emit(`requestRecvFile`, desktopSocketId, fileTransferId);
+        this.eventEmitter.once(`${fileTransferId}:ProducerSet`, (fileName: string, fileSize: number) => {
+            this.eventEmitter.emit(`requestRecvFile`, desktopSocketId, fileTransferId, fileName, fileSize);
             console.log(`requestRecvFile: ${fileTransferId}`);
         })
     }
@@ -35,9 +35,11 @@ export class SignalingEventEmitter {
             `requestRecvFile`, 
             (
                 desktopSocketId: string, 
-                fileTransferId: string
+                fileTransferId: string,
+                fileName: string,
+                fileSize: number
             ) => {
-                desktopServer.to(desktopSocketId).emit(`requestRecvFile`, fileTransferId);
+                desktopServer.to(desktopSocketId).emit(`requestRecvFile`, fileTransferId, fileName, fileSize);
         });
 
         this.eventEmitter.on(
@@ -63,16 +65,16 @@ export class SignalingEventEmitter {
         });
     }
 
-    public setFileProducer(fileTransferId: string) {
-        this.eventEmitter.emit(`${fileTransferId}:ProducerSet`);
+    public setFileProducer(fileTransferId: string, fileName: string, fileSize: number) {
+        this.eventEmitter.emit(`${fileTransferId}:ProducerSet`, fileName, fileSize);
     }
 
     public waitFileProducer(
         fileTransferId: string,
-        callback:Callback<string>
+        callback:Callback<{fileTransferId: string, fileName: string, fileSize: number}>
     ) {
-        this.eventEmitter.once(`${fileTransferId}:ProducerSet`, () => {
-            callback(fileTransferId);
+        this.eventEmitter.once(`${fileTransferId}:ProducerSet`, (fileName: string, fileSize: number) => {
+            callback({fileTransferId: fileTransferId, fileName: fileName, fileSize: fileSize});
         });
     }
 

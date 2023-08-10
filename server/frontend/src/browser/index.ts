@@ -52,8 +52,8 @@ export class BrowserWebRTC {
 
             this.startFileWatch(msDevice, socket, desktopId);
 
-            // this.initRecvFile(msDevice, socket, desktopId);
-            // this.initSendFile(msDevice, socket, desktopId);
+            this.initRecvFile(msDevice, socket, desktopId);
+            this.initSendFile(msDevice, socket, desktopId);
         })
     }
 
@@ -149,17 +149,21 @@ export class BrowserWebRTC {
         desktopId: string
     ): Promise<void> {
         const init = initRecvFileTransfer(socket, desktopId);
-        const fileTransferId = await init();
-        await this.startRecvFile(device, socket, fileTransferId);
+        const res = await init();
+        await this.startRecvFile(device, socket, res.fileTransferId, res.fileName, res.fileSize);
     }
 
     private async startRecvFile(
         device: mediasoupClient.types.Device,
         socket: Socket,
-        fileTransferId: string
+        fileTransferId: string,
+        fileName: string,
+        fileSize: number
     ): Promise<void> {
         const transport = await createRecvFileTransport(device, socket, fileTransferId);        
         const consumer = await getRecvFileConsumer(transport, socket, fileTransferId);
+
+        console.log(`fileName: ${fileName} | fileSize: ${fileSize}`);
 
         if(consumer.readyState === "open"){
             consumer.on('message', msg => {
@@ -196,7 +200,7 @@ export class BrowserWebRTC {
         const transport = await createSendFileTransport(device, socket, fileTransferId);
         const producer = await getSendFileProducer(transport);
 
-        const status = await WaitFileConsumer(socket, fileTransferId);
+        const status = await WaitFileConsumer(socket, fileTransferId, `bbb.txt`, 1000);
         console.log(status);
         if(status === fileTransferId){
             if(producer.readyState === "open") {

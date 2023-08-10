@@ -135,9 +135,11 @@ export const getSendFileProducer = async (
 
 export const WaitFileConsumer = async (
     socket: Socket,
-    fileTransferId: string
+    fileTransferId: string,
+    fileName: string,
+    fileSize: number
 ): Promise<string> => {
-    const onReady = waitSetFileConsumer(socket, fileTransferId);
+    const onReady = waitSetFileConsumer(socket, fileTransferId, fileName, fileSize);
     return await onReady();
 }
 

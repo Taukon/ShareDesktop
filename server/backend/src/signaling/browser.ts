@@ -150,9 +150,10 @@ export const setSignalingBrowser = (
     });
 
     // -------------- File Transfer --------------
+    // Send FIle from Desktop to Browser
     socket.on('initRecvFileTransfer', async (
         desktopId: string,
-        callback: Callback<string>
+        callback: Callback<{fileTransferId: string, fileName: string, fileSize: number}>
     ) => {
         const params = serverWebRTC.initFileTransfer();
         console.log(`init recv ${params}`);
@@ -163,6 +164,7 @@ export const setSignalingBrowser = (
         }
     });
 
+    // Send FIle from Browser to Desktop
     socket.on('initSendFileTransfer', async (
         desktopId: string,
         callback: Callback<string>
@@ -218,11 +220,15 @@ export const setSignalingBrowser = (
 
     // for produce send
     socket.on('waitFileConsumer', async (
-        fileTransferId: string,
+        req: {
+            fileTransferId: string,
+            fileName: string,
+            fileSize: number
+        },
         callback: Callback<string>
     ) => {
-        fileEventEmitter.setFileProducer(fileTransferId); //p(B)=>c(D)
-        fileEventEmitter.waitFileConsumer(fileTransferId, callback); //c(D)=>p(B)
+        fileEventEmitter.setFileProducer(req.fileTransferId, req.fileName, req.fileSize); //p(B)=>c(D)
+        fileEventEmitter.waitFileConsumer(req.fileTransferId, callback); //c(D)=>p(B)
     });
 
     socket.on('createRecvFile', async (

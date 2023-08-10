@@ -211,12 +211,18 @@ export const establishSendFile = (
 
 export const waitSetFileConsumer = (
     socket: Socket,
-    fileTransferId: string
+    fileTransferId: string,
+    fileName: string,
+    fileSize: number
 ): Signaling<void, string> => {
     return () => sendRequest(
         socket,
         'waitFileConsumer', 
-        fileTransferId
+        {
+            fileTransferId: fileTransferId, 
+            fileName: fileName,
+            fileSize: fileSize
+        }
     );
 }
 
@@ -225,7 +231,7 @@ export const waitSetFileConsumer = (
 export const initRecvFileTransfer = (
     socket: Socket,
     desktopId: string
-): Signaling<void, string> => {
+): Signaling<void, {fileTransferId: string, fileName: string, fileSize: number}> => {
     return () => sendRequest(socket, 'initRecvFileTransfer', desktopId);
 }
 

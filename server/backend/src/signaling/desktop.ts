@@ -183,11 +183,15 @@ export const setSignalingDesktop = (
 
     // for produce send
     socket.on('waitFileConsumer', async (
-        fileTransferId: string,
+        req: {
+            fileTransferId: string,
+            fileName: string,
+            fileSize: number
+        },
         callback: Callback<string>
     ) => {
-        fileEventEmitter.setFileProducer(fileTransferId); //p(D)=>c(B)
-        fileEventEmitter.waitFileConsumer(fileTransferId, callback); //c(B)=>p(D)
+        fileEventEmitter.setFileProducer(req.fileTransferId, req.fileName, req.fileSize); //p(D)=>c(B)
+        fileEventEmitter.waitFileConsumer(req.fileTransferId, callback); //c(B)=>p(D)
     });
 
     socket.on('createRecvFile', async (
