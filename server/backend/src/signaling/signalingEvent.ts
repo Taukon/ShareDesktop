@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { Server } from "socket.io";
-import { Callback } from "./type";
+import { Callback, FileInfo } from "./type";
 
 export class SignalingEventEmitter {
     private eventEmitter = new EventEmitter();
@@ -71,7 +71,7 @@ export class SignalingEventEmitter {
 
     public waitFileProducer(
         fileTransferId: string,
-        callback:Callback<{fileTransferId: string, fileName: string, fileSize: number}>
+        callback:Callback<FileInfo>
     ) {
         this.eventEmitter.once(`${fileTransferId}:ProducerSet`, (fileName: string, fileSize: number) => {
             callback({fileTransferId: fileTransferId, fileName: fileName, fileSize: fileSize});

@@ -7,7 +7,7 @@ import {
     RtcTransportParams 
 } from "../serverWebRTC/common/type";
 import { SignalingEventEmitter } from "./signalingEvent";
-import { Callback } from "./type";
+import { Callback, FileInfo } from "./type";
 import * as browserType from '../serverWebRTC/browser/type';
 
 export const setSignalingBrowser = (
@@ -153,7 +153,7 @@ export const setSignalingBrowser = (
     // Send FIle from Desktop to Browser
     socket.on('initRecvFileTransfer', async (
         desktopId: string,
-        callback: Callback<{fileTransferId: string, fileName: string, fileSize: number}>
+        callback: Callback<FileInfo>
     ) => {
         const params = serverWebRTC.initFileTransfer();
         console.log(`init recv ${params}`);
