@@ -287,22 +287,21 @@ export class DesktopWebRTC {
                     fileInfo.fileMimeType
                 );
                 console.log(status);
+
+                producer.on('close', () => {
+                    transport.close();
+                    delete this.fileProducers[fileTransferId];
+                });
                 
                 if(producer.readyState === "open") {
                     await window.api.getFileBuffer(`aaa.txt`, fileTransferId);
-
                     socket.emit('endTransferFile', fileTransferId);       
-                    transport.close();
-                    delete this.fileProducers[fileTransferId];
                 }else{
                     //console.log(`producer.readyState: ${producer.readyState}`);
                     
                     producer.on('open', async () => {
                         await window.api.getFileBuffer(`aaa.txt`, fileTransferId);
-
                         socket.emit('endTransferFile', fileTransferId);
-                        transport.close();
-                        delete this.fileProducers[fileTransferId];
                     });
                 }
             }

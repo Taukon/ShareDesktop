@@ -5,7 +5,6 @@ import {screenshot, converter, xtest} from "./x11lib";
 import { Xvfb } from './xvfb';
 import { AppProcess } from './appProcess';
 import { AudioData, ControlData } from '../../util/type';
-import { readFile } from "fs";
 
 export const initIpcHandler = (mainWindow: BrowserWindow): void => {
 
