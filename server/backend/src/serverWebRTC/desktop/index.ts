@@ -194,8 +194,13 @@ export class Desktop {
         const controlRtcTransport = desktopTransports?.controlRtcTransport;
 
         if(controlRtcTransport){
-            await controlRtcTransport.connect({ dtlsParameters: dtlsParameters });
-            return true;
+            try{
+                await controlRtcTransport.connect({ dtlsParameters: dtlsParameters });
+                return true;
+            }catch(error){
+                console.log(error);
+                return false;
+            }
         }
         return false;
     }
@@ -257,8 +262,13 @@ export class Desktop {
         const screenTransport = desktopTransports?.screenTransport;
 
         if(screenTransport) {
-            await screenTransport.connect({ dtlsParameters: dtlsParameters });
-            return true;
+            try{
+                await screenTransport.connect({ dtlsParameters: dtlsParameters });
+                return true;
+            }catch(error){
+                console.log(error);
+                return false;
+            }
         }
         return false;
     }
@@ -356,8 +366,13 @@ export class Desktop {
         const fileWatchTransport = desktopTransports?.fileWatchTransport;
 
         if(fileWatchTransport) {
-            await fileWatchTransport.connect({ dtlsParameters: dtlsParameters });
-            return true;
+            try{
+                await fileWatchTransport.connect({ dtlsParameters: dtlsParameters });
+                return true;
+            }catch(error){
+                console.log(error);
+                return false;
+            }
         }
         return false;
     }

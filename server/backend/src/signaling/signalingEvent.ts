@@ -5,11 +5,20 @@ import { Callback, FileInfo } from "./type";
 export class SignalingEventEmitter {
     private eventEmitter = new EventEmitter();
 
+    constructor(desktopServer: Server) {
+        this.listenRequestFile(desktopServer);
+        this.listenDropId(desktopServer);
+    }
+
+    public clean() {
+        this.eventEmitter.removeAllListeners();
+    }
+
     public requestDropId(desktopSocketId: string) {
         this.eventEmitter.emit(`dropId`, desktopSocketId);
     }
 
-    public listenDropId(desktopServer: Server) {
+    private listenDropId(desktopServer: Server) {
         this.eventEmitter.on(
             `dropId`, 
             (
@@ -24,7 +33,6 @@ export class SignalingEventEmitter {
             `${fileTransferId}:ProducerSet`, 
             (fileInfo: FileInfo) => {
                 this.eventEmitter.emit(`requestRecvFile`, desktopSocketId, fileInfo);
-                console.log(`requestRecvFile: ${fileTransferId}`);
         });
     }
 
@@ -32,7 +40,7 @@ export class SignalingEventEmitter {
         this.eventEmitter.emit(`requestSendFile`, desktopSocketId, fileTransferId);
     }
 
-    public listenRequestFile(desktopServer: Server) {
+    private listenRequestFile(desktopServer: Server) {
         this.eventEmitter.on(
             `requestRecvFile`, 
             (

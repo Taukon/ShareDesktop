@@ -28,3 +28,7 @@ export type ConsumeDataParams = {
     protocol: string|undefined;
     // appData: any;
 };
+
+export type FileProducers = {
+    [is: string]: mediasoupClient.types.DataProducer
+}

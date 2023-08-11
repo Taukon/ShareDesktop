@@ -18,6 +18,8 @@ const createWindow = () => {
   }
 
   mainWindow.loadFile('dist/index.html');
+
+  initIpcHandler(mainWindow);
 };
 
 
@@ -26,8 +28,6 @@ app.whenReady().then(async () => {
 });
 
 app.once('window-all-closed', () => app.quit());
-
-initIpcHandler();
 
 app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
     event.preventDefault()

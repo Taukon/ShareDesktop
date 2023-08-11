@@ -22,7 +22,7 @@ export class ServerWebRTC {
 
     private limitBrowser: number;
     private limitDesktop: number;
-    private limitFileTransfer: number= 10;
+    private limitFileTransfer: number;
 
     private desktop = new Desktop();
     private browser = new Browser();
@@ -31,6 +31,7 @@ export class ServerWebRTC {
     constructor(
         limitDesktop: number,
         limitBrowser: number,
+        limitFileTransfer: number,
         transportOptions: WebRtcTransportOptions, 
         workerSettings: WorkerSettings, 
         mediaCodecs: RtpCodecCapability[],
@@ -38,6 +39,7 @@ export class ServerWebRTC {
     ){
         this.limitBrowser = limitBrowser;
         this.limitDesktop = limitDesktop;
+        this.limitFileTransfer = limitFileTransfer;
         this.ipAddr = ipAddr;
 
         

@@ -202,12 +202,10 @@ export class BrowserWebRTC {
             // console.log(receivedBuffer);
 
             if(receivedSize == fileSize){
-                console.log(`get File: ${fileName} ${receivedBuffer}`);
                 const blob = new Blob([receivedBuffer], {type: fileMimeType});
 
                 const element = document.createElement("a");
                 element.download = fileName;
-                console.log(element);
                 element.href = window.URL.createObjectURL(blob);
                 element.click();
                 console.log(element);

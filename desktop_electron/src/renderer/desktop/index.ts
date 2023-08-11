@@ -19,7 +19,7 @@ import { controlEventListener, displayScreen } from './canvas';
 import { ControlData } from '../../util/type';
 import { establishDesktopAudio, setFileConsumer } from './signaling';
 import { FileInfo } from './signaling/type';
-// import { readFile } from 'fs';
+import { FileProducers } from './mediasoup/type';
 
 // @ts-ignore
 window.Buffer = Buffer;
@@ -39,6 +39,8 @@ export class DesktopWebRTC {
     // // --- for ffmpeg
     private pulseAudioDevice = 1;
     // // --- end ffmpeg
+
+    private fileProducers: FileProducers = {};
 
     constructor(
         displayNum: number, 
@@ -86,6 +88,8 @@ export class DesktopWebRTC {
             }
 
             this.startFileWatch(device, socket, desktopId);
+
+            this.onSendStreamFile();
 
             this.onSendFile(device, socket);
             this.onRecvFile(device, socket);
@@ -251,91 +255,89 @@ export class DesktopWebRTC {
         
     }
 
-    // public onSendFile2(
-    //     path: string,
-    //     device: mediasoupClient.types.Device,
-    //     socket: Socket
-    // ) {
-    //     socket.on('requestSendFile', async (fileTransferId: string) => {
-    //         console.log(`Receive request Send File! ID: ${fileTransferId}`);
-    //         // await this.startSendFile(device, socket, fileTransferId);
-
-    //         const transport = await createSendFileTransport(device, socket, fileTransferId);
-    //         const producer = await getSendFileProducer(transport);
-            
-    //         const chunkSize = 16384;
-    //         readFile(path, async (err, data) => {
-    //             let offset = 0;
-    //             const dataLength = data.byteLength;
-
-    //             const status = await WaitFileConsumer(socket, fileTransferId, dataLength);
-    //             if(status === fileTransferId){
-    //                 if(producer.readyState === "open") {
-    //                     while (offset < dataLength) {
-    //                         console.log(`send progress: ${offset}`);
-    //                         const sliceData = data.slice(offset, offset + chunkSize);
-    //                         producer.send(sliceData);
-    //                         offset += sliceData.byteLength;
-    //                     }   
-    //                     socket.emit('endTransferFile', fileTransferId);
-    //                 }else{
-    //                     producer.on('open', () => {
-    //                         while (offset < dataLength) {
-    //                             console.log(`send progress: ${offset}`);
-    //                             const sliceData = data.slice(offset, offset + chunkSize);
-    //                             producer.send(sliceData);
-    //                             offset += sliceData.byteLength;
-    //                         }
-    //                         socket.emit('endTransferFile', fileTransferId);
-    //                     });
-    //                 }
-    //             }
-    //         });
-    //     });
-    // }
+    private onSendStreamFile() {
+        window.api.streamSendFileBuffer((data) => {
+            const producer = this.fileProducers[data.fileTransferId];
+            if(producer){
+                producer.send(data.buf);
+            }
+        });
+    }
 
     private async onSendFile(
         device: mediasoupClient.types.Device,
         socket: Socket
     ) {
         socket.on('requestSendFile', async (fileTransferId: string) => {
-
+            console.log(`Receive request Send File! ID: ${fileTransferId}`);
             // await this.startSendFile(device, socket, fileTransferId);
 
             const transport = await createSendFileTransport(device, socket, fileTransferId);
             const producer = await getSendFileProducer(transport);
-
-            const aaa = Buffer.from('abcdefg');
-
-            const status = 
+            
+            this.fileProducers[fileTransferId] = producer;
+            const fileInfo = await window.api.getFileInfo(`aaa.txt`);
+            if(fileInfo){
+                const status = 
                 await WaitFileConsumer(
                     socket, 
                     fileTransferId, 
-                    `aaa.txt`, 
-                    aaa.byteLength, 
-                    `text/plain`
+                    fileInfo.fileName, 
+                    fileInfo.fileSize,
+                    fileInfo.fileMimeType
                 );
-            console.log(status);
-            if(status === fileTransferId){
+                console.log(status);
+                
                 if(producer.readyState === "open") {
-                    
-                    producer.send(aaa);
-                    // producer.send(`FILE Send! desktopID: ${this.desktopId}`);
+                    await window.api.getFileBuffer(`aaa.txt`, fileTransferId);
 
-                    socket.emit('endTransferFile', fileTransferId);
+                    socket.emit('endTransferFile', fileTransferId);       
+                    transport.close();
+                    delete this.fileProducers[fileTransferId];
                 }else{
                     //console.log(`producer.readyState: ${producer.readyState}`);
                     
-                    producer.on('open', () => {
-                        // producer.send(`FILE Send! desktopID: ${this.desktopId}`);
-                        producer.send(aaa);
+                    producer.on('open', async () => {
+                        await window.api.getFileBuffer(`aaa.txt`, fileTransferId);
 
                         socket.emit('endTransferFile', fileTransferId);
+                        transport.close();
+                        delete this.fileProducers[fileTransferId];
                     });
                 }
             }
+            // const status = 
+            //     await WaitFileConsumer(
+            //         socket, 
+            //         fileTransferId, 
+            //         `aaa.txt`, 
+            //         Buffer.from('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ').byteLength, 
+            //         `text/plain`
+            //     );
+            // console.log(status);
+
+            // if(status === fileTransferId){
+            //     if(producer.readyState === "open") {
+            //         await window.api.getFileBuffer(`aaa.txt`, fileTransferId);
+
+            //         socket.emit('endTransferFile', fileTransferId);       
+            //         transport.close();
+            //         delete this.fileProducers[fileTransferId];
+            //     }else{
+            //         //console.log(`producer.readyState: ${producer.readyState}`);
+                    
+            //         producer.on('open', async () => {
+            //             await window.api.getFileBuffer(`aaa.txt`, fileTransferId);
+
+            //             socket.emit('endTransferFile', fileTransferId);
+            //             transport.close();
+            //             delete this.fileProducers[fileTransferId];
+            //         });
+            //     }
+            // }
         });
     }
+
 
     private async onRecvFile(
         device: mediasoupClient.types.Device,

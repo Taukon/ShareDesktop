@@ -24,6 +24,7 @@ const MinPort = 2000;   // --- RtcMinPort
 const MaxPort = 2020;   // --- RtcMaxport
 const limitClient = 2;
 const limitDesktop = 2;
+const limitFileTransfer = 10;
 
 const clientPort = 3000;  // --- https Port for client
 const desktopPort = 3100;  // --- https Port for desktop
@@ -87,14 +88,15 @@ const desktopServer = new Server(httpsServerForDesktop);
 
 const serverWebRtc = new ServerWebRTC(
     limitDesktop,
-    limitClient, 
-    transportOption, 
-    workerSettings, 
-    mediaCodecs, 
+    limitClient,
+    limitFileTransfer,
+    transportOption,
+    workerSettings,
+    mediaCodecs,
     ip_addr
 );
 
-const fileEventEmitter = new SignalingEventEmitter();
+const fileEventEmitter = new SignalingEventEmitter(desktopServer);
 
 clientServer.on('connection', sock => {
 
@@ -111,7 +113,6 @@ desktopServer.on('connection', sock => {
 
     console.log(`desktopId: ${sock.id}`);
     setSignalingDesktop(
-        desktopServer,
         sock,
         serverWebRtc,
         fileEventEmitter,

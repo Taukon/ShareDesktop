@@ -1,4 +1,4 @@
-import { Server, Socket } from "socket.io";
+import { Socket } from "socket.io";
 import { DtlsParameters, RtpCapabilities } from "mediasoup/node/lib/types";
 import { ServerWebRTC } from "../serverWebRTC";
 import { 
@@ -11,15 +11,11 @@ import { Callback, FileInfo } from "./type";
 import * as desktopType from '../serverWebRTC/desktop/type';
 
 export const setSignalingDesktop = (
-    desktopServer: Server,
     socket: Socket,
     serverWebRTC: ServerWebRTC,
     fileEventEmitter: SignalingEventEmitter,
     enableAudio: boolean
 ): void =>{
-
-    fileEventEmitter.listenRequestFile(desktopServer);
-    fileEventEmitter.listenDropId(desktopServer);
 
     socket.emit('desktopId', socket.id);
 
@@ -226,7 +222,6 @@ export const setSignalingDesktop = (
     socket.on('setFileConsumer', async (
         fileTransferId: string
     ) => {
-        console.log(`setFileConsumer`);
         fileEventEmitter.setFileConsumer(fileTransferId); //c(D)=>p(B)
     });
 }

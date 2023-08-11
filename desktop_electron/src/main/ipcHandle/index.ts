@@ -1,12 +1,13 @@
 import { networkInterfaces } from "os";
 import { exec } from "child_process";
-import { ipcMain } from "electron";
+import { BrowserWindow, ipcMain } from "electron";
 import {screenshot, converter, xtest} from "./x11lib";
 import { Xvfb } from './xvfb';
 import { AppProcess } from './appProcess';
 import { AudioData, ControlData } from '../../util/type';
+import { readFile } from "fs";
 
-export const initIpcHandler = (): void => {
+export const initIpcHandler = (mainWindow: BrowserWindow): void => {
 
     ipcMain.handle("testControl", (event: Electron.IpcMainInvokeEvent, displayName: string, data: ControlData) => {
         if (data.move?.x != undefined && data.move?.y != undefined) {
@@ -137,6 +138,33 @@ export const initIpcHandler = (): void => {
         } catch (error) {
             console.log(error);
         }
+      }
+    );
+
+    const data = Buffer.from('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
+    ipcMain.handle("getFileInfo", (event: Electron.IpcMainInvokeEvent, fileName: string) => {
+        
+        const info = {
+            fileName: fileName,
+            fileSize: data.length,
+            fileMimeType: `text/plain`
+        }
+        return info;
+      }
+    );
+
+    ipcMain.handle("getFileBuffer", (event: Electron.IpcMainInvokeEvent, fileName: string, fileTransferId: string) => {
+        
+        const chunkSize = 5;//16384;
+        let offset = 0;
+        const dataLength = data.byteLength;
+        while (offset < dataLength) {
+            const sliceData = data.slice(offset, offset + chunkSize);
+            mainWindow.webContents.send('streamSendFileBuffer', {fileTransferId: fileTransferId, buf: sliceData});
+            offset += sliceData.byteLength;
+            console.log(`send progress: ${offset}`);
+        }
+        return true;
       }
     );
     

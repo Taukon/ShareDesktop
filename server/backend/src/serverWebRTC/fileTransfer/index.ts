@@ -121,8 +121,13 @@ export class FileTransfer {
         const recvTransport = this.getRecvFileTransport(fileTransferId);
 
         if(recvTransport){
-            await recvTransport.connect({ dtlsParameters: dtlsParameters });
-            return true;
+            try{
+                await recvTransport.connect({ dtlsParameters: dtlsParameters });
+                return true;
+            }catch(error){
+                console.log(error);
+                return false;
+            }
         }
         return false;
     }
@@ -183,8 +188,13 @@ export class FileTransfer {
         const sendTransport = this.getSendFileTransport(fileTransferId);
 
         if(sendTransport) {
-            await sendTransport.connect({ dtlsParameters: dtlsParameters });
-            return true;
+            try {
+                await sendTransport.connect({ dtlsParameters: dtlsParameters });
+                return true;
+            }catch(error){
+                console.log(error);
+                return false;
+            }
         }
         return false;
     }
@@ -204,10 +214,10 @@ export class FileTransfer {
         return undefined;
     }
 
-    public verifyTotal(limitFIleTransfer: number): boolean {
+    public verifyTotal(limitFileTransfer: number): boolean {
         const total = Object.keys(this.fileTransferList).length
-        console.log("Total Client List: " + total);
-        if (total + 1 > limitFIleTransfer ) {
+        console.log("Total Client File List: " + total);
+        if (total + 1 > limitFileTransfer ) {
             return false;
         }
         return true;

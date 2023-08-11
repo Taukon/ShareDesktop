@@ -224,8 +224,13 @@ export class Browser {
         const controlRtcTransport = browserTransports?.controlRtcTransport;
         
         if(controlRtcTransport){
-            await controlRtcTransport.connect({ dtlsParameters: dtlsParameters });
-            return true;
+            try{
+                await controlRtcTransport.connect({ dtlsParameters: dtlsParameters });
+                return true;
+            }catch(error){
+                console.log(error);
+                return false;
+            }
         }
         return false;
     }
@@ -300,8 +305,13 @@ export class Browser {
         const transport = isAudio ?  transports?.audioTransport : transports?.screenTransport;
 
         if (transport) {
-            await transport.connect({ dtlsParameters: dtlsParameters });
-            return true;
+            try {
+                await transport.connect({ dtlsParameters: dtlsParameters });
+                return true;
+            } catch(error) {
+                console.log(error);
+                return false;
+            }
         }
         return false;
     }
@@ -412,8 +422,13 @@ export class Browser {
         const transport = transports?.fileWatchTransport;
 
         if (transport) {
-            await transport.connect({ dtlsParameters: dtlsParameters });
-            return true;
+            try {
+                await transport.connect({ dtlsParameters: dtlsParameters });
+                return true;
+            }catch(error){
+                console.log(error);
+                return false;
+            }
         }
         return false;
     }
