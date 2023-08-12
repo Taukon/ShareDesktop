@@ -172,14 +172,12 @@ export const WaitFileConsumer = async (
     socket: Socket,
     fileTransferId: string,
     fileName: string,
-    fileSize: number,
-    fileMimeType: string
+    fileSize: number
 ): Promise<string> => {
     const fileInfo: FileInfo = {
         fileTransferId,
         fileName,
-        fileSize,
-        fileMimeType
+        fileSize
     }
     const onReady = waitSetFileConsumer(socket, fileInfo);
     return await onReady();

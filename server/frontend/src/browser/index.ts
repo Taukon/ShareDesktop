@@ -1,5 +1,6 @@
 import { Socket } from 'socket.io-client';
 import * as mediasoupClient from "mediasoup-client";
+import streamSaver from 'streamsaver';
 import { controlEventListener } from './canvas';
 import { 
     createControlTransport, 
@@ -167,9 +168,8 @@ export class BrowserWebRTC {
         if(consumer.readyState === "open"){
             this.receiveFile(
                 consumer, 
-                fileInfo.fileName, 
-                fileInfo.fileSize,
-                fileInfo.fileMimeType
+                socket,
+                fileInfo
             );
             console.log(`readyRecvFile1`);
             setFileConsumer(socket, fileTransferId);
@@ -177,9 +177,8 @@ export class BrowserWebRTC {
             consumer.on('open', () => {
                 this.receiveFile(
                     consumer, 
-                    fileInfo.fileName, 
-                    fileInfo.fileSize,
-                    fileInfo.fileMimeType
+                    socket,
+                    fileInfo
                 );
                 console.log(`readyRecvFile2`);
                 setFileConsumer(socket, fileTransferId);
@@ -189,36 +188,26 @@ export class BrowserWebRTC {
 
     private receiveFile(
         consumer: mediasoupClient.types.DataConsumer,
-        fileName: string,
-        fileSize: number,
-        fileMimeType: string
+        socket: Socket,
+        fileInfo: FileInfo
     ) {
         let receivedSize = 0;
-        let receivedBuffer: ArrayBuffer = new ArrayBuffer(0);
+        const fileStream = streamSaver.createWriteStream(
+            fileInfo.fileName,
+            {size: fileInfo.fileSize}
+        );
+        const writer = fileStream.getWriter();
         consumer.on('message', (msg: ArrayBuffer) => {
             receivedSize += msg.byteLength;
-            receivedBuffer = this.appendBuffer(receivedBuffer, new Uint8Array(msg).buffer);
-            
-            // console.log(receivedBuffer);
+            writer.write(new Uint8Array(msg));
+            // console.log(`${fileInfo.fileSize-receivedSize} | receivedSize: ${receivedSize}, fileSize: ${fileInfo.fileSize}`);
 
-            if(receivedSize == fileSize){
-                const blob = new Blob([receivedBuffer], {type: fileMimeType});
-
-                const element = document.createElement("a");
-                element.download = fileName;
-                element.href = window.URL.createObjectURL(blob);
-                element.click();
-                console.log(element);
+            if(receivedSize == fileInfo.fileSize){
+                writer.close();
+                socket.emit('endTransferFile', fileInfo.fileTransferId);
             }
         });
     }
-
-    private appendBuffer(buffer1: ArrayBuffer, buffer2: ArrayBuffer) {
-        const tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
-        tmp.set(new Uint8Array(buffer1), 0);
-        tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
-        return tmp.buffer;
-    };
 
     public async initSendFile(
         device: mediasoupClient.types.Device,
@@ -243,8 +232,7 @@ export class BrowserWebRTC {
                 socket, 
                 fileTransferId, 
                 `bbb.txt`, 
-                1000,
-                `text/plain`
+                1000
             );
         console.log(status);
         if(status === fileTransferId){

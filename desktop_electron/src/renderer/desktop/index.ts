@@ -270,21 +270,19 @@ export class DesktopWebRTC {
     ) {
         socket.on('requestSendFile', async (fileTransferId: string) => {
             console.log(`Receive request Send File! ID: ${fileTransferId}`);
-            // await this.startSendFile(device, socket, fileTransferId);
 
             const transport = await createSendFileTransport(device, socket, fileTransferId);
             const producer = await getSendFileProducer(transport);
             
             this.fileProducers[fileTransferId] = producer;
-            const fileInfo = await window.api.getFileInfo(`aaa.txt`);
+            const fileInfo = await window.api.getFileInfo(`renderer.js`);
             if(fileInfo){
                 const status = 
                 await WaitFileConsumer(
                     socket, 
                     fileTransferId, 
                     fileInfo.fileName, 
-                    fileInfo.fileSize,
-                    fileInfo.fileMimeType
+                    fileInfo.fileSize
                 );
                 console.log(status);
 
@@ -294,46 +292,17 @@ export class DesktopWebRTC {
                 });
                 
                 if(producer.readyState === "open") {
-                    await window.api.getFileBuffer(`aaa.txt`, fileTransferId);
-                    socket.emit('endTransferFile', fileTransferId);       
+                    await window.api.getFileBuffer(fileInfo.fileName, fileTransferId);
+                    // socket.emit('endTransferFile', fileTransferId);
                 }else{
                     //console.log(`producer.readyState: ${producer.readyState}`);
                     
                     producer.on('open', async () => {
-                        await window.api.getFileBuffer(`aaa.txt`, fileTransferId);
-                        socket.emit('endTransferFile', fileTransferId);
+                        await window.api.getFileBuffer(fileInfo.fileName, fileTransferId);
+                        // socket.emit('endTransferFile', fileTransferId);
                     });
                 }
             }
-            // const status = 
-            //     await WaitFileConsumer(
-            //         socket, 
-            //         fileTransferId, 
-            //         `aaa.txt`, 
-            //         Buffer.from('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ').byteLength, 
-            //         `text/plain`
-            //     );
-            // console.log(status);
-
-            // if(status === fileTransferId){
-            //     if(producer.readyState === "open") {
-            //         await window.api.getFileBuffer(`aaa.txt`, fileTransferId);
-
-            //         socket.emit('endTransferFile', fileTransferId);       
-            //         transport.close();
-            //         delete this.fileProducers[fileTransferId];
-            //     }else{
-            //         //console.log(`producer.readyState: ${producer.readyState}`);
-                    
-            //         producer.on('open', async () => {
-            //             await window.api.getFileBuffer(`aaa.txt`, fileTransferId);
-
-            //             socket.emit('endTransferFile', fileTransferId);
-            //             transport.close();
-            //             delete this.fileProducers[fileTransferId];
-            //         });
-            //     }
-            // }
         });
     }
 
@@ -343,9 +312,8 @@ export class DesktopWebRTC {
         socket: Socket
     ) {
         socket.on('requestRecvFile', async (fileInfo: FileInfo) => {
-            console.log(`fileName: ${fileInfo.fileName} | fileSize: ${fileInfo.fileSize} | fileMimeType: ${fileInfo.fileMimeType}`);
+            console.log(`fileName: ${fileInfo.fileName} | fileSize: ${fileInfo.fileSize}`);
             console.log(`Request request Recv File! ID: ${fileInfo.fileTransferId}`);
-            // await this.startRecvFile(device, socket, fileTransferId);
 
             const transport = await createRecvFileTransport(device, socket, fileInfo.fileTransferId);        
             const consumer = await getRecvFileConsumer(transport, socket, fileInfo.fileTransferId);

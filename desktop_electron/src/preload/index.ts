@@ -32,8 +32,7 @@ export const controlObject = {
       fileName: string
     ): Promise<{
       fileName: string,
-      fileSize: number,
-      fileMimeType: string
+      fileSize: number
     }|undefined> => {
     const result = await ipcRenderer.invoke('getFileInfo', fileName);
     return result;

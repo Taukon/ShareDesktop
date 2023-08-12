@@ -1,10 +1,13 @@
 import { networkInterfaces } from "os";
 import { exec } from "child_process";
 import { BrowserWindow, ipcMain } from "electron";
+import { createReadStream, statSync } from "fs";
 import {screenshot, converter, xtest} from "./x11lib";
 import { Xvfb } from './xvfb';
 import { AppProcess } from './appProcess';
 import { AudioData, ControlData } from '../../util/type';
+import { timer } from "../../util";
+
 
 export const initIpcHandler = (mainWindow: BrowserWindow): void => {
 
@@ -140,28 +143,35 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
       }
     );
 
-    const data = Buffer.from('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
-    ipcMain.handle("getFileInfo", (event: Electron.IpcMainInvokeEvent, fileName: string) => {
-        
-        const info = {
-            fileName: fileName,
-            fileSize: data.length,
-            fileMimeType: `text/plain`
+    ipcMain.handle("getFileInfo", async (event: Electron.IpcMainInvokeEvent, fileName: string) => {
+        try{
+            const path = `./dist/${fileName}`;
+            const stats = statSync(path);
+            if(stats.isFile()){
+                const info = {
+                    fileName: fileName,
+                    fileSize: stats.size,
+                }
+                // console.log(info);
+                return info;
+            }
+        }catch(error){
+            console.log(error);
+            return undefined;
         }
-        return info;
       }
     );
 
-    ipcMain.handle("getFileBuffer", (event: Electron.IpcMainInvokeEvent, fileName: string, fileTransferId: string) => {
-        
-        const chunkSize = 5;//16384;
-        let offset = 0;
-        const dataLength = data.byteLength;
-        while (offset < dataLength) {
-            const sliceData = data.slice(offset, offset + chunkSize);
-            mainWindow.webContents.send('streamSendFileBuffer', {fileTransferId: fileTransferId, buf: sliceData});
-            offset += sliceData.byteLength;
-            console.log(`send progress: ${offset}`);
+    ipcMain.handle("getFileBuffer", async (event: Electron.IpcMainInvokeEvent, fileName: string, fileTransferId: string) => {
+
+        // const chunkSize = 16384;
+        // const stream = createReadStream(`./dist/${fileName}`, {highWaterMark: chunkSize});
+        const stream = createReadStream(`./dist/${fileName}`);
+
+        for await (const chunk of stream){
+            // console.log(chunk.length);
+            await timer(10);
+            mainWindow.webContents.send('streamSendFileBuffer', {fileTransferId: fileTransferId, buf: chunk});
         }
         return true;
       }
