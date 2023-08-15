@@ -28,6 +28,10 @@ export class SignalingEventEmitter {
         });
     }
 
+    public requestFileWatch(desktopSocketId: string) {
+        this.eventEmitter.emit(`requestFileWatch`, desktopSocketId);
+    }
+
     public requestRecvFile(desktopSocketId: string, fileTransferId: string) {
         this.eventEmitter.once(
             `${fileTransferId}:ProducerSet`, 
@@ -41,6 +45,12 @@ export class SignalingEventEmitter {
     }
 
     private listenRequestFile(desktopServer: Server) {
+        this.eventEmitter.on(
+            `requestFileWatch`, 
+            (desktopSocketId: string) => {
+                desktopServer.to(desktopSocketId).emit(`requestFileWatch`);
+        });
+
         this.eventEmitter.on(
             `requestRecvFile`, 
             (

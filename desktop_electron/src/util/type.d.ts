@@ -38,3 +38,9 @@ type SrtpParameters = {
  */
 type SrtpCryptoSuite = 'AEAD_AES_256_GCM' | 'AEAD_AES_128_GCM' | 'AES_CM_128_HMAC_SHA1_80' | 'AES_CM_128_HMAC_SHA1_32';
 //# sourceMappingURL=SrtpParameters.d.ts.map
+
+type FileMsgType = `list` | `add` | `change` | `unlink`;
+export type FileWatchMsg = {
+    msgType: FileMsgType;
+    msgItems: string[];
+};

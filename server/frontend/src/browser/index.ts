@@ -134,13 +134,17 @@ export class BrowserWebRTC {
         
         if(consumer.readyState === "open"){
             consumer.on('message', msg => {
-                console.log(msg);
+                const data = JSON.parse(msg);
+                console.log(data);
             });
+            socket.emit('requestFileWatch', desktopId);
         }else{
             consumer.on('open', () => {
                 consumer.on('message', msg => {
-                    console.log(msg);
+                    const data = JSON.parse(msg);
+                    console.log(data);
                 });
+                socket.emit('requestFileWatch', desktopId);
             });
         }
     }
@@ -152,16 +156,7 @@ export class BrowserWebRTC {
     ): Promise<void> {
         const init = initRecvFileTransfer(socket, desktopId);
         const fileInfo = await init();
-        await this.startRecvFile(device, socket, fileInfo);
-    }
 
-    private async startRecvFile(
-        device: mediasoupClient.types.Device,
-        socket: Socket,
-        fileInfo: FileInfo
-    ): Promise<void> {
-        const fileTransferId = fileInfo.fileTransferId;
-        
         const transport = await createRecvFileTransport(device, socket, fileInfo.fileTransferId);        
         const consumer = await getRecvFileConsumer(transport, socket, fileInfo.fileTransferId);
 
@@ -172,7 +167,7 @@ export class BrowserWebRTC {
                 fileInfo
             );
             console.log(`readyRecvFile1`);
-            setFileConsumer(socket, fileTransferId);
+            setFileConsumer(socket, fileInfo.fileTransferId);
         }else{
             consumer.on('open', () => {
                 this.receiveFile(
@@ -181,7 +176,7 @@ export class BrowserWebRTC {
                     fileInfo
                 );
                 console.log(`readyRecvFile2`);
-                setFileConsumer(socket, fileTransferId);
+                setFileConsumer(socket, fileInfo.fileTransferId);
             });
         }
     }

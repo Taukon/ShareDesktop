@@ -87,12 +87,7 @@ export class DesktopWebRTC {
                 });
             }
 
-            this.startFileWatch(device, socket, desktopId);
-
-            this.onSendStreamFile();
-
-            this.onSendFile(device, socket);
-            this.onRecvFile(device, socket);
+            this.startFileShare(device, socket, desktopId);
         });
 
     }
@@ -227,10 +222,23 @@ export class DesktopWebRTC {
         return ffmpegPid;
     }
 
-    private async startFileWatch(
+    private startFileShare(
         device: mediasoupClient.types.Device,
         socket: Socket,
         desktopId: string
+    ): void {
+        this.startFileWatch(device, socket, desktopId, `test`);
+        // this.onSendStreamFile();
+
+        this.onSendFile(device, socket);
+        this.onRecvFile(device, socket);
+    }
+
+    private async startFileWatch(
+        device: mediasoupClient.types.Device,
+        socket: Socket,
+        desktopId: string,
+        dir: string
     ): Promise<void> {
         const transport = await createFileWatchTransport(device, socket, desktopId);
         const producer = await getFileWatchProducer(transport);
@@ -238,36 +246,57 @@ export class DesktopWebRTC {
         if(producer.readyState === "open") {
             // console.log(`producer.readyState: ${producer.readyState}`);
             
-            setInterval(() => {
-                console.log(`start FileWatch1`);
-                producer.send(`FILE Watch! desktopID: ${desktopId}`);
-            }, 1000);
+            // setInterval(() => {
+            //     console.log(`start FileWatch1`);
+            //     producer.send(`FILE Watch! desktopID: ${desktopId}`);
+            // }, 1000);
+            window.api.streamFileWatchMsg((data) => {
+                console.log(data);
+                producer.send(JSON.stringify(data));
+            });
+            await window.api.initFileWatch(dir);
+
         }else{
             // console.log(`producer.readyState: ${producer.readyState}`);
             
-            producer.on('open', () => {
-                setInterval(() => {
-                    console.log(`start FileWatch2`);
-                    producer.send(`FILE Watch! desktopID: ${desktopId}`);
-                }, 1000);
+            producer.on('open', async () => {
+                // setInterval(() => {
+                //     console.log(`start FileWatch2`);
+                //     producer.send(`FILE Watch! desktopID: ${desktopId}`);
+                // }, 1000);
+                window.api.streamFileWatchMsg((data) => {
+                    console.log(data);
+                    producer.send(JSON.stringify(data));
+                });
+                await window.api.initFileWatch(dir);
             });
         }
-        
+
+        socket.on('requestFileWatch', async () => {
+            await window.api.sendFileWatch(dir);
+        });
     }
 
-    private onSendStreamFile() {
+    // private onSendStreamFile() {
+    //     window.api.streamSendFileBuffer((data) => {
+    //         const producer = this.fileProducers[data.fileTransferId];
+    //         if(producer){
+    //             producer.send(data.buf);
+    //         }
+    //     });
+    // }
+
+    private async onSendFile(
+        device: mediasoupClient.types.Device,
+        socket: Socket
+    ) {
         window.api.streamSendFileBuffer((data) => {
             const producer = this.fileProducers[data.fileTransferId];
             if(producer){
                 producer.send(data.buf);
             }
         });
-    }
 
-    private async onSendFile(
-        device: mediasoupClient.types.Device,
-        socket: Socket
-    ) {
         socket.on('requestSendFile', async (fileTransferId: string) => {
             console.log(`Receive request Send File! ID: ${fileTransferId}`);
 
@@ -292,13 +321,13 @@ export class DesktopWebRTC {
                 });
                 
                 if(producer.readyState === "open") {
-                    await window.api.getFileBuffer(fileInfo.fileName, fileTransferId);
+                    await window.api.sendFileBuffer(fileInfo.fileName, fileTransferId);
                     // socket.emit('endTransferFile', fileTransferId);
                 }else{
                     //console.log(`producer.readyState: ${producer.readyState}`);
                     
                     producer.on('open', async () => {
-                        await window.api.getFileBuffer(fileInfo.fileName, fileTransferId);
+                        await window.api.sendFileBuffer(fileInfo.fileName, fileTransferId);
                         // socket.emit('endTransferFile', fileTransferId);
                     });
                 }

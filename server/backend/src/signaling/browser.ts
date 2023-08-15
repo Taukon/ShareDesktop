@@ -135,6 +135,10 @@ export const setSignalingBrowser = (
         }
     });
 
+    socket.on('requestFileWatch', (desktopId: string) => {
+        fileEventEmitter.requestFileWatch(desktopId);
+    })
+
     socket.on("disconnect", () => {
         serverWebRTC.disconnectBrowserClient(socket.id);
     });

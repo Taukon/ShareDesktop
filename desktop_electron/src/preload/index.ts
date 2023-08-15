@@ -1,5 +1,5 @@
 import { IpcRendererEvent, contextBridge, ipcRenderer } from "electron";
-import { AudioData } from "../util/type";
+import { AudioData, FileWatchMsg } from "../util/type";
 
 export const controlObject = {
   testControl: async (displayName: string, data: any) : Promise<void> => {
@@ -37,8 +37,16 @@ export const controlObject = {
     const result = await ipcRenderer.invoke('getFileInfo', fileName);
     return result;
   },
-  getFileBuffer: async (fileName: string, fileTransferId: string): Promise<boolean> => {
-    const result: boolean = await ipcRenderer.invoke('getFileBuffer', fileName, fileTransferId);
+  sendFileBuffer: async (fileName: string, fileTransferId: string): Promise<boolean> => {
+    const result: boolean = await ipcRenderer.invoke('sendFileBuffer', fileName, fileTransferId);
+    return result;
+  },
+  initFileWatch: async (dir: string): Promise<boolean> => {
+    const result: boolean = await ipcRenderer.invoke('initFileWatch', dir);
+    return result;
+  },
+  sendFileWatch: async (dir: string): Promise<boolean> => {
+    const result: boolean = await ipcRenderer.invoke('sendFileWatch', dir);
     return result;
   },
   // main -> renderer
@@ -47,9 +55,12 @@ export const controlObject = {
       'streamSendFileBuffer',
       (event: IpcRendererEvent, {fileTransferId: string, buf: Buffer}) => listener({fileTransferId: string, buf: Buffer}),
     );
-    // return () => {
-    //   ipcRenderer.removeAllListeners('streamSendFileBuffer');
-    // };
+  },
+  streamFileWatchMsg: (listener: (data: FileWatchMsg) => void) => {
+    ipcRenderer.on(
+      'streamFileWatchMessage',
+      (event: IpcRendererEvent, data: FileWatchMsg) => listener(data),
+    );
   },
 }
 

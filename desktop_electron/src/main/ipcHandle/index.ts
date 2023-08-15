@@ -7,6 +7,7 @@ import { Xvfb } from './xvfb';
 import { AppProcess } from './appProcess';
 import { AudioData, ControlData } from '../../util/type';
 import { timer } from "../../util";
+import { FileWatch } from "./fileWatch";
 
 
 export const initIpcHandler = (mainWindow: BrowserWindow): void => {
@@ -162,7 +163,7 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
       }
     );
 
-    ipcMain.handle("getFileBuffer", async (event: Electron.IpcMainInvokeEvent, fileName: string, fileTransferId: string) => {
+    ipcMain.handle("sendFileBuffer", async (event: Electron.IpcMainInvokeEvent, fileName: string, fileTransferId: string) => {
 
         // const chunkSize = 16384;
         // const stream = createReadStream(`./dist/${fileName}`, {highWaterMark: chunkSize});
@@ -174,6 +175,18 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
             mainWindow.webContents.send('streamSendFileBuffer', {fileTransferId: fileTransferId, buf: chunk});
         }
         return true;
+      }
+    );
+
+    const filewWatch = new FileWatch();
+    ipcMain.handle("initFileWatch", (event: Electron.IpcMainInvokeEvent, dir: string) => {
+        filewWatch.initFileWatch(dir);
+        return filewWatch.sendFilechange(mainWindow);
+      }
+    );
+
+    ipcMain.handle("sendFileWatch", (event: Electron.IpcMainInvokeEvent, dir: string) => {
+        return filewWatch.sendFilelist(mainWindow);
       }
     );
     
