@@ -20,6 +20,9 @@ import {
 } from './browser';
 import { initRecvFileTransfer, initSendFileTransfer, setFileConsumer } from './signaling';
 import { FileInfo } from './signaling/type';
+import { FileDownload, FileUpload, FileWatchMsg } from './fileTransfer/type';
+import { updateFiles } from './fileTransfer';
+import { timer } from './util';
 
 export class BrowserWebRTC {
     public desktopId: string;
@@ -28,6 +31,8 @@ export class BrowserWebRTC {
     public canvas: HTMLCanvasElement;
     public image: HTMLImageElement;
     public audio?: HTMLAudioElement;
+    public fileUpload?: FileUpload;
+    public fileDownload?: FileDownload;
 
     constructor(desktopId: string, socket: Socket, onAudio: boolean) {
         this.desktopId = desktopId;
@@ -42,6 +47,20 @@ export class BrowserWebRTC {
             this.canvas.height = this.image.height;
             this.canvas.getContext('2d')?.drawImage(this.image, 0, 0);
         }
+        //
+        const fileInput = document.createElement("input");
+        fileInput.type = 'file';
+        // input.name = 'files[]'; // 複数ファイル対応のために[]を追加
+        const uploadButton = document.createElement('button');
+        uploadButton.textContent = '送信';
+
+        this.fileUpload = {
+            input: fileInput,
+            button: uploadButton
+        };
+        this.fileDownload = document.createElement("div");
+        //
+        //
 
         this.initDevice(socket, desktopId).then(msDevice => {
             this.startControl(msDevice, socket, this.canvas, desktopId);
@@ -52,10 +71,12 @@ export class BrowserWebRTC {
                 this.startAudio(msDevice, socket, this.audio, desktopId);
             }
 
-            this.startFileWatch(msDevice, socket, desktopId);
-
-            this.initRecvFile(msDevice, socket, desktopId);
-            this.initSendFile(msDevice, socket, desktopId);
+            //
+            if(this.fileUpload)
+            this.initSendFile(this.fileUpload, msDevice, socket, desktopId);
+            //
+            if(this.fileDownload)
+            this.startFileWatch(msDevice, socket, desktopId, this.fileDownload);
         })
     }
 
@@ -76,7 +97,7 @@ export class BrowserWebRTC {
     ): Promise<void> {
         const transport = await createControlTransport(device, socket, desktopId);
         const producer = await getControlProducer(transport);
-        // console.log(`producer.readyState: ${producer.readyState}`);
+
         if(producer.readyState === "open") {
             controlEventListener(canvas, producer);
         }else {
@@ -127,34 +148,40 @@ export class BrowserWebRTC {
     private async startFileWatch(
         device: mediasoupClient.types.Device,
         socket: Socket,
-        desktopId: string
+        desktopId: string,
+        fileDownload: FileDownload
     ): Promise<void> {
         const transport = await createFileWatchTransport(device, socket, desktopId);
         const consumer = await getFileWatchConsumer(transport, socket, desktopId);
         
+        const recvFileFunc = async (fileName: string) => {
+            await this.initRecvFile(device, socket, desktopId, fileName);
+        }
+
         if(consumer.readyState === "open"){
             consumer.on('message', msg => {
-                const data = JSON.parse(msg);
-                console.log(data);
+                const data: FileWatchMsg = JSON.parse(msg);
+                updateFiles(fileDownload, data, recvFileFunc);
             });
             socket.emit('requestFileWatch', desktopId);
         }else{
             consumer.on('open', () => {
                 consumer.on('message', msg => {
-                    const data = JSON.parse(msg);
-                    console.log(data);
+                    const data: FileWatchMsg = JSON.parse(msg);
+                    updateFiles(fileDownload, data, recvFileFunc);
                 });
                 socket.emit('requestFileWatch', desktopId);
             });
         }
     }
 
-    public async initRecvFile(
+    private async initRecvFile(
         device: mediasoupClient.types.Device,
         socket: Socket,
-        desktopId: string
+        desktopId: string,
+        fileName: string
     ): Promise<void> {
-        const init = initRecvFileTransfer(socket, desktopId);
+        const init = initRecvFileTransfer(socket, desktopId, fileName);
         const fileInfo = await init();
 
         const transport = await createRecvFileTransport(device, socket, fileInfo.fileTransferId);        
@@ -166,7 +193,6 @@ export class BrowserWebRTC {
                 socket,
                 fileInfo
             );
-            console.log(`readyRecvFile1`);
             setFileConsumer(socket, fileInfo.fileTransferId);
         }else{
             consumer.on('open', () => {
@@ -175,75 +201,154 @@ export class BrowserWebRTC {
                     socket,
                     fileInfo
                 );
-                console.log(`readyRecvFile2`);
                 setFileConsumer(socket, fileInfo.fileTransferId);
             });
         }
     }
 
-    private receiveFile(
+    private async receiveFile(
         consumer: mediasoupClient.types.DataConsumer,
         socket: Socket,
         fileInfo: FileInfo
-    ) {
+    ): Promise<void> {
         let receivedSize = 0;
+        
+        let stamp = 0;
+        let checkStamp = 0;
+        let limit = 3;
+        let isClosed = false;
+
         const fileStream = streamSaver.createWriteStream(
             fileInfo.fileName,
             {size: fileInfo.fileSize}
         );
+
         const writer = fileStream.getWriter();
+        if(receivedSize === fileInfo.fileSize){
+            writer.close();
+            socket.emit('endTransferFile', fileInfo.fileTransferId);
+            return;
+        }
+
         consumer.on('message', (msg: ArrayBuffer) => {
+            stamp++;
             receivedSize += msg.byteLength;
             writer.write(new Uint8Array(msg));
-            // console.log(`${fileInfo.fileSize-receivedSize} | receivedSize: ${receivedSize}, fileSize: ${fileInfo.fileSize}`);
-
-            if(receivedSize == fileInfo.fileSize){
+            if(receivedSize === fileInfo.fileSize){
+                isClosed = true;
                 writer.close();
                 socket.emit('endTransferFile', fileInfo.fileTransferId);
             }
         });
+
+        while(1){
+            await timer(2*1000);
+            if(isClosed) break;
+            if(stamp === checkStamp){
+                limit--;
+                if(limit == 0){
+                    console.log(`cannot recieve file: ${fileInfo.fileName}`);
+                    writer.abort();
+                    socket.emit('endTransferFile', fileInfo.fileTransferId);
+                    break;
+                }
+            }else{
+                checkStamp = stamp;
+            }
+        }
     }
 
-    public async initSendFile(
+    private initSendFile(
+        fileUpload: FileUpload,
         device: mediasoupClient.types.Device,
         socket: Socket,
         desktopId: string
+    ) {
+        fileUpload.button.addEventListener('click', () => {
+            if(fileUpload.input.files){
+                for(let i = 0; i < fileUpload.input.files.length; i++){
+                    const fileName = fileUpload.input.files.item(i)?.name;
+                    const fileSize = fileUpload.input.files.item(i)?.size;
+                    const fileStream = fileUpload.input.files.item(i)?.stream();
+                    if(fileName && fileSize && fileStream){
+                        console.log(`file name: ${fileName} | size: ${fileSize}`);
+                        this.startSendFile(
+                            device, 
+                            socket, 
+                            desktopId,
+                            fileName,
+                            fileSize,
+                            fileStream
+                        );
+                    }
+                }
+            }else{
+                console.log(`nothing`);
+            }
+        });
+    }
+
+    public async startSendFile(
+        device: mediasoupClient.types.Device,
+        socket: Socket,
+        desktopId: string,
+        fileName: string, 
+        fileSize: number,
+        fileStream: ReadableStream<Uint8Array>
     ): Promise<void> {
         const init = initSendFileTransfer(socket, desktopId);
         const fileTransferId = await init();
-        await this.startSendFile(device, socket, fileTransferId);
-    }
-
-    private async startSendFile(
-        device: mediasoupClient.types.Device,
-        socket: Socket,
-        fileTransferId: string
-    ): Promise<void> {
         const transport = await createSendFileTransport(device, socket, fileTransferId);
+
         const producer = await getSendFileProducer(transport);
+
+        const reader = fileStream.getReader();
+        // producer.on("close", () => {
+        //     reader.releaseLock();
+        //     fileStream.cancel();
+        // });
 
         const status = 
             await WaitFileConsumer(
                 socket, 
                 fileTransferId, 
-                `bbb.txt`, 
-                1000
+                fileName,
+                fileSize
             );
-        console.log(status);
         if(status === fileTransferId){
             if(producer.readyState === "open") {
-                producer.send(`FILE Send! from Browser: ${this.desktopId}`);
-                socket.emit('endTransferFile', fileTransferId);
+                await this.sendFile(producer, reader);
             }else{
-                console.log(`producer.readyState: ${producer.readyState}`);
-    
-                producer.on('open', () => {
-                    producer.send(`FILE Send! from Browser: ${this.desktopId}`);
-                    socket.emit('endTransferFile', fileTransferId);
+                producer.on('open', async () => {
+                    await this.sendFile(producer, reader);    
                 });
             }
-        }        
-
+        }
     }
 
+    private async sendFile(
+        producer: mediasoupClient.types.DataProducer,
+        reader: ReadableStreamDefaultReader<Uint8Array>,
+    ): Promise<void> {
+        const chunkSize = 65536;
+        while(1) {
+            const {done, value} = await reader.read();
+            if(done) break;
+            if(value.byteLength > chunkSize){
+                let offset = 0;
+                console.log(`Buffer Size Over`);
+
+                while(offset < value.byteLength){
+                    const sliceBuf = value.slice(offset, offset + chunkSize);
+                    producer.send(sliceBuf);
+                    offset += sliceBuf.byteLength;
+                    await timer(10);
+                }
+            }else{
+                producer.send(value);
+                await timer(10);
+            }
+        };
+        reader.releaseLock();
+    }
 }

@@ -40,8 +40,8 @@ export class SignalingEventEmitter {
         });
     }
 
-    public requestSendFile(desktopSocketId: string, fileTransferId: string) {
-        this.eventEmitter.emit(`requestSendFile`, desktopSocketId, fileTransferId);
+    public requestSendFile(desktopSocketId: string, fileName: string, fileTransferId: string) {
+        this.eventEmitter.emit(`requestSendFile`, desktopSocketId, fileName, fileTransferId);
     }
 
     private listenRequestFile(desktopServer: Server) {
@@ -64,9 +64,10 @@ export class SignalingEventEmitter {
             `requestSendFile`, 
             (
                 desktopSocketId: string, 
+                fileName: string,
                 fileTransferId: string
             ) => {
-                desktopServer.to(desktopSocketId).emit(`requestSendFile`, fileTransferId);
+                desktopServer.to(desktopSocketId).emit(`requestSendFile`, fileTransferId, fileName);
         });
     }
 

@@ -1,12 +1,10 @@
 import { networkInterfaces } from "os";
 import { exec } from "child_process";
 import { BrowserWindow, ipcMain } from "electron";
-import { createReadStream, statSync } from "fs";
 import {screenshot, converter, xtest} from "./x11lib";
 import { Xvfb } from './xvfb';
 import { AppProcess } from './appProcess';
 import { AudioData, ControlData } from '../../util/type';
-import { timer } from "../../util";
 import { FileWatch } from "./fileWatch";
 
 
@@ -144,49 +142,41 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
       }
     );
 
+    const fileWatch = new FileWatch();
+
     ipcMain.handle("getFileInfo", async (event: Electron.IpcMainInvokeEvent, fileName: string) => {
-        try{
-            const path = `./dist/${fileName}`;
-            const stats = statSync(path);
-            if(stats.isFile()){
-                const info = {
-                    fileName: fileName,
-                    fileSize: stats.size,
-                }
-                // console.log(info);
-                return info;
-            }
-        }catch(error){
-            console.log(error);
-            return undefined;
-        }
+        return fileWatch.getFileInfo(fileName);
       }
     );
 
     ipcMain.handle("sendFileBuffer", async (event: Electron.IpcMainInvokeEvent, fileName: string, fileTransferId: string) => {
-
-        // const chunkSize = 16384;
-        // const stream = createReadStream(`./dist/${fileName}`, {highWaterMark: chunkSize});
-        const stream = createReadStream(`./dist/${fileName}`);
-
-        for await (const chunk of stream){
-            // console.log(chunk.length);
-            await timer(10);
-            mainWindow.webContents.send('streamSendFileBuffer', {fileTransferId: fileTransferId, buf: chunk});
-        }
-        return true;
+        return await fileWatch.sendStreamFile(fileName, fileTransferId, mainWindow);
       }
     );
 
-    const filewWatch = new FileWatch();
+    ipcMain.handle("setFileInfo", async (event: Electron.IpcMainInvokeEvent, fileName: string, fileSize: number) => {
+        return fileWatch.setFileInfo(fileName, fileSize);
+      }
+    );
+    
+    ipcMain.handle("recvFileBuffer", async (event: Electron.IpcMainInvokeEvent, fileName: string, buffer: Uint8Array) => {
+        return fileWatch.recvStreamFile(fileName, buffer);
+      }
+    );
+
+    ipcMain.handle("destroyRecvFileBuffer", async (event: Electron.IpcMainInvokeEvent, fileName: string) => {
+        return fileWatch.destroyRecvStreamFile(fileName);
+      }
+    );
+
     ipcMain.handle("initFileWatch", (event: Electron.IpcMainInvokeEvent, dir: string) => {
-        filewWatch.initFileWatch(dir);
-        return filewWatch.sendFilechange(mainWindow);
+        fileWatch.initFileWatch(dir);
+        return fileWatch.sendFilechange(mainWindow);
       }
     );
 
     ipcMain.handle("sendFileWatch", (event: Electron.IpcMainInvokeEvent, dir: string) => {
-        return filewWatch.sendFilelist(mainWindow);
+        return fileWatch.sendFilelist(mainWindow);
       }
     );
     

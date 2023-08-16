@@ -37,8 +37,23 @@ export const controlObject = {
     const result = await ipcRenderer.invoke('getFileInfo', fileName);
     return result;
   },
+  setFileInfo: async(
+    fileName: string,
+    fileSize: number
+  ): Promise<boolean> => {
+    const result: boolean = await ipcRenderer.invoke('setFileInfo', fileName, fileSize);
+    return result;
+  },
   sendFileBuffer: async (fileName: string, fileTransferId: string): Promise<boolean> => {
     const result: boolean = await ipcRenderer.invoke('sendFileBuffer', fileName, fileTransferId);
+    return result;
+  },
+  recvFileBuffer: async (fileName: string, buffer: Uint8Array): Promise<number> => {
+    const result: number = await ipcRenderer.invoke('recvFileBuffer', fileName, buffer);
+    return result;
+  },
+  destroyRecvFileBuffer: async (fileName: string): Promise<boolean> => {
+    const result: boolean = await ipcRenderer.invoke('destroyRecvFileBuffer', fileName);
     return result;
   },
   initFileWatch: async (dir: string): Promise<boolean> => {

@@ -224,9 +224,10 @@ export const waitSetFileConsumer = (
 
 export const initRecvFileTransfer = (
     socket: Socket,
-    desktopId: string
+    desktopId: string,
+    fileName: string
 ): Signaling<void, FileInfo> => {
-    return () => sendRequest(socket, 'initRecvFileTransfer', desktopId);
+    return () => sendRequest(socket, 'initRecvFileTransfer', {desktopId, fileName});
 }
 
 export const createRecvFile = (

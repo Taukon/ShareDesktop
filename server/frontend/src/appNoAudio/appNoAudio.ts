@@ -26,7 +26,20 @@ function start() {
 
     const elementScreen = document.getElementById('screen');
     if (elementScreen) {
-        elementScreen.appendChild(client.canvas);
+        const desktopDiv = document.createElement('div');
+        desktopDiv.id = client.desktopId;
+        elementScreen.appendChild(desktopDiv);
+        desktopDiv.appendChild(client.canvas);
+
+        if(client.fileUpload){
+            desktopDiv.appendChild(client.fileUpload.input);
+            desktopDiv.appendChild(client.fileUpload.button);
+        }
+        if(client.fileDownload){
+            desktopDiv.append(client.fileDownload);
+        }
+
+        // elementScreen.appendChild(client.canvas);
         clientList.forEach((value, key) => {
             if (value.desktopId == client.desktopId) {
                 elementScreen.removeChild(elementScreen.childNodes.item(key));

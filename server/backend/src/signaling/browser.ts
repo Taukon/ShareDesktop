@@ -146,13 +146,16 @@ export const setSignalingBrowser = (
     // -------------- File Transfer --------------
     // Send FIle from Desktop to Browser
     socket.on('initRecvFileTransfer', async (
-        desktopId: string,
+        req: {
+            desktopId: string,
+            fileName: string
+        },
         callback: Callback<FileInfo>
     ) => {
         const params = serverWebRTC.initFileTransfer();
         console.log(`init recv ${params}`);
         if(params){
-            fileEventEmitter.requestSendFile(desktopId, params); 
+            fileEventEmitter.requestSendFile(req.desktopId, req.fileName, params); 
             fileEventEmitter.waitFileProducer(params, callback); //p(D)=>c(B)
         }
     });
