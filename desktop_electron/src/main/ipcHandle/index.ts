@@ -1,12 +1,14 @@
 import { networkInterfaces } from "os";
 import { exec } from "child_process";
-import { ipcMain } from "electron";
+import { BrowserWindow, ipcMain } from "electron";
 import {screenshot, converter, xtest} from "./x11lib";
 import { Xvfb } from './xvfb';
 import { AppProcess } from './appProcess';
 import { AudioData, ControlData } from '../../util/type';
+import { FileShare } from "./fileShare";
 
-export const initIpcHandler = (): void => {
+
+export const initIpcHandler = (mainWindow: BrowserWindow): void => {
 
     ipcMain.handle("testControl", (event: Electron.IpcMainInvokeEvent, displayName: string, data: ControlData) => {
         if (data.move?.x != undefined && data.move?.y != undefined) {
@@ -137,6 +139,44 @@ export const initIpcHandler = (): void => {
         } catch (error) {
             console.log(error);
         }
+      }
+    );
+
+    const fileShare = new FileShare();
+
+    ipcMain.handle("getFileInfo", async (event: Electron.IpcMainInvokeEvent, fileName: string) => {
+        return fileShare.getFileInfo(fileName);
+      }
+    );
+
+    ipcMain.handle("sendFileBuffer", async (event: Electron.IpcMainInvokeEvent, fileName: string, fileTransferId: string) => {
+        return await fileShare.sendStreamFile(fileName, fileTransferId, mainWindow);
+      }
+    );
+
+    ipcMain.handle("setFileInfo", async (event: Electron.IpcMainInvokeEvent, fileName: string, fileSize: number) => {
+        return fileShare.setFileInfo(fileName, fileSize);
+      }
+    );
+    
+    ipcMain.handle("recvFileBuffer", async (event: Electron.IpcMainInvokeEvent, fileName: string, buffer: Uint8Array) => {
+        return fileShare.recvStreamFile(fileName, buffer, mainWindow);
+      }
+    );
+
+    ipcMain.handle("destroyRecvFileBuffer", async (event: Electron.IpcMainInvokeEvent, fileName: string) => {
+        return fileShare.destroyRecvStreamFile(fileName);
+      }
+    );
+
+    ipcMain.handle("initFileWatch", (event: Electron.IpcMainInvokeEvent, dir: string) => {
+        fileShare.initFileWatch(dir);
+        return fileShare.sendFilechange(mainWindow);
+      }
+    );
+
+    ipcMain.handle("sendFileWatch", (event: Electron.IpcMainInvokeEvent, dir: string) => {
+        return fileShare.sendFilelist(mainWindow);
       }
     );
     

@@ -11,12 +11,14 @@ export type ScreenDesktopTransport = WebRtcTransport & { producer?: DataProducer
 export type AudioDesktopTransport = PlainTransport & { producer?: Producer };
 export type ControlDesktopDirTransport = DirectTransport & { producer?: DataProducer };
 export type ControlDesktopRtcTransport = WebRtcTransport & { consumer?: DataConsumer };
+export type FileWatchTransport = WebRtcTransport & { producer?: DataProducer };
 
 export type DesktopTransports  = {
     controlRtcTransport?: ControlDesktopRtcTransport;
     controlDirTransport?: ControlDesktopDirTransport;
     screenTransport?: ScreenDesktopTransport;
     audioTransport?: AudioDesktopTransport;
+    fileWatchTransport?: FileWatchTransport;
     exits: boolean;
 };
 

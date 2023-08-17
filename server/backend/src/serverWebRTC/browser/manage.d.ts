@@ -10,12 +10,14 @@ export type ScreenBrowserTransport = WebRtcTransport & { consumer?: DataConsumer
 export type AudioBrowserTransport = WebRtcTransport & { consumer?: Consumer };
 export type ControlBrowserDirTransport = DirectTransport & { consumer?: DataConsumer };
 export type ControlBrowserRtcTransport = WebRtcTransport & { producer?: Producer };
+export type FileWatchTransport = WebRtcTransport & { consumer?: DataConsumer };
 
 export type BrowserTransports = {
     controlRtcTransport?: ControlBrowserRtcTransport;
     controlDirTransport?: ControlBrowserDirTransport;
     screenTransport?: ScreenBrowserTransport;
     audioTransport?: AudioBrowserTransport;
+    fileWatchTransport?: FileWatchTransport;
     exits: boolean;
 };
 

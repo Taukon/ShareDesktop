@@ -29,11 +29,6 @@ export type ConsumeDataParams = {
     // appData: any;
 };
 
-export type ConsumeParams = { 
-    id: string|undefined;
-    producerId: string|undefined;
-    kind: "audio"|"video"|undefined; 
-    rtpParameters: mediasoupClient.types.RtpParameters; 
-    streamId: string|undefined;
-    // appData: any;
+export type FileProducers = {
+    [is: string]: mediasoupClient.types.DataProducer
 }

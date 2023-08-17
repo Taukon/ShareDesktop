@@ -5,18 +5,18 @@ import {
     RtpCapabilities,
     WebRtcTransportOptions,
 } from 'mediasoup/node/lib/types';
-import * as mediasoupClientType from "mediasoup-client/lib/types";
 import { 
     createDirectProducer,
     createPlainProducer,
     createRtcTransport
 } from "../common"
+import { AudioResponse } from './type';
+import { AudioDesktopTransport, ControlDesktopDirTransport, ControlDesktopRtcTransport, DesktopList, DesktopTransports, FileWatchTransport, ScreenDesktopTransport } from './manage';
 import { 
-    RtcTransportParams, 
-    DataConsumerParams, 
-    AudioResponse 
-} from './type';
-import { DesktopList, DesktopTransports } from './manage';
+    ConsumeDataParams, 
+    ProduceDataParams, 
+    RtcTransportParams 
+} from '../common/type';
 
 
 export class Desktop {
@@ -35,33 +35,73 @@ export class Desktop {
         return undefined;
     }
 
-    private setDesktopTransports(desktopId: string, desktopTransports: DesktopTransports): boolean {
+    private setControlTransports(
+        desktopId:string, 
+        controlDesktopRtcTransport:  ControlDesktopRtcTransport,
+        controlDesktopDirTransport: ControlDesktopDirTransport
+    ): boolean {
+        const desktopTransports = this.desktopList[desktopId];
         if(this.isDesktopTransports(desktopTransports)){
-            this.desktopList[desktopId] = desktopTransports;
+            desktopTransports.controlRtcTransport = controlDesktopRtcTransport;
+            desktopTransports.controlDirTransport = controlDesktopDirTransport;
+            return true;
+        }
+        return false;
+    }
+
+    private setScreenTransport(
+        desktopId:string, 
+        screenTransport: ScreenDesktopTransport
+    ): boolean {
+        const desktopTransports = this.desktopList[desktopId];
+        if(this.isDesktopTransports(desktopTransports)){
+            desktopTransports.screenTransport = screenTransport;
+            return true;
+        }
+        return false;
+    }
+
+    private setAudioTransport(
+        desktopId:string, 
+        audioTransport: AudioDesktopTransport
+    ): boolean {
+        const desktopTransports = this.desktopList[desktopId];
+        if(this.isDesktopTransports(desktopTransports)){
+            desktopTransports.audioTransport = audioTransport;
+            return true;
+        }
+        return false;
+    }
+
+    private setFileWatchTransport(
+        desktopId: string,
+        fileWatchTransport: FileWatchTransport
+    ): boolean {
+        const desktopTransports = this.desktopList[desktopId];
+        if(this.isDesktopTransports(desktopTransports)){
+            desktopTransports.fileWatchTransport = fileWatchTransport;
             return true;
         }
         return false;
     }
 
     private initDesktopTransports(desktopId:string, enableAudio: boolean): boolean {
-        if(enableAudio) {
-            const transports: DesktopTransports = {
-                controlRtcTransport: undefined,
-                controlDirTransport: undefined,
-                screenTransport: undefined,
-                audioTransport: undefined,
-                exits: true
-            }
-            return this.setDesktopTransports(desktopId, transports);
-        }else{
-            const transports: DesktopTransports = {
-                controlRtcTransport: undefined,
-                controlDirTransport: undefined,
-                screenTransport: undefined,
-                exits: true
-            }
-            return this.setDesktopTransports(desktopId, transports);
+        const desktopTransports = this.getDesktopTransports(desktopId);
+        if(desktopTransports?.exits){
+            console.log(`already created Desktop transports ID: ${desktopId}`);
+
+            this.deleteDesktopTransports(desktopId, desktopTransports);
         }
+
+        if(enableAudio){
+            console.log(`enableAudio DesktopID: ${desktopId}`);
+        }
+
+        const transports: DesktopTransports = {
+            exits: true
+        }
+        this.desktopList[desktopId] = transports;
+        return true;
     }
 
     private deleteDesktopTransports(desktopId: string, desktopTransports: DesktopTransports) {
@@ -88,6 +128,12 @@ export class Desktop {
         if(audioTransport){
             console.log("delete audioTransportId: " + audioTransport.id);
             audioTransport.close();
+        }
+
+        const fileWatchTransport = desktopTransports.fileWatchTransport;
+        if(fileWatchTransport){
+            console.log(`delete fileWatchTransportId: ${fileWatchTransport.id}`);
+            fileWatchTransport.close();
         }
 
         delete this.desktopList[desktopId];
@@ -121,9 +167,9 @@ export class Desktop {
         router: Router,
         transportOptions :WebRtcTransportOptions
     ):Promise<RtcTransportParams|undefined> {
-        const desktopTransports = this.getDesktopTransports(desktopId);
+        const exits = this.getDesktopTransports(desktopId)?.exits;
 
-        if(desktopTransports?.exits) {
+        if(exits) {
             const { transport, params } = await createRtcTransport(router, transportOptions);
         
             transport.observer.on('close', () => {
@@ -131,11 +177,8 @@ export class Desktop {
                 //delete this.producerList[transport.id];
             });
 
-            desktopTransports.controlRtcTransport = transport;
-
-            desktopTransports.controlDirTransport = await createDirectProducer(router);
-
-            this.setDesktopTransports(desktopId, desktopTransports);
+            const dirTransport = await createDirectProducer(router);
+            this.setControlTransports(desktopId, transport, dirTransport);
 
             return params;
         }
@@ -145,14 +188,19 @@ export class Desktop {
     // connect event of ConsumerTransport for control
     public async connectDesktopControl(
         desktopId: string, 
-        dtlsParameters: mediasoupClientType.DtlsParameters
+        dtlsParameters: DtlsParameters
     ):Promise<boolean> {
         const desktopTransports = this.getDesktopTransports(desktopId);
         const controlRtcTransport = desktopTransports?.controlRtcTransport;
 
         if(controlRtcTransport){
-            await controlRtcTransport.connect({ dtlsParameters: dtlsParameters });
-            return true;
+            try{
+                await controlRtcTransport.connect({ dtlsParameters: dtlsParameters });
+                return true;
+            }catch(error){
+                console.log(error);
+                return false;
+            }
         }
         return false;
     }
@@ -160,7 +208,7 @@ export class Desktop {
     // consumeData event of ConsumerTransport for control
     public async establishDesktopControl(
         desktopId: string
-    ): Promise<DataConsumerParams|undefined> {
+    ): Promise<ConsumeDataParams|undefined> {
         const desktopTransports = this.getDesktopTransports(desktopId);
         const controlRtcTransport = desktopTransports?.controlRtcTransport;
         const controlDirProducerId = desktopTransports?.controlDirTransport?.producer?.id
@@ -187,9 +235,9 @@ export class Desktop {
         router: Router,
         transportOptions :WebRtcTransportOptions
     ): Promise<RtcTransportParams|undefined> {
-        const desktopTransports = this.getDesktopTransports(desktopId);
+        const exits = this.getDesktopTransports(desktopId)?.exits;
 
-        if(desktopTransports?.exits) {
+        if(exits) {
             const { transport, params } = await createRtcTransport(router, transportOptions);
         
             transport.observer.on('close', () => {
@@ -197,9 +245,7 @@ export class Desktop {
                 //delete this.producerList[transport.id];
             });
 
-            desktopTransports.screenTransport = transport;
-
-            this.setDesktopTransports(desktopId, desktopTransports);
+            this.setScreenTransport(desktopId, transport);
 
             return params;
         }
@@ -216,8 +262,13 @@ export class Desktop {
         const screenTransport = desktopTransports?.screenTransport;
 
         if(screenTransport) {
-            await screenTransport.connect({ dtlsParameters: dtlsParameters });
-            return true;
+            try{
+                await screenTransport.connect({ dtlsParameters: dtlsParameters });
+                return true;
+            }catch(error){
+                console.log(error);
+                return false;
+            }
         }
         return false;
     }
@@ -225,7 +276,7 @@ export class Desktop {
     // produceData event of ProducerTransport for screen
     public async establishDesktopScreen(
         desktopId: string, 
-        produceParameters: any
+        produceParameters: ProduceDataParams
     ):Promise<string|undefined> {
         const desktopTransports = this.getDesktopTransports(desktopId);
         const screenTransport = desktopTransports?.screenTransport;
@@ -245,11 +296,10 @@ export class Desktop {
         ipAddr: string,
         rtcpMux: boolean
     ):Promise<boolean> {
-        const desktopTransports = this.getDesktopTransports(desktopId);
-        if(desktopTransports?.exits){
+        const exits = this.getDesktopTransports(desktopId)?.exits;
+        if(exits){
             const audioTransport = await createPlainProducer(router, ipAddr, rtcpMux);
-            desktopTransports.audioTransport = audioTransport;
-            this.setDesktopTransports(desktopId, desktopTransports);
+            this.setAudioTransport(desktopId, audioTransport)
             return true;
         }
         return false;
@@ -279,6 +329,67 @@ export class Desktop {
                 };
 
             return msg;
+        }
+        return undefined;
+    }
+
+    //create ProducerTransport for File Watch
+    public async createFileWatch(
+        desktopId: string,
+        router: Router,
+        transportOptions :WebRtcTransportOptions
+    ): Promise<RtcTransportParams|undefined> {
+        const exits = this.getDesktopTransports(desktopId)?.exits;
+
+        if(exits) {
+            const { transport, params } = await createRtcTransport(router, transportOptions);
+        
+            transport.observer.on('close', () => {
+                transport.close();
+                //delete this.producerList[transport.id];
+            });
+
+            this.setFileWatchTransport(desktopId, transport);
+
+            return params;
+        }
+
+        return undefined;
+    }   
+
+    // connect event of ProducerTransport for File Watch
+    public async connectFileWatch(
+        desktopId: string, 
+        dtlsParameters: DtlsParameters
+    ):Promise<boolean> {
+        const desktopTransports = this.getDesktopTransports(desktopId);
+        const fileWatchTransport = desktopTransports?.fileWatchTransport;
+
+        if(fileWatchTransport) {
+            try{
+                await fileWatchTransport.connect({ dtlsParameters: dtlsParameters });
+                return true;
+            }catch(error){
+                console.log(error);
+                return false;
+            }
+        }
+        return false;
+    }
+
+    // produceData event of ProducerTransport for screen
+    public async establishFileWatch(
+        desktopId: string, 
+        produceParameters: ProduceDataParams
+    ):Promise<string|undefined> {
+        const desktopTransports = this.getDesktopTransports(desktopId);
+        const fileWatchTransport = desktopTransports?.fileWatchTransport;
+
+        if(fileWatchTransport){
+            const dataProducer = await fileWatchTransport.produceData(produceParameters);
+            //console.log("dataProducer.id: " + dataProducer.id);
+            fileWatchTransport.producer = dataProducer;
+            return dataProducer.id;
         }
         return undefined;
     }
@@ -314,5 +425,9 @@ export class Desktop {
     public getControlDirProducer(desktopId: string): DataProducer|undefined {
         const desktopTransports = this.getDesktopTransports(desktopId);
         return desktopTransports?.controlDirTransport?.producer;
+    }
+
+    public getFileWatchProducerId(desktopId: string): string|undefined {
+        return this.getDesktopTransports(desktopId)?.fileWatchTransport?.producer?.id;
     }
 }

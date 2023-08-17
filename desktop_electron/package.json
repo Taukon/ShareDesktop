@@ -37,6 +37,7 @@
   "dependencies": {
     "bindings": "^1.5.0",
     "buffer": "^6.0.3",
+    "chokidar": "^3.5.3",
     "copyfiles": "^2.4.1",
     "electron": "^25.2.0",
     "mediasoup-client": "^3.6.93",
