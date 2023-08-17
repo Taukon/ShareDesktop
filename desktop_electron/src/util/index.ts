@@ -8,6 +8,7 @@ export const timer = (ms: number) => new Promise<void>(
 export enum FileMsgType {
     list = `list`,
     add = `add`,
-    change = `change`,
-    unlink = `unlink`
+    unlink = `unlink`,
+    writing = `writing`,
+    saved = `saved`
 }

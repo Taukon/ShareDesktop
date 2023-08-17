@@ -296,14 +296,17 @@ export class DesktopWebRTC {
                 });
                 
                 if(producer.readyState === "open") {
-                    await window.api.sendFileBuffer(fileInfo.fileName, fileTransferId);
-                    // socket.emit('endTransferFile', fileTransferId);
+                    const result = await window.api.sendFileBuffer(fileInfo.fileName, fileTransferId);
+                    if(!result) socket.emit('endTransferFile', fileTransferId);
+                        
                 }else{
                     producer.on('open', async () => {
-                        await window.api.sendFileBuffer(fileInfo.fileName, fileTransferId);
-                        // socket.emit('endTransferFile', fileTransferId);
+                        const result = await window.api.sendFileBuffer(fileInfo.fileName, fileTransferId);
+                        if(!result) socket.emit('endTransferFile', fileTransferId);
                     });
                 }
+            }else{
+                socket.emit('endTransferFile', fileTransferId);
             }
         });
     }
@@ -350,6 +353,7 @@ export class DesktopWebRTC {
             stamp++;
             const buf = new Uint8Array(msg);
             const receivedSize = await window.api.recvFileBuffer(fileInfo.fileName, buf);
+            console.log(`${fileInfo.fileName} stamp: ${stamp}`);
             if(receivedSize === fileInfo.fileSize){
                 isClosed = true;
                 socket.emit('endTransferFile', fileInfo.fileTransferId);

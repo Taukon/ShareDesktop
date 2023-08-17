@@ -3,8 +3,9 @@ import { FileDownload, FileWatchMsg } from "./type";
 export enum FileMsgType {
     list = `list`,
     add = `add`,
-    change = `change`,
-    unlink = `unlink`
+    unlink = `unlink`,
+    writing = `writing`,
+    saved = `saved`
 }
 
 export const updateFiles = (
@@ -25,6 +26,12 @@ export const updateFiles = (
             break;
         case FileMsgType.unlink:
             unlinkFiles(fileDownload, fileWatchMsg.msgItems);
+            break;
+        case FileMsgType.writing:
+            unlinkFiles(fileDownload, fileWatchMsg.msgItems);
+            break;
+        case FileMsgType.saved:
+            addFiles(fileDownload, fileWatchMsg.msgItems, recvFileFunc);
             break;
         default:
             break;
