@@ -20,7 +20,6 @@ import { ControlData } from '../../util/type';
 import { establishDesktopAudio, setFileConsumer } from './signaling';
 import { FileInfo } from './signaling/type';
 import { FileProducers } from './mediasoup/type';
-import { publicDecrypt } from 'crypto';
 import { timer } from '../util';
 
 // @ts-ignore
