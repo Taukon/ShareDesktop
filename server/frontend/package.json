@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack --progress"
+    "build": "webpack --progress",
+    "lint": "prettier --write 'src/**/*.ts' && eslint --fix --ext .ts src"
   },
   "keywords": [],
   "author": "",
@@ -20,9 +21,13 @@
   },
   "devDependencies": {
     "@types/streamsaver": "^2.0.1",
+    "@typescript-eslint/eslint-plugin": "^6.4.0",
+    "@typescript-eslint/parser": "^6.4.0",
+    "eslint": "^8.47.0",
+    "eslint-config-prettier": "^9.0.0",
+    "prettier": "^3.0.2",
     "terser-webpack-plugin": "^5.3.9",
     "ts-loader": "^9.4.4",
-    "typescript": "^5.1.6",
     "webpack": "^5.88.1",
     "webpack-cli": "^5.1.4"
   }

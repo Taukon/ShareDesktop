@@ -1,127 +1,126 @@
 type KeySimObject = {
-    [prop: string]: number;
+  [prop: string]: number;
 };
 
 export const KeySims: KeySimObject = {
-    "F1": 0xFFBE,
-    "F2": 0xFFBF,
-    "F3": 0xFFC0,
-    "F4": 0xFFC1,
-    "F5": 0xFFC2,
-    "F6": 0xFFC3,
-    "F7": 0xFFC4,
-    "F8": 0xFFC5,
-    "F9": 0xFFC6,
-    "F10": 0xFFC7,
-    "F11": 0xFFC8,
-    "L1": 0xFFC8,
-    "F12": 0xFFC9,
-    "L2": 0xFFC9,
-    "F13": 0xFFCA,
-    "L3": 0xFFCA,
-    "F14": 0xFFCB,
-    "L4": 0xFFCB,
-    "F15": 0xFFCC,
-    "L5": 0xFFCC,
-    "F16": 0xFFCD,
-    "L6": 0xFFCD,
-    "F17": 0xFFCE,
-    "L7": 0xFFCE,
-    "F18": 0xFFCF,
-    "L8": 0xFFCF,
-    "F19": 0xFFD0,
-    "L9": 0xFFD0,
-    "F20": 0xFFD1,
-    "L10": 0xFFD1,
-    "F21": 0xFFD2,
-    "R1": 0xFFD2,
-    "F22": 0xFFD3,
-    "R2": 0xFFD3,
-    "F23": 0xFFD4,
-    "R3": 0xFFD4,
-    "F24": 0xFFD5,
-    "R4": 0xFFD5,
-    "F25": 0xFFD6,
-    "R5": 0xFFD6,
-    "F26": 0xFFD7,
-    "R6": 0xFFD7,
-    "F27": 0xFFD8,
-    "R7": 0xFFD8,
-    "F28": 0xFFD9,
-    "R8": 0xFFD9,
-    "F29": 0xFFDA,
-    "R9": 0xFFDA,
-    "F30": 0xFFDB,
-    "R10": 0xFFDB,
-    "F31": 0xFFDC,
-    "R11": 0xFFDC,
-    "F32": 0xFFDD,
-    "R12": 0xFFDD,
-    "F33": 0xFFDE,
-    "R13": 0xFFDE,
-    "F34": 0xFFDF,
-    "R14": 0xFFDF,
-    "F35": 0xFFE0,
-    "R15": 0xFFE0,
+  F1: 0xffbe,
+  F2: 0xffbf,
+  F3: 0xffc0,
+  F4: 0xffc1,
+  F5: 0xffc2,
+  F6: 0xffc3,
+  F7: 0xffc4,
+  F8: 0xffc5,
+  F9: 0xffc6,
+  F10: 0xffc7,
+  F11: 0xffc8,
+  L1: 0xffc8,
+  F12: 0xffc9,
+  L2: 0xffc9,
+  F13: 0xffca,
+  L3: 0xffca,
+  F14: 0xffcb,
+  L4: 0xffcb,
+  F15: 0xffcc,
+  L5: 0xffcc,
+  F16: 0xffcd,
+  L6: 0xffcd,
+  F17: 0xffce,
+  L7: 0xffce,
+  F18: 0xffcf,
+  L8: 0xffcf,
+  F19: 0xffd0,
+  L9: 0xffd0,
+  F20: 0xffd1,
+  L10: 0xffd1,
+  F21: 0xffd2,
+  R1: 0xffd2,
+  F22: 0xffd3,
+  R2: 0xffd3,
+  F23: 0xffd4,
+  R3: 0xffd4,
+  F24: 0xffd5,
+  R4: 0xffd5,
+  F25: 0xffd6,
+  R5: 0xffd6,
+  F26: 0xffd7,
+  R6: 0xffd7,
+  F27: 0xffd8,
+  R7: 0xffd8,
+  F28: 0xffd9,
+  R8: 0xffd9,
+  F29: 0xffda,
+  R9: 0xffda,
+  F30: 0xffdb,
+  R10: 0xffdb,
+  F31: 0xffdc,
+  R11: 0xffdc,
+  F32: 0xffdd,
+  R12: 0xffdd,
+  F33: 0xffde,
+  R13: 0xffde,
+  F34: 0xffdf,
+  R14: 0xffdf,
+  F35: 0xffe0,
+  R15: 0xffe0,
 
-    "BackSpace": 0xFF08, /* back space, back char */
-    "Tab": 0xFF09,
-    "Linefeed": 0xFF0A, /* Linefeed, LF */
-    "Clear": 0xFF0B,
-    "Return": 0xFF0D, /* Return, enter */
-    "Pause": 0xFF13, /* Pause, hold */
-    "Scroll_Lock": 0xFF14,
-    "Sys_Req": 0xFF15,
-    "Escape": 0xFF1B,
-    "Delete": 0xFFFF, /* Delete, rubout */
+  BackSpace: 0xff08 /* back space, back char */,
+  Tab: 0xff09,
+  Linefeed: 0xff0a /* Linefeed, LF */,
+  Clear: 0xff0b,
+  Return: 0xff0d /* Return, enter */,
+  Pause: 0xff13 /* Pause, hold */,
+  Scroll_Lock: 0xff14,
+  Sys_Req: 0xff15,
+  Escape: 0xff1b,
+  Delete: 0xffff /* Delete, rubout */,
 
-    /* Modifiers */
+  /* Modifiers */
 
-    "Shift_L": 0xFFE1, /* Left shift */
-    "Shift_R": 0xFFE2, /* Right shift */
-    "Control_L": 0xFFE3, /* Left control */
-    "Control_R": 0xFFE4, /* Right control */
-    "Caps_Lock": 0xFFE5, /* Caps lock */
-    "Shift_Lock": 0xFFE6, /* Shift lock */
+  Shift_L: 0xffe1 /* Left shift */,
+  Shift_R: 0xffe2 /* Right shift */,
+  Control_L: 0xffe3 /* Left control */,
+  Control_R: 0xffe4 /* Right control */,
+  Caps_Lock: 0xffe5 /* Caps lock */,
+  Shift_Lock: 0xffe6 /* Shift lock */,
 
-    "Meta_L": 0xFFE7, /* Left meta */
-    "Meta_R": 0xFFE8, /* Right meta */
-    "Alt_L": 0xFFE9, /* Left alt */
-    "Alt_R": 0xFFEA, /* Right alt */
-    "Super_L": 0xFFEB, /* Left super */
-    "Super_R": 0xFFEC, /* Right super */
-    "Hyper_L": 0xFFED, /* Left hyper */
-    "Hyper_R": 0xFFEE, /* Right hyper */
+  Meta_L: 0xffe7 /* Left meta */,
+  Meta_R: 0xffe8 /* Right meta */,
+  Alt_L: 0xffe9 /* Left alt */,
+  Alt_R: 0xffea /* Right alt */,
+  Super_L: 0xffeb /* Left super */,
+  Super_R: 0xffec /* Right super */,
+  Hyper_L: 0xffed /* Left hyper */,
+  Hyper_R: 0xffee /* Right hyper */,
 
-    /* Cursor control & motion */
+  /* Cursor control & motion */
 
-    "Home": 0xFF50,
-    "Left": 0xFF51, /* Move left, left arrow */
-    "Up": 0xFF52, /* Move up, up arrow */
-    "Right": 0xFF53, /* Move right, right arrow */
-    "Down": 0xFF54, /* Move down, down arrow */
-    "Prior": 0xFF55, /* Prior, previous */
-    "Page_Up": 0xFF55,
-    "Next": 0xFF56, /* Next */
-    "Page_Down": 0xFF56,
-    "End": 0xFF57, /* EOL */
-    "Begin": 0xFF58, /* BOL */
+  Home: 0xff50,
+  Left: 0xff51 /* Move left, left arrow */,
+  Up: 0xff52 /* Move up, up arrow */,
+  Right: 0xff53 /* Move right, right arrow */,
+  Down: 0xff54 /* Move down, down arrow */,
+  Prior: 0xff55 /* Prior, previous */,
+  Page_Up: 0xff55,
+  Next: 0xff56 /* Next */,
+  Page_Down: 0xff56,
+  End: 0xff57 /* EOL */,
+  Begin: 0xff58 /* BOL */,
 
+  /* Misc Functions */
 
-    /* Misc Functions */
-
-    "Select": 0xFF60, /* Select, mark */
-    "Print": 0xFF61,
-    "Execute": 0xFF62, /* Execute, run, do */
-    "Insert": 0xFF63, /* Insert, insert here */
-    "Undo": 0xFF65, /* Undo, oops */
-    "Redo": 0xFF66, /* redo, again */
-    "Menu": 0xFF67,
-    "Find": 0xFF68, /* Find, search */
-    "Cancel": 0xFF69, /* Cancel, stop, abort, exit */
-    "Help": 0xFF6A, /* Help */
-    "Break": 0xFF6B,
-    "Mode_switch": 0xFF7E, /* Character set switch */
-    "script_switch": 0xFF7E,  /* Alias for mode_switch */
-    "Num_Lock": 0xFF7F,
+  Select: 0xff60 /* Select, mark */,
+  Print: 0xff61,
+  Execute: 0xff62 /* Execute, run, do */,
+  Insert: 0xff63 /* Insert, insert here */,
+  Undo: 0xff65 /* Undo, oops */,
+  Redo: 0xff66 /* redo, again */,
+  Menu: 0xff67,
+  Find: 0xff68 /* Find, search */,
+  Cancel: 0xff69 /* Cancel, stop, abort, exit */,
+  Help: 0xff6a /* Help */,
+  Break: 0xff6b,
+  Mode_switch: 0xff7e /* Character set switch */,
+  script_switch: 0xff7e /* Alias for mode_switch */,
+  Num_Lock: 0xff7f,
 };

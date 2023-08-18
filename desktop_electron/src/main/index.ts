@@ -1,35 +1,35 @@
-import path from 'path';
-import { app, BrowserWindow, ipcMain } from "electron";
-import { initIpcHandler } from './ipcHandle';
-
+import path from "path";
+import { app, BrowserWindow } from "electron";
+import { initIpcHandler } from "./ipcHandle";
 
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, "preload.js"),
     },
   });
 
-
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
+  if (process.env.NODE_ENV === "development") {
+    mainWindow.webContents.openDevTools({ mode: "detach" });
   }
 
-  mainWindow.loadFile('dist/index.html');
+  mainWindow.loadFile("dist/index.html");
 
   initIpcHandler(mainWindow);
 };
-
 
 app.whenReady().then(async () => {
   createWindow();
 });
 
-app.once('window-all-closed', () => app.quit());
+app.once("window-all-closed", () => app.quit());
 
-app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
-    event.preventDefault()
-    callback(true)
-});
+app.on(
+  "certificate-error",
+  (event, webContents, url, error, certificate, callback) => {
+    event.preventDefault();
+    callback(true);
+  },
+);

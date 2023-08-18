@@ -1,4 +1,4 @@
-import { preloadObject, controlObject } from '../preload';
+import { controlObject } from "../preload";
 
 declare global {
   interface Window {

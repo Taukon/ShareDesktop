@@ -1,35 +1,41 @@
 import {
-    WebRtcTransport,
-    DirectTransport,
-    PlainTransport,
-    DataConsumer,
-    DataProducer,
-    Producer,
-} from 'mediasoup/node/lib/types';
+  WebRtcTransport,
+  DirectTransport,
+  PlainTransport,
+  DataConsumer,
+  DataProducer,
+  Producer,
+} from "mediasoup/node/lib/types";
 
-export type ScreenDesktopTransport = WebRtcTransport & { producer?: DataProducer };
+export type ScreenDesktopTransport = WebRtcTransport & {
+  producer?: DataProducer;
+};
 export type AudioDesktopTransport = PlainTransport & { producer?: Producer };
-export type ControlDesktopDirTransport = DirectTransport & { producer?: DataProducer };
-export type ControlDesktopRtcTransport = WebRtcTransport & { consumer?: DataConsumer };
+export type ControlDesktopDirTransport = DirectTransport & {
+  producer?: DataProducer;
+};
+export type ControlDesktopRtcTransport = WebRtcTransport & {
+  consumer?: DataConsumer;
+};
 export type FileWatchTransport = WebRtcTransport & { producer?: DataProducer };
 
-export type DesktopTransports  = {
-    controlRtcTransport?: ControlDesktopRtcTransport;
-    controlDirTransport?: ControlDesktopDirTransport;
-    screenTransport?: ScreenDesktopTransport;
-    audioTransport?: AudioDesktopTransport;
-    fileWatchTransport?: FileWatchTransport;
-    exits: boolean;
+export type DesktopTransports = {
+  controlRtcTransport?: ControlDesktopRtcTransport;
+  controlDirTransport?: ControlDesktopDirTransport;
+  screenTransport?: ScreenDesktopTransport;
+  audioTransport?: AudioDesktopTransport;
+  fileWatchTransport?: FileWatchTransport;
+  exits: boolean;
 };
 
 /**
- * key: desktopId (channel id), 
+ * key: desktopId (channel id),
  * value: {
- *  screenSendTransport, 
+ *  screenSendTransport,
  *  audioSendtransport,
  *  exits
  * }
  */
 export type DesktopList = {
-    [desktopId: string]: DesktopTransports;
-}
+  [desktopId: string]: DesktopTransports;
+};

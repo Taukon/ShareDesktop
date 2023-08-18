@@ -1,7 +1,7 @@
 export type Callback<T> = (res: T) => void;
 
-export type FileInfo = {
-    fileTransferId: string, 
-    fileName: string, 
-    fileSize: number
-};
+export interface FileInfo {
+  fileTransferId: string;
+  fileName: string;
+  fileSize: number;
+}
