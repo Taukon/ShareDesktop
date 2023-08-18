@@ -40,8 +40,9 @@ ShareDesktop$ npm run start2
 
 * Desktop Client
 ```bash
-ShareDesktop$ cd desktop
-ShareDesktop/desktop$ npm run install
-ShareDesktop/desktop$ npm run tsc
+ShareDesktop$ cd desktop_electron
+ShareDesktop/desktop$ npm run configure
+ShareDesktop/desktop$ npm run build
+ShareDesktop/desktop$ npm run prod
 ShareDesktop/desktop$ npm run start
 ```
