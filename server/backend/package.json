@@ -10,7 +10,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack --progress",
     "start": "node dist/app.js",
-    "start2": "node dist/appNoAudio.js"
+    "start2": "node dist/appNoAudio.js",
+    "lint": "prettier --write 'src/**/*.ts' && eslint --fix --ext .ts src"
   },
   "keywords": [],
   "author": "",
@@ -24,8 +25,13 @@
   },
   "devDependencies": {
     "@types/express": "^4.17.17",
+    "@typescript-eslint/eslint-plugin": "^6.4.0",
+    "@typescript-eslint/parser": "^6.4.0",
+    "eslint": "^8.47.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.28.1",
+    "prettier": "^3.0.2",
     "ts-loader": "^9.4.4",
-    "typescript": "^5.1.6",
     "webpack": "^5.88.1",
     "webpack-cli": "^5.1.4"
   }
