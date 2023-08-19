@@ -1,4 +1,4 @@
-import * as fs from "fs";
+import { existsSync } from "fs";
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 
 type Display = {
@@ -121,7 +121,7 @@ export class Xvfb {
 
   private checkLockFile() {
     const lockFilePath = `/tmp/.X${this.displayNum}-lock`;
-    return fs.existsSync(lockFilePath);
+    return existsSync(lockFilePath);
   }
 
   private usleep(microsec: number) {

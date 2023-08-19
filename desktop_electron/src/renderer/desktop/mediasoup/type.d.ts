@@ -30,5 +30,5 @@ export type ConsumeDataParams = {
 };
 
 export type FileProducers = {
-  [is: string]: mediasoupClient.types.DataProducer;
+  [id: string]: mediasoupClient.types.DataProducer;
 };

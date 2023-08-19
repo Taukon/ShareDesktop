@@ -230,22 +230,28 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
 
   ipcMain.handle(
     "initFileWatch",
-    (event: Electron.IpcMainInvokeEvent, dir: string) => {
-      fileShare.initFileWatch(dir);
-      return fileShare.sendFilechange(mainWindow);
+    (event: Electron.IpcMainInvokeEvent, dirPath: string) => {
+      if (fileShare.initFileWatch(dirPath)) {
+        return fileShare.sendFilechange(mainWindow);
+      }
+      return false;
     },
   );
 
   ipcMain.handle(
     "sendFileWatch",
-    (event: Electron.IpcMainInvokeEvent, dir: string) => {
-      return fileShare.sendFilelist(mainWindow, dir);
+    (event: Electron.IpcMainInvokeEvent, dirPath: string) => {
+      return fileShare.sendFilelist(mainWindow, dirPath);
     },
   );
 
   ipcMain.handle("getAddress", () => {
     const ip_addr = getIpAddress() ?? "127.0.0.1"; // --- IP Address
     return ip_addr;
+  });
+
+  ipcMain.handle("getBasePath", () => {
+    return `${__dirname}`;
   });
 };
 

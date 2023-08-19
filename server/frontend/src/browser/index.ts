@@ -24,23 +24,23 @@ import {
   setFileConsumer,
 } from "./signaling";
 import { FileInfo } from "./signaling/type";
-import { FileDownload, FileUpload, FileWatchMsg } from "./fileTransfer/type";
-import { updateFiles } from "./fileTransfer";
+import { FileDownload, FileUpload, FileWatchMsg } from "./fileShare/type";
+import { updateFiles } from "./fileShare";
 import { timer } from "./util";
 
 export class BrowserWebRTC {
   public desktopId: string;
-  // public socket: Socket;
 
   public canvas: HTMLCanvasElement;
   public image: HTMLImageElement;
   public audio?: HTMLAudioElement;
   public fileUpload?: FileUpload;
   public fileDownload?: FileDownload;
+  private device?: mediasoupClient.types.Device;
+  private socket?: Socket;
 
   constructor(desktopId: string, socket: Socket, onAudio: boolean) {
     this.desktopId = desktopId;
-    // this.socket = socket;
 
     this.canvas = document.createElement("canvas");
     this.canvas.setAttribute("tabindex", String(0));
@@ -52,19 +52,6 @@ export class BrowserWebRTC {
       this.canvas.getContext("2d")?.drawImage(this.image, 0, 0);
     };
     //
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    // input.name = 'files[]'; // 複数ファイル対応のために[]を追加
-    const uploadButton = document.createElement("button");
-    uploadButton.textContent = "送信";
-
-    this.fileUpload = {
-      input: fileInput,
-      button: uploadButton,
-    };
-    this.fileDownload = document.createElement("div");
-    //
-    //
 
     this.initDevice(socket, desktopId).then((msDevice) => {
       this.startControl(msDevice, socket, this.canvas, desktopId);
@@ -75,12 +62,8 @@ export class BrowserWebRTC {
         this.startAudio(msDevice, socket, this.audio, desktopId);
       }
 
-      //
-      if (this.fileUpload)
-        this.initSendFile(this.fileUpload, msDevice, socket, desktopId);
-      //
-      if (this.fileDownload)
-        this.startFileWatch(msDevice, socket, desktopId, this.fileDownload);
+      this.device = msDevice;
+      this.socket = socket;
     });
   }
 
@@ -162,6 +145,38 @@ export class BrowserWebRTC {
     const { track } = consumer;
 
     audio.srcObject = new MediaStream([track]);
+  }
+
+  public startFileShare(): boolean {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    // input.name = 'files[]'; // 複数ファイル対応のために[]を追加
+    const uploadButton = document.createElement("button");
+    uploadButton.textContent = "送信";
+
+    this.fileUpload = {
+      input: fileInput,
+      button: uploadButton,
+    };
+    this.fileDownload = document.createElement("div");
+
+    if (this.device && this.socket) {
+      this.startFileWatch(
+        this.device,
+        this.socket,
+        this.desktopId,
+        this.fileDownload,
+      );
+      this.initSendFile(
+        this.fileUpload,
+        this.device,
+        this.socket,
+        this.desktopId,
+      );
+
+      return true;
+    }
+    return false;
   }
 
   private async startFileWatch(

@@ -32,13 +32,23 @@ function start() {
     elementScreen.appendChild(desktopDiv);
     desktopDiv.appendChild(client.canvas);
 
-    if (client.fileUpload) {
-      desktopDiv.appendChild(client.fileUpload.input);
-      desktopDiv.appendChild(client.fileUpload.button);
-    }
-    if (client.fileDownload) {
-      desktopDiv.append(client.fileDownload);
-    }
+    const fileShareButton = document.createElement("button");
+    fileShareButton.textContent = "fileShare";
+    desktopDiv.appendChild(fileShareButton);
+    const onClick = () => {
+      const result = client.startFileShare();
+      if (result && client.fileDownload && client.fileUpload) {
+        desktopDiv.appendChild(client.fileUpload.input);
+        desktopDiv.appendChild(client.fileUpload.button);
+
+        desktopDiv.append(client.fileDownload);
+
+        desktopDiv.removeChild(fileShareButton);
+        fileShareButton.disabled = true;
+        fileShareButton.removeEventListener("click", onClick);
+      }
+    };
+    fileShareButton.addEventListener("click", onClick);
 
     // elementScreen.appendChild(client.canvas);
     clientList.forEach((value, key) => {
