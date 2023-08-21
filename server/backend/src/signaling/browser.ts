@@ -126,14 +126,15 @@ export const setSignalingBrowser = (
 
   socket.on(
     "establishMediaScreen",
-    async (desktopId: string, callback: Callback<ConsumeDataParams>) => {
+    async (
+      desktopId: string,
+      callback: Callback<ConsumeDataParams | undefined>,
+    ) => {
       const params = await serverWebRTC.establishBrowserScreen(
         socket.id,
         desktopId,
       );
-      if (params != null) {
-        callback(params);
-      }
+      callback(params);
     },
   );
 
@@ -144,16 +145,14 @@ export const setSignalingBrowser = (
         desktopId: string;
         rtpCapabilities: RtpCapabilities;
       },
-      callback: Callback<browserType.AudioResponse>,
+      callback: Callback<browserType.AudioResponse | undefined>,
     ) => {
       const params = await serverWebRTC.establishBrowserAudio(
         socket.id,
         req.desktopId,
         req.rtpCapabilities,
       );
-      if (params != null) {
-        callback(params);
-      }
+      callback(params);
     },
   );
 
@@ -192,14 +191,15 @@ export const setSignalingBrowser = (
 
   socket.on(
     "establishFileWatch",
-    async (desktopId: string, callback: Callback<ConsumeDataParams>) => {
+    async (
+      desktopId: string,
+      callback: Callback<ConsumeDataParams | undefined>,
+    ) => {
       const params = await serverWebRTC.establishBrowserFileWatch(
         socket.id,
         desktopId,
       );
-      if (params != null) {
-        callback(params);
-      }
+      callback(params);
     },
   );
 

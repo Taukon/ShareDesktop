@@ -36,26 +36,31 @@ export class Xvfb {
   public start(): boolean {
     if (!this.process) {
       this.setDisplayEnv();
-      if (this.checkLockFile()) {
-        throw new Error(
-          "Display " +
-            this.display +
-            ' is already in use and the "reuse" option is false.',
-        );
-        //return false;
-      } else {
-        this.spawnProcess();
+      try {
+        if (this.checkLockFile()) {
+          throw new Error(
+            "Display " +
+              this.display +
+              ' is already in use and the "reuse" option is false.',
+          );
+          //return false;
+        } else {
+          this.spawnProcess();
 
-        let totalTime = 0;
-        while (!this.checkLockFile()) {
-          if (totalTime > this.timeout) {
-            throw new Error("Could not start Xvfb.");
-            //return false;
+          let totalTime = 0;
+          while (!this.checkLockFile()) {
+            if (totalTime > this.timeout) {
+              throw new Error("Could not start Xvfb.");
+              //return false;
+            }
+            this.usleep(10000);
+            totalTime += 10;
           }
-          this.usleep(10000);
-          totalTime += 10;
+          return true;
         }
-        return true;
+      } catch (error) {
+        console.log(error);
+        return false;
       }
     }
     return false;
@@ -66,15 +71,20 @@ export class Xvfb {
     this.restoreDisplayEnv();
 
     let totalTime = 0;
-    while (this.checkLockFile()) {
-      if (totalTime > this.timeout) {
-        throw new Error("Could not stop Xvfb.");
-        //return false;
+    try {
+      while (this.checkLockFile()) {
+        if (totalTime > this.timeout) {
+          throw new Error("Could not stop Xvfb.");
+          //return false;
+        }
+        this.usleep(10000);
+        totalTime += 10;
       }
-      this.usleep(10000);
-      totalTime += 10;
+      return true;
+    } catch (error) {
+      console.log(error);
+      return false;
     }
-    return true;
   }
 
   private spawnProcess() {

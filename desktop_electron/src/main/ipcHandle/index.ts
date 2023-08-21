@@ -85,18 +85,19 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
 
   ipcMain.handle(
     "startApp",
-    (event: Electron.IpcMainInvokeEvent, displayNum: number) => {
+    (
+      event: Electron.IpcMainInvokeEvent,
+      displayNum: number,
+      appPath: string,
+    ) => {
       const xvfb = new Xvfb(displayNum, {
         width: 1200,
         height: 720,
         depth: 24,
       });
       if (xvfb.start()) {
-        const appProcess = new AppProcess(
-          displayNum,
-          process.argv[2] ?? `xterm`,
-          [],
-          () => xvfb.stop(),
+        const appProcess = new AppProcess(displayNum, appPath, [], () =>
+          xvfb.stop(),
         );
 
         process.on("exit", (e) => {

@@ -101,7 +101,6 @@ export class FileShare {
       // const fileReadStream = createReadStream(filePath);
 
       for await (const chunk of fileReadStream) {
-        // console.log(chunk.length);
         await timer(10);
         fileWindow.webContents.send("streamSendFileBuffer", {
           fileTransferId: fileTransferId,
@@ -274,7 +273,7 @@ export class FileShare {
     const paths = watcher.getWatched();
     const pathNmames = Object.keys(paths);
     const targetPath =
-      `${pathNmames[0]}/${pathNmames[0][0]}` === pathNmames[1]
+      `${pathNmames[0]}/${paths[pathNmames[0]][0]}` === pathNmames[1]
         ? pathNmames[1]
         : pathNmames[0];
 

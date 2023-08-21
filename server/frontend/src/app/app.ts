@@ -35,13 +35,12 @@ function start() {
     const fileShareButton = document.createElement("button");
     fileShareButton.textContent = "fileShare";
     desktopDiv.appendChild(fileShareButton);
-    const onClick = () => {
-      const result = client.startFileShare();
+    const onClick = async () => {
+      const result = await client.startFileShare();
       if (result && client.fileDownload && client.fileUpload) {
+        desktopDiv.appendChild(client.fileDownload);
         desktopDiv.appendChild(client.fileUpload.input);
         desktopDiv.appendChild(client.fileUpload.button);
-
-        desktopDiv.append(client.fileDownload);
 
         desktopDiv.removeChild(fileShareButton);
         fileShareButton.disabled = true;

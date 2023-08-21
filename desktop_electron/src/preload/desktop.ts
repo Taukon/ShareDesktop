@@ -24,8 +24,8 @@ export const desktop = {
     );
     return jpegImg;
   },
-  startApp: async (displayNum: number): Promise<boolean> => {
-    const result = await ipcRenderer.invoke("startApp", displayNum);
+  startApp: async (displayNum: number, appPath: string): Promise<boolean> => {
+    const result = await ipcRenderer.invoke("startApp", displayNum, appPath);
     return result;
   },
   getAudio: async (
