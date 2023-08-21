@@ -18,7 +18,7 @@ export const controlEventListener = (
     "mousedown",
     () => {
       const button = { button: { buttonMask: 0x1, down: true } };
-      window.api.testControl(displayName, button);
+      window.desktop.testControl(displayName, button);
       //console.log("mousedown: " + JSON.stringify(event));
     },
     false,
@@ -27,7 +27,7 @@ export const controlEventListener = (
     "mouseup",
     () => {
       const button = { button: { buttonMask: 0x1, down: false } };
-      window.api.testControl(displayName, button);
+      window.desktop.testControl(displayName, button);
       //console.log("mouseup: " + JSON.stringify(event));
     },
     false,
@@ -38,7 +38,7 @@ export const controlEventListener = (
       const mouseX = event.clientX - canvas.getBoundingClientRect().left;
       const mouseY = event.clientY - canvas.getBoundingClientRect().top;
       const motion = { move: { x: Math.round(mouseX), y: Math.round(mouseY) } };
-      window.api.testControl(displayName, motion);
+      window.desktop.testControl(displayName, motion);
       //console.log("mousemove : x=" + mouseX + ", y=" + mouseY);
     },
     false,
@@ -50,8 +50,8 @@ export const controlEventListener = (
       event.preventDefault();
       const buttonDown = { button: { buttonMask: 0x4, down: true } };
       const buttonUp = { button: { buttonMask: 0x4, down: false } };
-      window.api.testControl(displayName, buttonDown);
-      window.api.testControl(displayName, buttonUp);
+      window.desktop.testControl(displayName, buttonDown);
+      window.desktop.testControl(displayName, buttonUp);
       //console.log(JSON.stringify(event));
     },
     false,
@@ -64,7 +64,7 @@ export const controlEventListener = (
       const keySim = keyboradX11(event);
       if (keySim) {
         const key = { key: { keySim: keySim, down: true } };
-        window.api.testControl(displayName, key);
+        window.desktop.testControl(displayName, key);
       }
       //console.log("keycode down: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
     },
@@ -77,7 +77,7 @@ export const controlEventListener = (
       const keySim = keyboradX11(event);
       if (keySim) {
         const key = { key: { keySim: keySim, down: false } };
-        window.api.testControl(displayName, key);
+        window.desktop.testControl(displayName, key);
       }
       //console.log("keycode up: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
     },
@@ -90,10 +90,10 @@ export const controlEventListener = (
       event.preventDefault();
       if (event.deltaY / 100 > 0) {
         const button = { button: { buttonMask: 0x10, down: true } };
-        window.api.testControl(displayName, button);
+        window.desktop.testControl(displayName, button);
       } else {
         const button = { button: { buttonMask: 0x8, down: true } };
-        window.api.testControl(displayName, button);
+        window.desktop.testControl(displayName, button);
       }
       //console.log("scroll: "+JSON.stringify(data.wheel));
     },

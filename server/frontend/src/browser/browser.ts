@@ -86,7 +86,7 @@ export const getScreenConsumer = async (
   transport: mediasoupClient.types.Transport,
   socket: Socket,
   desktopId: string,
-): Promise<mediasoupClient.types.DataConsumer> => {
+): Promise<mediasoupClient.types.DataConsumer | undefined> => {
   const forConsumeData = establishMediaScreen(socket, desktopId);
   const consumer = await getConsumeData(transport, forConsumeData);
   return consumer;
@@ -113,7 +113,7 @@ export const getAudioConsumer = async (
   transport: mediasoupClient.types.Transport,
   socket: Socket,
   desktopId: string,
-): Promise<mediasoupClient.types.Consumer> => {
+): Promise<mediasoupClient.types.Consumer | undefined> => {
   const forConsume = establishMediaAudio(socket, desktopId, rtpCapabilities);
   const consumer = await getConsume(transport, forConsume);
 
@@ -139,7 +139,7 @@ export const getFileWatchConsumer = async (
   transport: mediasoupClient.types.Transport,
   socket: Socket,
   desktopId: string,
-): Promise<mediasoupClient.types.DataConsumer> => {
+): Promise<mediasoupClient.types.DataConsumer | undefined> => {
   const forConsumeData = establishBrowserFileWatch(socket, desktopId);
   const consumer = await getConsumeData(transport, forConsumeData);
   return consumer;
@@ -202,7 +202,7 @@ export const getRecvFileConsumer = async (
   transport: mediasoupClient.types.Transport,
   socket: Socket,
   fileTransferId: string,
-): Promise<mediasoupClient.types.DataConsumer> => {
+): Promise<mediasoupClient.types.DataConsumer | undefined> => {
   const forConsumeData = establishRecvFile(socket, fileTransferId);
   const consumer = await getConsumeData(transport, forConsumeData);
   return consumer;

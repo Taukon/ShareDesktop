@@ -24,23 +24,23 @@ import {
   setFileConsumer,
 } from "./signaling";
 import { FileInfo } from "./signaling/type";
-import { FileDownload, FileUpload, FileWatchMsg } from "./fileTransfer/type";
-import { updateFiles } from "./fileTransfer";
+import { FileDownload, FileUpload, FileWatchMsg } from "./fileShare/type";
+import { removeFileList, updateFiles } from "./fileShare";
 import { timer } from "./util";
 
 export class BrowserWebRTC {
   public desktopId: string;
-  // public socket: Socket;
 
   public canvas: HTMLCanvasElement;
   public image: HTMLImageElement;
   public audio?: HTMLAudioElement;
   public fileUpload?: FileUpload;
   public fileDownload?: FileDownload;
+  private device?: mediasoupClient.types.Device;
+  private socket?: Socket;
 
   constructor(desktopId: string, socket: Socket, onAudio: boolean) {
     this.desktopId = desktopId;
-    // this.socket = socket;
 
     this.canvas = document.createElement("canvas");
     this.canvas.setAttribute("tabindex", String(0));
@@ -52,35 +52,25 @@ export class BrowserWebRTC {
       this.canvas.getContext("2d")?.drawImage(this.image, 0, 0);
     };
     //
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    // input.name = 'files[]'; // 複数ファイル対応のために[]を追加
-    const uploadButton = document.createElement("button");
-    uploadButton.textContent = "送信";
 
-    this.fileUpload = {
-      input: fileInput,
-      button: uploadButton,
-    };
-    this.fileDownload = document.createElement("div");
-    //
-    //
-
-    this.initDevice(socket, desktopId).then((msDevice) => {
-      this.startControl(msDevice, socket, this.canvas, desktopId);
-      this.startScreen(msDevice, socket, this.image, desktopId);
+    this.initDevice(socket, desktopId).then(async (msDevice) => {
+      const isStart = await this.startScreen(
+        msDevice,
+        socket,
+        this.image,
+        desktopId,
+      );
+      if (isStart) {
+        this.startControl(msDevice, socket, this.canvas, desktopId);
+      }
       if (onAudio) {
         this.audio = document.createElement("audio");
         this.audio.play();
         this.startAudio(msDevice, socket, this.audio, desktopId);
       }
 
-      //
-      if (this.fileUpload)
-        this.initSendFile(this.fileUpload, msDevice, socket, desktopId);
-      //
-      if (this.fileDownload)
-        this.startFileWatch(msDevice, socket, desktopId, this.fileDownload);
+      this.device = msDevice;
+      this.socket = socket;
     });
   }
 
@@ -116,11 +106,11 @@ export class BrowserWebRTC {
     socket: Socket,
     image: HTMLImageElement,
     desktopId: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const transport = await createScreenTransport(device, socket, desktopId);
     const consumer = await getScreenConsumer(transport, socket, desktopId);
 
-    if (consumer.readyState === "open") {
+    if (consumer?.readyState === "open") {
       consumer.on("message", (buf) => {
         const imgBase64 = btoa(
           new Uint8Array(buf).reduce(
@@ -130,7 +120,9 @@ export class BrowserWebRTC {
         );
         image.src = "data:image/jpeg;base64," + imgBase64;
       });
-    } else {
+
+      return true;
+    } else if (consumer) {
       consumer.on("open", () => {
         consumer.on("message", (buf) => {
           const imgBase64 = btoa(
@@ -142,7 +134,11 @@ export class BrowserWebRTC {
           image.src = "data:image/jpeg;base64," + imgBase64;
         });
       });
+
+      return true;
     }
+    transport.close();
+    return false;
   }
 
   private async startAudio(
@@ -150,7 +146,7 @@ export class BrowserWebRTC {
     socket: Socket,
     audio: HTMLAudioElement,
     desktopId: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const transport = await createAudioTransport(device, socket, desktopId);
     const consumer = await getAudioConsumer(
       device.rtpCapabilities,
@@ -158,10 +154,49 @@ export class BrowserWebRTC {
       socket,
       desktopId,
     );
-    //console.log("get audio");
-    const { track } = consumer;
+    if (consumer) {
+      //console.log("get audio");
+      const { track } = consumer;
 
-    audio.srcObject = new MediaStream([track]);
+      audio.srcObject = new MediaStream([track]);
+      return true;
+    } else {
+      transport.close();
+      return false;
+    }
+  }
+
+  public async startFileShare(): Promise<boolean> {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    // input.name = 'files[]'; // 複数ファイル対応のために[]を追加
+    const uploadButton = document.createElement("button");
+    uploadButton.textContent = "send";
+
+    this.fileUpload = {
+      input: fileInput,
+      button: uploadButton,
+    };
+    this.fileDownload = document.createElement("div");
+
+    if (this.device && this.socket) {
+      const result = await this.startFileWatch(
+        this.device,
+        this.socket,
+        this.desktopId,
+        this.fileDownload,
+      );
+      if (result) {
+        this.initSendFile(
+          this.fileUpload,
+          this.device,
+          this.socket,
+          this.desktopId,
+        );
+        return true;
+      }
+    }
+    return false;
   }
 
   private async startFileWatch(
@@ -169,7 +204,7 @@ export class BrowserWebRTC {
     socket: Socket,
     desktopId: string,
     fileDownload: FileDownload,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const transport = await createFileWatchTransport(device, socket, desktopId);
     const consumer = await getFileWatchConsumer(transport, socket, desktopId);
 
@@ -177,13 +212,25 @@ export class BrowserWebRTC {
       await this.initRecvFile(device, socket, desktopId, fileName);
     };
 
-    if (consumer.readyState === "open") {
+    if (consumer?.readyState === "open") {
+      consumer.on("close", () => {
+        removeFileList(fileDownload);
+        transport.close();
+      });
+
       consumer.on("message", (msg) => {
         const data: FileWatchMsg = JSON.parse(msg);
         updateFiles(fileDownload, data, recvFileFunc);
       });
       socket.emit("requestFileWatch", desktopId);
-    } else {
+
+      return true;
+    } else if (consumer) {
+      consumer.on("close", () => {
+        removeFileList(fileDownload);
+        transport.close();
+      });
+
       consumer.on("open", () => {
         consumer.on("message", (msg) => {
           const data: FileWatchMsg = JSON.parse(msg);
@@ -191,7 +238,12 @@ export class BrowserWebRTC {
         });
         socket.emit("requestFileWatch", desktopId);
       });
+
+      return true;
     }
+
+    transport.close();
+    return false;
   }
 
   private async initRecvFile(
@@ -214,10 +266,10 @@ export class BrowserWebRTC {
       fileInfo.fileTransferId,
     );
 
-    if (consumer.readyState === "open") {
+    if (consumer?.readyState === "open") {
       this.receiveFile(consumer, socket, fileInfo);
       setFileConsumer(socket, fileInfo.fileTransferId);
-    } else {
+    } else if (consumer) {
       consumer.on("open", () => {
         this.receiveFile(consumer, socket, fileInfo);
         setFileConsumer(socket, fileInfo.fileTransferId);

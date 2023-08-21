@@ -1,3 +1,5 @@
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-var-requires */
 // import bindings from 'bindings';
 // export const screenshot = bindings('screenshot');
 // export const converter = bindings('converter');

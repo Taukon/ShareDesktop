@@ -10,7 +10,7 @@ import { Browser } from "./browser";
 import { startWorker } from "./common";
 import { type ProduceDataParams } from "./common/type";
 import { Desktop } from "./desktop";
-import { FileTransfer } from "./fileTransfer";
+import { FileTransfer } from "./fileShare";
 
 export class ServerWebRTC {
   private readonly ipAddr: string;

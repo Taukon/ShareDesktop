@@ -85,7 +85,7 @@ export const connectMediaScreen = (
 export const establishMediaScreen = (
   socket: Socket,
   desktopId: string,
-): Signaling<void, ConsumeDataParams> => {
+): Signaling<void, ConsumeDataParams | undefined> => {
   return () => sendRequest(socket, "establishMediaScreen", desktopId);
 };
 
@@ -118,7 +118,7 @@ export const establishMediaAudio = (
   socket: Socket,
   desktopId: string,
   rtpCapabilities: mediasoupClient.types.RtpCapabilities,
-): Signaling<void, ConsumeParams> => {
+): Signaling<void, ConsumeParams | undefined> => {
   return () =>
     sendRequest(socket, "establishMediaAudio", {
       desktopId: desktopId,
@@ -149,7 +149,7 @@ export const connectBrowserFileWatch = (
 export const establishBrowserFileWatch = (
   socket: Socket,
   desktopId: string,
-): Signaling<void, ConsumeDataParams> => {
+): Signaling<void, ConsumeDataParams | undefined> => {
   return () => sendRequest(socket, "establishFileWatch", desktopId);
 };
 

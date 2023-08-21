@@ -1,14 +1,13 @@
 import * as chokidar from "chokidar";
 import { BrowserWindow } from "electron";
-import { createReadStream, createWriteStream, statSync } from "fs";
+import { createReadStream, createWriteStream, statSync, existsSync } from "fs";
 // import * as path from "path";
 import { FileMsgType, timer } from "../../util";
 import { FileWatchMsg, WriteFileInfo } from "../../util/type";
 
 export class FileShare {
   private watcher?: chokidar.FSWatcher;
-  private path?: string;
-  private dir?: string;
+  private dirPath?: string;
   private alreadyRun = false;
   private writeFileList: { [fileName: string]: WriteFileInfo | undefined } = {};
   private readingFile: { [fileName: string]: number | undefined } = {};
@@ -48,15 +47,18 @@ export class FileShare {
   }
 
   // TODO
-  private checkDirPath(dir: string): string | undefined {
-    return `${__dirname}/${dir}`;
+  private checkDirPath(dirPath: string): string | undefined {
+    if (existsSync(dirPath)) {
+      return dirPath;
+    }
+    return undefined;
   }
 
   // TODO
   private checkFilePath(fileName: string): string | undefined {
-    if (this.path) {
-      const path = `${this.path}/${fileName}`;
-      return path;
+    if (this.dirPath) {
+      const path = `${this.dirPath}/${fileName}`;
+      return existsSync(path) ? path : undefined;
     }
     return undefined;
   }
@@ -92,12 +94,13 @@ export class FileShare {
     if (filePath && !this.isWritingFile(fileName)) {
       this.lockReadStream(fileName);
 
-      // const chunkSize = 16384;
-      // const fileReadStream = createReadStream(`./dist/${fileName}`, {highWaterMark: chunkSize});
-      const fileReadStream = createReadStream(filePath);
+      const chunkSize = 65536;
+      const fileReadStream = createReadStream(filePath, {
+        highWaterMark: chunkSize,
+      });
+      // const fileReadStream = createReadStream(filePath);
 
       for await (const chunk of fileReadStream) {
-        // console.log(chunk.length);
         await timer(10);
         fileWindow.webContents.send("streamSendFileBuffer", {
           fileTransferId: fileTransferId,
@@ -115,12 +118,9 @@ export class FileShare {
 
   // TODO atomic
   public setFileInfo(fileName: string, fileSize: number): boolean {
-    const filePath = this.checkFilePath(fileName);
-    if (
-      this.isUnlockReadStream(fileName) &&
-      !this.isWritingFile(fileName) &&
-      filePath
-    ) {
+    const filePath = `${this.dirPath}/${fileName}`;
+    console.log(`set: ${filePath}`);
+    if (this.isUnlockReadStream(fileName) && !this.isWritingFile(fileName)) {
       const fileWriteStream = createWriteStream(filePath);
       if (fileSize === 0) {
         fileWriteStream.end();
@@ -181,24 +181,25 @@ export class FileShare {
     return false;
   }
 
-  public initFileWatch(dir: string) {
-    const path = this.checkDirPath(dir);
+  public initFileWatch(dirPath: string) {
+    const path = this.checkDirPath(dirPath);
     if (path) {
-      this.dir = dir;
-      this.path = path;
-      this.watcher = chokidar.watch(this.path, {
+      this.dirPath = path;
+      this.watcher = chokidar.watch(this.dirPath, {
         ignored: /[\\/\\\\]\./,
         persistent: true,
         depth: 0,
       });
       this.alreadyRun = true;
-      console.log(`watching Directory: ${this.path}`);
+      console.log(`watching Directory: ${this.dirPath}`);
+      return true;
     }
+    return false;
   }
 
   public sendFilechange(fileWindow: BrowserWindow): boolean {
-    if (this.watcher && this.alreadyRun && this.path) {
-      this.watchChange(this.watcher, fileWindow, this.path);
+    if (this.watcher && this.alreadyRun && this.dirPath) {
+      this.watchChange(this.watcher, fileWindow, this.dirPath);
       return true;
     }
     return false;
@@ -227,7 +228,7 @@ export class FileShare {
       });
       watcher.on("change", (path) => {
         const dirPath = path.slice(0, basePath.length);
-        if (dirPath === this.path) {
+        if (dirPath === this.dirPath) {
           const fileName = path.slice(basePath.length + 1);
 
           if (this.isWritingFile(fileName)) {
@@ -244,7 +245,7 @@ export class FileShare {
       });
       watcher.on("unlink", (path) => {
         const dirPath = path.slice(0, basePath.length);
-        if (dirPath === this.path) {
+        if (dirPath === this.dirPath) {
           const fileName = path.slice(basePath.length + 1);
           console.log(`unlink : ${fileName}`);
           const msg: FileWatchMsg = {
@@ -259,7 +260,8 @@ export class FileShare {
 
   public sendFilelist(fileWindow: BrowserWindow, dir: string): boolean {
     if (this.watcher && this.alreadyRun && this.checkDirPath(dir)) {
-      return this.watchlist(this.watcher, fileWindow);
+      this.watchlist(this.watcher, fileWindow);
+      return true;
     }
     return false;
   }
@@ -267,28 +269,27 @@ export class FileShare {
   private watchlist(
     watcher: chokidar.FSWatcher,
     fileWindow: BrowserWindow,
-  ): boolean {
+  ): void {
     const paths = watcher.getWatched();
     const pathNmames = Object.keys(paths);
-    const targetPath = pathNmames[1];
-    const targetDir = paths[pathNmames[0]][0];
-    if (targetPath === this.path && targetDir === this.dir) {
-      const lists = paths[targetPath];
-      const sendlists: string[] = [];
-      for (const item of lists) {
-        if (!paths[`${targetPath}/${item}`]) {
-          sendlists.push(item);
-        }
+    const targetPath =
+      `${pathNmames[0]}/${paths[pathNmames[0]][0]}` === pathNmames[1]
+        ? pathNmames[1]
+        : pathNmames[0];
+
+    const lists = paths[targetPath];
+    const sendlists: string[] = [];
+    for (const item of lists) {
+      if (!paths[`${targetPath}/${item}`]) {
+        sendlists.push(item);
       }
-      console.log(sendlists);
-      const msg: FileWatchMsg = {
-        msgType: FileMsgType.list,
-        msgItems: sendlists,
-      };
-      fileWindow.webContents.send("streamFileWatchMessage", msg);
-      return true;
     }
-    return false;
+    console.log(sendlists);
+    const msg: FileWatchMsg = {
+      msgType: FileMsgType.list,
+      msgItems: sendlists,
+    };
+    fileWindow.webContents.send("streamFileWatchMessage", msg);
   }
 
   private async close(): Promise<boolean> {
@@ -303,9 +304,8 @@ export class FileShare {
   public async changePath(newDir: string): Promise<boolean> {
     const path = this.checkDirPath(newDir);
     if ((await this.close()) && path) {
-      this.dir = newDir;
-      this.path = path;
-      this.watcher = chokidar.watch(this.path, {
+      this.dirPath = path;
+      this.watcher = chokidar.watch(this.dirPath, {
         ignored: /[\\/\\\\]\./,
         persistent: true,
         depth: 0,

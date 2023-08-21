@@ -21,6 +21,8 @@ import { establishDesktopAudio, setFileConsumer } from "./signaling";
 import { FileInfo } from "./signaling/type";
 import { FileProducers } from "./mediasoup/type";
 import { timer } from "../util";
+import { updateFiles } from "./fileShare";
+import { FileWatchList, FileWatchMsg } from "./fileShare/type";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -43,6 +45,7 @@ export class DesktopWebRTC {
   // // --- end ffmpeg
 
   private fileProducers: FileProducers = {};
+  private device?: mediasoupClient.types.Device;
 
   constructor(
     displayNum: number,
@@ -90,13 +93,13 @@ export class DesktopWebRTC {
         });
       }
 
-      this.startFileShare(device, socket, desktopId);
+      this.device = device;
     });
   }
 
   public deleteDesktop(): void {
     if (this.ffmpegPid) {
-      window.api.stopAudio(this.ffmpegPid);
+      window.desktop.stopAudio(this.ffmpegPid);
     }
 
     console.log("disconnect clear intervalId: " + this.intervalId);
@@ -154,7 +157,7 @@ export class DesktopWebRTC {
     if (!isFullScreen) {
       return setInterval(async () => {
         try {
-          const img = await window.api.getScreenshot(displayName);
+          const img = await window.desktop.getScreenshot(displayName);
           if (img) {
             if (Buffer.compare(img, preImg) != 0) {
               if (onDisplayScreen) {
@@ -171,7 +174,7 @@ export class DesktopWebRTC {
     } else {
       return setInterval(async () => {
         try {
-          const img = await window.api.getFullScreenshot(displayName);
+          const img = await window.desktop.getFullScreenshot(displayName);
           if (img) {
             if (Buffer.compare(img, preImg) != 0) {
               if (onDisplayScreen) {
@@ -202,7 +205,7 @@ export class DesktopWebRTC {
       const data: ControlData = JSON.parse(buf.toString());
       //console.log(data);
 
-      window.api.testControl(displayName, data);
+      window.desktop.testControl(displayName, data);
     });
   }
 
@@ -217,19 +220,28 @@ export class DesktopWebRTC {
     const msg = params;
     console.log(msg);
 
-    const ffmpegPid = await window.api.getAudio(this.pulseAudioDevice, msg);
+    const ffmpegPid = await window.desktop.getAudio(this.pulseAudioDevice, msg);
     return ffmpegPid;
   }
 
-  private startFileShare(
-    device: mediasoupClient.types.Device,
-    socket: Socket,
-    desktopId: string,
-  ): void {
-    this.startFileWatch(device, socket, desktopId, `test`);
+  public async startFileShare(
+    dir: string,
+    fileList: FileWatchList,
+  ): Promise<boolean> {
+    if ((await window.fileShare.initFileWatch(dir)) && this.device) {
+      this.startFileWatch(
+        this.device,
+        this.socket,
+        this.desktopId,
+        dir,
+        fileList,
+      );
 
-    this.onSendFile(device, socket);
-    this.onRecvFile(device, socket);
+      this.onSendFile(this.device, this.socket);
+      this.onRecvFile(this.device, this.socket);
+      return true;
+    }
+    return false;
   }
 
   private async startFileWatch(
@@ -237,26 +249,28 @@ export class DesktopWebRTC {
     socket: Socket,
     desktopId: string,
     dir: string,
+    fileList: FileWatchList,
   ): Promise<void> {
     const transport = await createFileWatchTransport(device, socket, desktopId);
     const producer = await getFileWatchProducer(transport);
-
     if (producer.readyState === "open") {
-      window.api.streamFileWatchMsg((data) => {
+      window.fileShare.streamFileWatchMsg((data: FileWatchMsg) => {
         producer.send(JSON.stringify(data));
+        updateFiles(fileList, data);
       });
-      await window.api.initFileWatch(dir);
+      await window.fileShare.sendFileWatch(dir);
     } else {
       producer.on("open", async () => {
-        window.api.streamFileWatchMsg((data) => {
+        window.fileShare.streamFileWatchMsg((data: FileWatchMsg) => {
           producer.send(JSON.stringify(data));
+          updateFiles(fileList, data);
         });
-        await window.api.initFileWatch(dir);
+        await window.fileShare.sendFileWatch(dir);
       });
     }
 
     socket.on("requestFileWatch", async () => {
-      await window.api.sendFileWatch(dir);
+      await window.fileShare.sendFileWatch(dir);
     });
   }
 
@@ -264,12 +278,14 @@ export class DesktopWebRTC {
     device: mediasoupClient.types.Device,
     socket: Socket,
   ) {
-    window.api.streamSendFileBuffer((data) => {
-      const producer = this.fileProducers[data.fileTransferId];
-      if (producer) {
-        producer.send(data.buf);
-      }
-    });
+    window.fileShare.streamSendFileBuffer(
+      (data: { fileTransferId: string; buf: Buffer }) => {
+        const producer = this.fileProducers[data.fileTransferId];
+        if (producer) {
+          producer.send(data.buf);
+        }
+      },
+    );
 
     socket.on(
       "requestSendFile",
@@ -284,7 +300,7 @@ export class DesktopWebRTC {
         const producer = await getSendFileProducer(transport);
 
         this.fileProducers[fileTransferId] = producer;
-        const fileInfo = await window.api.getFileInfo(fileName);
+        const fileInfo = await window.fileShare.getFileInfo(fileName);
         if (fileInfo) {
           await WaitFileConsumer(
             socket,
@@ -299,14 +315,14 @@ export class DesktopWebRTC {
           });
 
           if (producer.readyState === "open") {
-            const result = await window.api.sendFileBuffer(
+            const result = await window.fileShare.sendFileBuffer(
               fileInfo.fileName,
               fileTransferId,
             );
             if (!result) socket.emit("endTransferFile", fileTransferId);
           } else {
             producer.on("open", async () => {
-              const result = await window.api.sendFileBuffer(
+              const result = await window.fileShare.sendFileBuffer(
                 fileInfo.fileName,
                 fileTransferId,
               );
@@ -336,7 +352,7 @@ export class DesktopWebRTC {
         fileInfo.fileTransferId,
       );
 
-      const isSet = await window.api.setFileInfo(
+      const isSet = await window.fileShare.setFileInfo(
         fileInfo.fileName,
         fileInfo.fileSize,
       );
@@ -371,7 +387,7 @@ export class DesktopWebRTC {
     consumer.on("message", async (msg: ArrayBuffer) => {
       stamp++;
       const buf = new Uint8Array(msg);
-      const receivedSize = await window.api.recvFileBuffer(
+      const receivedSize = await window.fileShare.recvFileBuffer(
         fileInfo.fileName,
         buf,
       );
@@ -389,7 +405,7 @@ export class DesktopWebRTC {
       if (stamp === checkStamp) {
         limit--;
         if (limit == 0) {
-          window.api.destroyRecvFileBuffer(fileInfo.fileName);
+          window.fileShare.destroyRecvFileBuffer(fileInfo.fileName);
           socket.emit("endTransferFile", fileInfo.fileTransferId);
           break;
         }

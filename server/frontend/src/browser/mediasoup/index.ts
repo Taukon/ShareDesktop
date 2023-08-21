@@ -74,18 +74,24 @@ export const recvEventEmitter = (
 
 export const getConsumeData = async (
   transport: mediasoupClient.types.Transport,
-  forConsumeData: Signaling<void, ConsumeDataParams>,
-): Promise<mediasoupClient.types.DataConsumer> => {
+  forConsumeData: Signaling<void, ConsumeDataParams | undefined>,
+): Promise<mediasoupClient.types.DataConsumer | undefined> => {
   const params = await forConsumeData();
-  const consumer = await transport.consumeData(params);
-  return consumer;
+  if (params) {
+    const consumer = await transport.consumeData(params);
+    return consumer;
+  }
+  return undefined;
 };
 
 export const getConsume = async (
   transport: mediasoupClient.types.Transport,
-  forConsume: Signaling<void, ConsumeParams>,
-): Promise<mediasoupClient.types.Consumer> => {
+  forConsume: Signaling<void, ConsumeParams | undefined>,
+): Promise<mediasoupClient.types.Consumer | undefined> => {
   const params = await forConsume();
-  const consumer = await transport.consume(params);
-  return consumer;
+  if (params) {
+    const consumer = await transport.consume(params);
+    return consumer;
+  }
+  return undefined;
 };

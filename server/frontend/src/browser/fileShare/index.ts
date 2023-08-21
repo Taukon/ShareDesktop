@@ -64,3 +64,10 @@ const unlinkFiles = (fileDownload: FileDownload, msgItems: string[]) => {
     });
   }
 };
+
+export const removeFileList = (fileDownload: FileDownload) => {
+  const fileNodes = fileDownload.childNodes as NodeListOf<HTMLButtonElement>;
+  fileNodes.forEach((value) => {
+    fileDownload.removeChild(value);
+  });
+};

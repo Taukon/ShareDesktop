@@ -2,47 +2,148 @@ import { io } from "socket.io-client";
 import { DesktopWebRTC } from "./desktop";
 
 const interval = 100; //300;
-const displayNum = 1;
+// let displayNum = 1;
 
 //process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
 
+const elementScreen = document.getElementById("screen");
+const elementfileList = document.getElementById("fileList");
+const runButton: HTMLButtonElement = <HTMLButtonElement>(
+  document.getElementById("runButton")
+);
+runButton.onclick = () => start();
+
 const start = async () => {
-  const ip_addr = await window.api.getAddress();
+  const appPath = (<HTMLInputElement>document.getElementById("appPath")).value;
 
-  const socket = io(`https://${ip_addr}:3100`, {
-    secure: true,
-    rejectUnauthorized: false,
-  });
-  //const socket = io(`https://${ip_addr}:3100`);
+  if (appPath === "") {
+    return;
+  }
 
-  const elementScreen = document.getElementById("screen");
+  for (let displayNum = 1; ; displayNum++) {
+    const isStart = await window.desktop.startApp(displayNum, appPath);
+    if (isStart) {
+      runButton.disabled = true;
 
-  const isStart = await window.api.startApp(displayNum);
-  if (isStart) {
-    socket.on("desktopId", (msg) => {
-      if (typeof msg === "string") {
-        console.log(`desktopId: ${msg}`);
+      const ip_addr = await window.util.getAddress();
 
-        const desktopWebRTC = new DesktopWebRTC(
-          displayNum,
-          msg,
-          socket,
-          interval,
-          true,
-          false,
-          false,
-        );
+      const socket = io(`https://${ip_addr}:3100`, {
+        secure: true,
+        rejectUnauthorized: false,
+      });
 
-        if (elementScreen) {
-          elementScreen.appendChild(desktopWebRTC.canvas);
+      socket.on("desktopId", (msg) => {
+        if (typeof msg === "string") {
+          console.log(`desktopId: ${msg}`);
+
+          const desktopWebRTC = new DesktopWebRTC(
+            displayNum,
+            msg,
+            socket,
+            interval,
+            true,
+            false,
+            false,
+          );
+
+          if (elementScreen) {
+            elementScreen.appendChild(desktopWebRTC.canvas);
+          }
+
+          socket.on("disconnect", () => {
+            desktopWebRTC.deleteDesktop();
+          });
+
+          if (elementfileList) {
+            const inputDirPath: HTMLInputElement =
+              document.createElement("input");
+            elementfileList.appendChild(inputDirPath);
+            window.util.getBasePath().then((path) => {
+              inputDirPath.value = `${path}/test`;
+            });
+
+            const fileButton: HTMLButtonElement =
+              document.createElement("button");
+            fileButton.textContent = "fileShare";
+            elementfileList.appendChild(fileButton);
+            fileButton.onclick = async () => {
+              const dirPath = inputDirPath.value;
+              if (dirPath === "") {
+                return;
+              }
+              const elementfileShare = document.createElement("div");
+              elementfileList.appendChild(elementfileShare);
+              const result = await desktopWebRTC.startFileShare(
+                dirPath,
+                elementfileShare,
+              );
+
+              if (result) {
+                fileButton.disabled = true;
+                elementfileList.removeChild(inputDirPath);
+                elementfileList.removeChild(fileButton);
+              }
+              console.log(`fileShare: ${result}`);
+            };
+          }
         }
+      });
 
-        socket.on("disconnect", () => {
-          desktopWebRTC.deleteDesktop();
-        });
-      }
-    });
+      break;
+    }
   }
 };
+// }
 
-start();
+// const elementScreen = document.getElementById("screen");
+
+// const isStart = await window.desktop.startApp(displayNum, appPath);
+// if (isStart) {
+//   socket.on("desktopId", (msg) => {
+//     if (typeof msg === "string") {
+//       console.log(`desktopId: ${msg}`);
+
+//       const desktopWebRTC = new DesktopWebRTC(
+//         displayNum,
+//         msg,
+//         socket,
+//         interval,
+//         true,
+//         false,
+//         false,
+//       );
+
+//       if (elementScreen) {
+//         elementScreen.appendChild(desktopWebRTC.canvas);
+//       }
+
+//       socket.on("disconnect", () => {
+//         desktopWebRTC.deleteDesktop();
+//       });
+
+//       sendButton.onclick = () => fileShare(desktopWebRTC, sendButton);
+//     }
+//   });
+// }
+// };
+
+// start();
+
+// const fileShare = async (
+//   desktopWebRTC: DesktopWebRTC,
+//   button: HTMLButtonElement,
+// ) => {
+//   const inputMessage = elementInputMessage.value;
+//   if (inputMessage === "") {
+//     return;
+//   }
+//   const elementfileShare = document.getElementById("fileList");
+//   if (elementfileShare) {
+//     const result = await desktopWebRTC.startFileShare(
+//       inputMessage,
+//       elementfileShare,
+//     );
+//     if (result) button.disabled = true;
+//     console.log(`fileShare: ${result}`);
+//   }
+// };

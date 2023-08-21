@@ -412,8 +412,13 @@ export class Browser {
     transportOptions: WebRtcTransportOptions,
   ): Promise<RtcTransportParams | undefined> {
     const exits = this.getBrowserTransports(browserId, desktopId)?.exits;
+    const alreadyTransport = this.getBrowserTransports(browserId, desktopId)
+      ?.fileWatchTransport;
 
     if (exits) {
+      if (alreadyTransport) {
+        alreadyTransport.close();
+      }
       const { transport, params } = await createRtcTransport(
         router,
         transportOptions,

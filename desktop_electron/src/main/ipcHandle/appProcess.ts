@@ -12,7 +12,7 @@ export class AppProcess {
     displayNum: number,
     command: string,
     options: string[],
-    callback: () => any,
+    callback: () => boolean,
   ) {
     this.displayName = `:${displayNum}`;
     this.command = command;
@@ -30,14 +30,14 @@ export class AppProcess {
     this.restoreDisplayEnv();
   }
 
-  private start(callback: () => any) {
+  private start(callback: () => boolean) {
     if (!this.process) {
       this.setDisplayEnv();
       this.spawnProcess(callback);
     }
   }
 
-  private spawnProcess(callback: () => any) {
+  private spawnProcess(callback: () => boolean) {
     this.process = spawn(this.command, this.options);
     // this.process.stdout.on('data', data => {
     //     if (!this.silent) {
