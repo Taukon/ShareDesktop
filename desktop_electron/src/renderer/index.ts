@@ -6,6 +6,7 @@ const interval = 100; //300;
 
 //process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
 
+const elementIdList = document.getElementById("desktopId");
 const elementScreen = document.getElementById("screen");
 const elementfileList = document.getElementById("fileList");
 const runButton: HTMLButtonElement = <HTMLButtonElement>(
@@ -34,7 +35,9 @@ const start = async () => {
 
       socket.on("desktopId", (msg) => {
         if (typeof msg === "string") {
-          console.log(`desktopId: ${msg}`);
+          if (elementIdList) {
+            elementIdList.textContent = `desktopID: ${msg}`;
+          }
 
           const desktopWebRTC = new DesktopWebRTC(
             displayNum,
@@ -83,7 +86,6 @@ const start = async () => {
                 elementfileList.removeChild(inputDirPath);
                 elementfileList.removeChild(fileButton);
               }
-              console.log(`fileShare: ${result}`);
             };
           }
         }
@@ -93,57 +95,3 @@ const start = async () => {
     }
   }
 };
-// }
-
-// const elementScreen = document.getElementById("screen");
-
-// const isStart = await window.desktop.startApp(displayNum, appPath);
-// if (isStart) {
-//   socket.on("desktopId", (msg) => {
-//     if (typeof msg === "string") {
-//       console.log(`desktopId: ${msg}`);
-
-//       const desktopWebRTC = new DesktopWebRTC(
-//         displayNum,
-//         msg,
-//         socket,
-//         interval,
-//         true,
-//         false,
-//         false,
-//       );
-
-//       if (elementScreen) {
-//         elementScreen.appendChild(desktopWebRTC.canvas);
-//       }
-
-//       socket.on("disconnect", () => {
-//         desktopWebRTC.deleteDesktop();
-//       });
-
-//       sendButton.onclick = () => fileShare(desktopWebRTC, sendButton);
-//     }
-//   });
-// }
-// };
-
-// start();
-
-// const fileShare = async (
-//   desktopWebRTC: DesktopWebRTC,
-//   button: HTMLButtonElement,
-// ) => {
-//   const inputMessage = elementInputMessage.value;
-//   if (inputMessage === "") {
-//     return;
-//   }
-//   const elementfileShare = document.getElementById("fileList");
-//   if (elementfileShare) {
-//     const result = await desktopWebRTC.startFileShare(
-//       inputMessage,
-//       elementfileShare,
-//     );
-//     if (result) button.disabled = true;
-//     console.log(`fileShare: ${result}`);
-//   }
-// };

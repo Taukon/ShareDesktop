@@ -203,7 +203,6 @@ export class DesktopWebRTC {
     consumer.on("message", (msg) => {
       const buf = Buffer.from(msg as ArrayBuffer);
       const data: ControlData = JSON.parse(buf.toString());
-      //console.log(data);
 
       window.desktop.testControl(displayName, data);
     });
@@ -391,7 +390,7 @@ export class DesktopWebRTC {
         fileInfo.fileName,
         buf,
       );
-      console.log(`${fileInfo.fileName} stamp: ${stamp}`);
+      // console.log(`${fileInfo.fileName} stamp: ${stamp}`);
       if (receivedSize === fileInfo.fileSize) {
         isClosed = true;
         socket.emit("endTransferFile", fileInfo.fileTransferId);
