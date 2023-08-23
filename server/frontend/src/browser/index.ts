@@ -26,7 +26,7 @@ import {
 import { FileInfo } from "./signaling/type";
 import { FileDownload, FileUpload, FileWatchMsg } from "./fileShare/type";
 import { removeFileList, updateFiles } from "./fileShare";
-import { timer } from "./util";
+import { parseAppProtocol, timer } from "./util";
 
 export class BrowserWebRTC {
   public desktopId: string;
@@ -112,12 +112,20 @@ export class BrowserWebRTC {
 
     if (consumer?.readyState === "open") {
       consumer.on("message", (buf) => {
+        const parse = parseAppProtocol(new Uint8Array(buf));
+        console.log(parse);
         const imgBase64 = btoa(
-          new Uint8Array(buf).reduce(
+          new Uint8Array(parse.data).reduce(
             (data, byte) => data + String.fromCharCode(byte),
             "",
           ),
         );
+        // const imgBase64 = btoa(
+        //   new Uint8Array(buf).reduce(
+        //     (data, byte) => data + String.fromCharCode(byte),
+        //     "",
+        //   ),
+        // );
         image.src = "data:image/jpeg;base64," + imgBase64;
       });
 
@@ -125,12 +133,20 @@ export class BrowserWebRTC {
     } else if (consumer) {
       consumer.on("open", () => {
         consumer.on("message", (buf) => {
+          const parse = parseAppProtocol(new Uint8Array(buf));
+          console.log(parse);
           const imgBase64 = btoa(
-            new Uint8Array(buf).reduce(
+            new Uint8Array(parse.data).reduce(
               (data, byte) => data + String.fromCharCode(byte),
               "",
             ),
           );
+          // const imgBase64 = btoa(
+          //   new Uint8Array(buf).reduce(
+          //     (data, byte) => data + String.fromCharCode(byte),
+          //     "",
+          //   ),
+          // );
           image.src = "data:image/jpeg;base64," + imgBase64;
         });
       });
