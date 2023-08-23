@@ -26,7 +26,16 @@ import {
 import { FileInfo } from "./signaling/type";
 import { FileDownload, FileUpload, FileWatchMsg } from "./fileShare/type";
 import { removeFileList, updateFiles } from "./fileShare";
-import { parseAppProtocol, timer } from "./util";
+import {
+  appHeader,
+  appMax,
+  appMaxId,
+  appStatus,
+  createAppProtocol,
+  getRandomInt,
+  parseAppProtocol,
+  timer,
+} from "./util";
 
 export class BrowserWebRTC {
   public desktopId: string;
@@ -113,7 +122,6 @@ export class BrowserWebRTC {
     if (consumer?.readyState === "open") {
       consumer.on("message", (buf) => {
         const parse = parseAppProtocol(new Uint8Array(buf));
-        console.log(parse);
         const imgBase64 = btoa(
           new Uint8Array(parse.data).reduce(
             (data, byte) => data + String.fromCharCode(byte),
@@ -134,7 +142,6 @@ export class BrowserWebRTC {
       consumer.on("open", () => {
         consumer.on("message", (buf) => {
           const parse = parseAppProtocol(new Uint8Array(buf));
-          console.log(parse);
           const imgBase64 = btoa(
             new Uint8Array(parse.data).reduce(
               (data, byte) => data + String.fromCharCode(byte),
@@ -318,8 +325,11 @@ export class BrowserWebRTC {
 
     consumer.on("message", (msg: ArrayBuffer) => {
       stamp++;
-      receivedSize += msg.byteLength;
-      writer.write(new Uint8Array(msg));
+      const parse = parseAppProtocol(new Uint8Array(msg));
+      receivedSize += parse.data.byteLength;
+      writer.write(parse.data);
+      console.log(`order: ${parse.order} | status: ${parse.status}`);
+
       if (receivedSize === fileInfo.fileSize) {
         isClosed = true;
         writer.close();
@@ -407,10 +417,10 @@ export class BrowserWebRTC {
     );
     if (status === fileTransferId) {
       if (producer.readyState === "open") {
-        await this.sendFile(producer, reader);
+        await this.sendFile(producer, reader, fileSize);
       } else {
         producer.on("open", async () => {
-          await this.sendFile(producer, reader);
+          await this.sendFile(producer, reader, fileSize);
         });
       }
     }
@@ -419,24 +429,68 @@ export class BrowserWebRTC {
   private async sendFile(
     producer: mediasoupClient.types.DataProducer,
     reader: ReadableStreamDefaultReader<Uint8Array>,
+    fileSize: number,
   ): Promise<void> {
-    const chunkSize = 65536;
+    const id = getRandomInt(appMaxId);
+    const chunkSize = appMax - appHeader;
+    let order = 0;
+    let total = 0;
     // eslint-disable-next-line no-constant-condition
     while (1) {
       const { done, value } = await reader.read();
       if (done) break;
-      if (value.byteLength > chunkSize) {
-        let offset = 0;
-        console.log(`Buffer Size Over`);
 
-        while (offset < value.byteLength) {
-          const sliceBuf = value.slice(offset, offset + chunkSize);
-          producer.send(sliceBuf);
-          offset += sliceBuf.byteLength;
+      if (value.byteLength > chunkSize) {
+        let sliceOffset = 0;
+        console.log(`Buffer Size Over`);
+        while (sliceOffset < value.byteLength) {
+          const sliceBuf = value.slice(sliceOffset, sliceOffset + chunkSize);
+
+          total += sliceBuf.byteLength;
+          if (order === 0) {
+            const appData = createAppProtocol(
+              sliceBuf,
+              id,
+              appStatus.start,
+              order,
+            );
+            producer.send(appData);
+          } else if (total < fileSize) {
+            const appData = createAppProtocol(
+              sliceBuf,
+              id,
+              appStatus.middle,
+              order,
+            );
+            producer.send(appData);
+          } else {
+            const appData = createAppProtocol(
+              sliceBuf,
+              id,
+              appStatus.end,
+              order,
+            );
+            producer.send(appData);
+          }
+
+          sliceOffset += sliceBuf.byteLength;
+          order++;
           await timer(10);
         }
       } else {
-        producer.send(value);
+        total += value.byteLength;
+        if (order === 0) {
+          const appData = createAppProtocol(value, id, appStatus.start, order);
+          producer.send(appData);
+        } else if (total < fileSize) {
+          const appData = createAppProtocol(value, id, appStatus.middle, order);
+          producer.send(appData);
+        } else {
+          const appData = createAppProtocol(value, id, appStatus.end, order);
+          producer.send(appData);
+        }
+
+        order++;
         await timer(10);
       }
     }

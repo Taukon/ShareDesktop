@@ -12,7 +12,7 @@ export const timer = (ms: number) =>
 // ---------------
 // | 1B: status
 // ---------------
-// | 4B: offset
+// | 4B: order
 // ---------------
 
 export const appMax = 65536;
@@ -28,83 +28,100 @@ export const appStatus = {
 type AppHeader = {
   id: number;
   status: number;
-  offset: number;
+  order: number;
   data: Uint8Array;
 };
 
 // appBuffer.byteLength <= max
 export const parseAppProtocol = (appBuffer: Uint8Array): AppHeader => {
-  const appHeader = new DataView(appBuffer.slice(0, 9).buffer);
+  const header = new DataView(appBuffer.slice(0, appHeader).buffer);
 
   // id: 4B
-  const id = appHeader.getUint32(0);
+  const id = header.getUint32(0);
 
   // status: 1B
-  const status = appHeader.getUint8(4);
+  const status = header.getUint8(4);
 
-  // offset: 4B
-  const offset = appHeader.getUint32(5);
+  // order: 4B
+  const order = header.getUint32(5);
 
-  const data = appBuffer.slice(9);
+  const data = appBuffer.slice(appHeader);
 
-  return { id, status, offset, data };
+  return { id, status, order, data };
 };
 
+// data.byteLength <= max - header
 export const createAppProtocol = (
   data: Uint8Array,
-  send: (buffer: ArrayBuffer) => void,
-) => {
-  if (data.byteLength > appMax - appHeader) {
-    let offset = 0;
+  id: number,
+  status: number,
+  order: number,
+): Uint8Array => {
+  // header
+  const header = new Uint8Array(appHeader);
+  const dataHeader = new DataView(header.buffer);
+
+  // id: 4B
+  dataHeader.setUint32(0, id, false);
+
+  // status: 1B
+  dataHeader.setUint8(4, status & 0xff);
+
+  // order: 4B
+  dataHeader.setUint32(5, order & 0xffffffff, false);
+
+  const appBuffer = appendBuffer(header, data);
+  return appBuffer;
+};
+
+export const sendAppProtocol = async (
+  data: Uint8Array,
+  send: (buffer: ArrayBuffer) => Promise<void>,
+): Promise<void> => {
+  const chunkSize = appMax - appHeader;
+  if (data.byteLength > chunkSize) {
+    let order = 0;
+    let sliceOffset = 0;
     const dataLength = data.byteLength;
     const id = getRandomInt(appMaxId);
 
-    while (offset < dataLength) {
-      const sliceData = data.slice(offset, offset + appMax - appHeader);
+    while (sliceOffset < dataLength) {
+      const sliceData = data.slice(sliceOffset, sliceOffset + chunkSize);
 
-      // header
-      const header = new Uint8Array(appHeader);
-      const dataHeader = new DataView(header.buffer);
-
-      // id: 4B
-      dataHeader.setUint32(0, id, false);
-
-      // status: 1B
-      if (offset === 0) {
-        dataHeader.setUint8(4, appStatus.start);
-      } else if (offset + sliceData.byteLength < dataLength) {
-        dataHeader.setUint8(4, appStatus.middle);
+      if (sliceOffset === 0) {
+        const appBuffer = createAppProtocol(
+          sliceData,
+          id,
+          appStatus.start,
+          order,
+        );
+        await send(appBuffer);
+      } else if (sliceOffset + sliceData.byteLength < dataLength) {
+        const appBuffer = createAppProtocol(
+          sliceData,
+          id,
+          appStatus.middle,
+          order,
+        );
+        await send(appBuffer);
       } else {
-        dataHeader.setUint8(4, appStatus.end);
+        const appBuffer = createAppProtocol(
+          sliceData,
+          id,
+          appStatus.end,
+          order,
+        );
+        await send(appBuffer);
       }
 
-      // offset: 4B
-      dataHeader.setUint32(5, offset, false);
-
-      offset += sliceData.byteLength;
-
-      const appBuffer = appendBuffer(header, data);
-      send(appBuffer);
+      sliceOffset += sliceData.byteLength;
+      order++;
     }
   } else {
     //
     const id = getRandomInt(appMaxId);
-
-    // header
-    const header = new Uint8Array(appHeader);
-    const dataHeader = new DataView(header.buffer);
-
-    // id: 4B
-    dataHeader.setUint32(0, id, false);
-
-    // status: 1B
-    dataHeader.setUint8(4, appStatus.once);
-
-    // offset: 4B
-    dataHeader.setUint32(5, 0x0, false);
-
-    const appBuffer = appendBuffer(header, data);
-    send(appBuffer);
+    const appBuffer = createAppProtocol(data, id, appStatus.once, 0);
+    await send(appBuffer);
   }
 };
 
@@ -115,6 +132,6 @@ const appendBuffer = (buffer1: Uint8Array, buffer2: Uint8Array) => {
   return tmp;
 };
 
-const getRandomInt = (max: number) => {
+export const getRandomInt = (max: number) => {
   return Math.floor(Math.random() * max);
 };

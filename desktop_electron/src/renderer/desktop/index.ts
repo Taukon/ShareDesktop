@@ -20,7 +20,7 @@ import { ControlData } from "../../util/type";
 import { establishDesktopAudio, setFileConsumer } from "./signaling";
 import { FileInfo } from "./signaling/type";
 import { FileProducers } from "./mediasoup/type";
-import { createAppProtocol, timer } from "../util";
+import { sendAppProtocol, timer } from "../util";
 import { updateFiles } from "./fileShare";
 import { FileWatchList, FileWatchMsg } from "./fileShare/type";
 
@@ -163,7 +163,7 @@ export class DesktopWebRTC {
               if (onDisplayScreen) {
                 displayScreen(image, img);
               }
-              createAppProtocol(img, (buf) => {
+              await sendAppProtocol(img, async (buf) => {
                 producer.send(buf);
               });
               // producer.send(img);
@@ -183,7 +183,7 @@ export class DesktopWebRTC {
               if (onDisplayScreen) {
                 displayScreen(image, img);
               }
-              createAppProtocol(img, (buf) => {
+              sendAppProtocol(img, async (buf) => {
                 producer.send(buf);
               });
               // producer.send(img);
@@ -284,7 +284,7 @@ export class DesktopWebRTC {
     socket: Socket,
   ) {
     window.fileShare.streamSendFileBuffer(
-      (data: { fileTransferId: string; buf: Buffer }) => {
+      (data: { fileTransferId: string; buf: Uint8Array }) => {
         const producer = this.fileProducers[data.fileTransferId];
         if (producer) {
           producer.send(data.buf);

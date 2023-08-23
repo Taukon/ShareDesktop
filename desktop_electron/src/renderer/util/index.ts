@@ -12,7 +12,7 @@ export const timer = (ms: number) =>
 // ---------------
 // | 1B: status
 // ---------------
-// | 4B: offset
+// | 4B: order
 // ---------------
 
 export const appMax = 65536;
@@ -28,7 +28,7 @@ export const appStatus = {
 type AppHeader = {
   id: number;
   status: number;
-  offset: number;
+  order: number;
   data: Buffer;
 };
 
@@ -40,66 +40,84 @@ export const parseAppProtocol = (appBuffer: Buffer): AppHeader => {
   // status: 1B
   const status = appBuffer.readUintBE(4, 1);
 
-  // offset: 4B
-  const offset = appBuffer.readUintBE(5, 4);
+  // order: 4B
+  const order = appBuffer.readUintBE(5, 4);
 
-  const data = appBuffer.subarray(9);
+  const data = appBuffer.subarray(appHeader);
 
-  return { id, status, offset, data };
+  return { id, status, order, data };
 };
 
+// data.byteLength <= max - header
 export const createAppProtocol = (
   data: Buffer,
-  send: (buffer: ArrayBuffer) => void,
-) => {
-  if (data.byteLength > appMax - appHeader) {
-    let offset = 0;
+  id: number,
+  status: number,
+  order: number,
+): Uint8Array => {
+  // header
+  const dataHeader = Buffer.alloc(appHeader);
+
+  // id: 4B
+  dataHeader.writeUIntBE(id, 0, 4);
+
+  // status: 1B
+  dataHeader.writeUIntBE(status & 0xff, 4, 1);
+
+  // order: 4B
+  dataHeader.writeUIntBE(order & 0xffffffff, 5, 4);
+
+  const appBuffer = appendBuffer(dataHeader, data);
+  return appBuffer;
+};
+
+export const sendAppProtocol = async (
+  data: Buffer,
+  send: (buffer: ArrayBuffer) => Promise<void>,
+): Promise<void> => {
+  const chunkSize = appMax - appHeader;
+  if (data.byteLength > chunkSize) {
+    let order = 0;
+    let sliceOffset = 0;
     const dataLength = data.byteLength;
     const id = getRandomInt(appMaxId);
 
-    while (offset < dataLength) {
-      const sliceData = data.slice(offset, offset + appMax - appHeader);
+    while (sliceOffset < dataLength) {
+      const sliceData = data.subarray(sliceOffset, sliceOffset + chunkSize);
 
-      // header
-      const dataHeader = Buffer.alloc(appHeader);
-
-      // id: 4B
-      dataHeader.writeUIntBE(id, 0, 4);
-
-      // status: 1B
-      if (offset === 0) {
-        dataHeader.writeUIntBE(appStatus.start, 4, 1);
-      } else if (offset + sliceData.byteLength < dataLength) {
-        dataHeader.writeUIntBE(appStatus.middle, 4, 1);
+      if (sliceOffset === 0) {
+        const appBuffer = createAppProtocol(
+          sliceData,
+          id,
+          appStatus.start,
+          order,
+        );
+        await send(appBuffer);
+      } else if (sliceOffset + sliceData.byteLength < dataLength) {
+        const appBuffer = createAppProtocol(
+          sliceData,
+          id,
+          appStatus.middle,
+          order,
+        );
+        await send(appBuffer);
       } else {
-        dataHeader.writeUIntBE(appStatus.end, 4, 1);
+        const appBuffer = createAppProtocol(
+          sliceData,
+          id,
+          appStatus.end,
+          order,
+        );
+        await send(appBuffer);
       }
 
-      // offset: 4B
-      dataHeader.writeUIntBE(offset, 5, 4);
-
-      offset += sliceData.byteLength;
-
-      const appBuffer = appendBuffer(dataHeader, data);
-      send(appBuffer);
+      sliceOffset += sliceData.byteLength;
+      order++;
     }
   } else {
     const id = getRandomInt(appMaxId);
-
-    // header
-    const dataHeader = Buffer.alloc(appHeader);
-
-    // id: 4B
-    dataHeader.writeUIntBE(id, 0, 4);
-
-    // status: 1B
-    dataHeader.writeUIntBE(appStatus.once, 4, 1);
-
-    // offset: 4B
-    dataHeader.writeUIntBE(0, 5, 4);
-
-    const appBuffer = appendBuffer(dataHeader, data);
-    send(appBuffer);
+    const appBuffer = createAppProtocol(data, id, appStatus.once, 0);
+    await send(appBuffer);
   }
 };
 
@@ -110,6 +128,6 @@ const appendBuffer = (buffer1: Buffer, buffer2: Buffer) => {
   return tmp;
 };
 
-const getRandomInt = (max: number) => {
+export const getRandomInt = (max: number) => {
   return Math.floor(Math.random() * max);
 };

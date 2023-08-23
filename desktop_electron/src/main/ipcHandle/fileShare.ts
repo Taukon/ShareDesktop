@@ -2,8 +2,18 @@ import * as chokidar from "chokidar";
 import { BrowserWindow } from "electron";
 import { createReadStream, createWriteStream, statSync, existsSync } from "fs";
 // import * as path from "path";
-import { FileMsgType, timer } from "../../util";
+import {
+  FileMsgType,
+  appHeader,
+  appMax,
+  appMaxId,
+  appStatus,
+  createAppProtocol,
+  parseAppProtocol,
+  timer,
+} from "../../util";
 import { FileWatchMsg, WriteFileInfo } from "../../util/type";
+import { getRandomInt } from "../../renderer/util";
 
 export class FileShare {
   private watcher?: chokidar.FSWatcher;
@@ -91,21 +101,42 @@ export class FileShare {
     fileWindow: BrowserWindow,
   ): Promise<boolean> {
     const filePath = this.checkFilePath(fileName);
-    if (filePath && !this.isWritingFile(fileName)) {
+    const fileSize = this.getFileInfo(fileName)?.fileSize;
+    if (filePath && fileSize && !this.isWritingFile(fileName)) {
       this.lockReadStream(fileName);
 
-      const chunkSize = 65536;
+      const chunkSize = appMax - appHeader;
       const fileReadStream = createReadStream(filePath, {
         highWaterMark: chunkSize,
       });
-      // const fileReadStream = createReadStream(filePath);
+      const id = getRandomInt(appMaxId);
+      let order = 0;
+      let total = 0;
 
       for await (const chunk of fileReadStream) {
+        total += chunk.byteLength;
+        if (order === 0) {
+          const appData = createAppProtocol(chunk, id, appStatus.start, order);
+          fileWindow.webContents.send("streamSendFileBuffer", {
+            fileTransferId: fileTransferId,
+            buf: appData,
+          });
+        } else if (total < fileSize) {
+          const appData = createAppProtocol(chunk, id, appStatus.middle, order);
+          fileWindow.webContents.send("streamSendFileBuffer", {
+            fileTransferId: fileTransferId,
+            buf: appData,
+          });
+        } else {
+          const appData = createAppProtocol(chunk, id, appStatus.end, order);
+          fileWindow.webContents.send("streamSendFileBuffer", {
+            fileTransferId: fileTransferId,
+            buf: appData,
+          });
+        }
+
+        order++;
         await timer(10);
-        fileWindow.webContents.send("streamSendFileBuffer", {
-          fileTransferId: fileTransferId,
-          buf: chunk,
-        });
       }
       fileReadStream.close();
 
@@ -146,8 +177,10 @@ export class FileShare {
   ): number {
     const writeFileInfo = this.writeFileList[fileName];
     if (writeFileInfo) {
-      writeFileInfo.receivedSize += buffer.byteLength;
-      writeFileInfo.stream.write(buffer);
+      const parse = parseAppProtocol(Buffer.from(buffer));
+
+      writeFileInfo.stream.write(parse.data);
+      writeFileInfo.receivedSize += parse.data.byteLength;
 
       if (writeFileInfo.receivedSize === writeFileInfo.size) {
         writeFileInfo.stream.end();
