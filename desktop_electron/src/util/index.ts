@@ -136,6 +136,6 @@ const appendBuffer = (buffer1: Buffer, buffer2: Buffer) => {
   return tmp;
 };
 
-const getRandomInt = (max: number) => {
+export const getRandomInt = (max: number) => {
   return Math.floor(Math.random() * max);
 };

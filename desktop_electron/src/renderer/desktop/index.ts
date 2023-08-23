@@ -20,7 +20,7 @@ import { ControlData } from "../../util/type";
 import { establishDesktopAudio, setFileConsumer } from "./signaling";
 import { FileInfo } from "./signaling/type";
 import { FileProducers } from "./mediasoup/type";
-import { sendAppProtocol, timer } from "../util";
+import { sendAppProtocol, timer } from "../../util";
 import { updateFiles } from "./fileShare";
 import { FileWatchList, FileWatchMsg } from "./fileShare/type";
 
@@ -166,7 +166,6 @@ export class DesktopWebRTC {
               await sendAppProtocol(img, async (buf) => {
                 producer.send(buf);
               });
-              // producer.send(img);
               preImg = Buffer.from(img.buffer);
             }
           }
@@ -183,10 +182,9 @@ export class DesktopWebRTC {
               if (onDisplayScreen) {
                 displayScreen(image, img);
               }
-              sendAppProtocol(img, async (buf) => {
+              await sendAppProtocol(img, async (buf) => {
                 producer.send(buf);
               });
-              // producer.send(img);
               preImg = Buffer.from(img.buffer);
             }
           }
