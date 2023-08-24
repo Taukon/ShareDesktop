@@ -28,15 +28,15 @@ import { FileWatchList, FileWatchMsg } from "./fileShare/type";
 // @ts-ignore
 window.Buffer = Buffer;
 
-export class DesktopWebRTC {
+export class DesktopWebRTCXvfb {
   public desktopId: string;
   public socket: Socket;
 
   private displayName: string;
   private intervalId?: NodeJS.Timer;
 
-  public canvas: HTMLCanvasElement;
-  public image: HTMLImageElement;
+  public canvas = document.createElement("canvas");
+  public image = new Image();
   public audio?: HTMLAudioElement;
 
   private ffmpegPid?: number; // ---ffmpeg process
@@ -61,9 +61,7 @@ export class DesktopWebRTC {
     this.desktopId = desktopId;
     this.socket = socket;
 
-    this.canvas = document.createElement("canvas");
     this.canvas.setAttribute("tabindex", String(0));
-    this.image = new Image();
     this.image.onload = () => {
       this.canvas.width = this.image.width;
       this.canvas.height = this.image.height;
@@ -120,7 +118,6 @@ export class DesktopWebRTC {
     const producer = await getScreenProducer(transport);
 
     if (producer.readyState === "open") {
-      // console.log(`producer.readyState: ${producer.readyState}`);
       this.intervalId = this.loopGetScreen(
         producer,
         image,
@@ -130,7 +127,6 @@ export class DesktopWebRTC {
         isFullScreen,
       );
     } else {
-      //console.log(`producer.readyState: ${producer.readyState}`);
       producer.on("open", () => {
         this.intervalId = this.loopGetScreen(
           producer,
