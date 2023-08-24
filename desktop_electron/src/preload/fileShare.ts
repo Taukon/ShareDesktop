@@ -61,7 +61,7 @@ export const fileShare = {
   },
   // main -> renderer
   streamSendFileBuffer: (
-    listener: (data: { fileTransferId: string; buf: Buffer }) => void,
+    listener: (data: { fileTransferId: string; buf: Uint8Array }) => void,
   ) => {
     ipcRenderer.on(
       "streamSendFileBuffer",

@@ -26,7 +26,17 @@ import {
 import { FileInfo } from "./signaling/type";
 import { FileDownload, FileUpload, FileWatchMsg } from "./fileShare/type";
 import { removeFileList, updateFiles } from "./fileShare";
-import { timer } from "./util";
+import {
+  appHeader,
+  appMax,
+  appMaxId,
+  appStatus,
+  appendBuffer,
+  createAppProtocol,
+  getRandomInt,
+  parseAppProtocol,
+  timer,
+} from "./util";
 
 export class BrowserWebRTC {
   public desktopId: string;
@@ -111,34 +121,67 @@ export class BrowserWebRTC {
     const consumer = await getScreenConsumer(transport, socket, desktopId);
 
     if (consumer?.readyState === "open") {
-      consumer.on("message", (buf) => {
+      this.reflectScreen(consumer, image);
+      return true;
+    } else if (consumer) {
+      consumer.on("open", () => {
+        this.reflectScreen(consumer, image);
+      });
+      return true;
+    }
+    transport.close();
+    return false;
+  }
+
+  private reflectScreen(
+    consumer: mediasoupClient.types.DataConsumer,
+    image: HTMLImageElement,
+  ): void {
+    let preId: number;
+    let order: number = 0;
+    let tmp: Uint8Array;
+
+    consumer.on("message", (buf) => {
+      const parse = parseAppProtocol(new Uint8Array(buf));
+      if (parse.status === appStatus.once) {
         const imgBase64 = btoa(
-          new Uint8Array(buf).reduce(
+          new Uint8Array(parse.data).reduce(
             (data, byte) => data + String.fromCharCode(byte),
             "",
           ),
         );
         image.src = "data:image/jpeg;base64," + imgBase64;
-      });
-
-      return true;
-    } else if (consumer) {
-      consumer.on("open", () => {
-        consumer.on("message", (buf) => {
-          const imgBase64 = btoa(
-            new Uint8Array(buf).reduce(
-              (data, byte) => data + String.fromCharCode(byte),
-              "",
-            ),
-          );
-          image.src = "data:image/jpeg;base64," + imgBase64;
-        });
-      });
-
-      return true;
-    }
-    transport.close();
-    return false;
+      } else if (parse.status === appStatus.start) {
+        tmp = parse.data;
+        preId = parse.id;
+        order = parse.order + 1;
+      } else if (
+        parse.status === appStatus.middle &&
+        parse.id === preId &&
+        parse.order === order
+      ) {
+        tmp = appendBuffer(tmp, parse.data);
+        order++;
+      } else if (
+        parse.status === appStatus.end &&
+        parse.id === preId &&
+        parse.order === order
+      ) {
+        tmp = appendBuffer(tmp, parse.data);
+        const imgBase64 = btoa(
+          new Uint8Array(tmp).reduce(
+            (data, byte) => data + String.fromCharCode(byte),
+            "",
+          ),
+        );
+        image.src = "data:image/jpeg;base64," + imgBase64;
+        tmp = new Uint8Array(0);
+        order = 0;
+      } else {
+        order = 0;
+        tmp = new Uint8Array(0);
+      }
+    });
   }
 
   private async startAudio(
@@ -302,8 +345,10 @@ export class BrowserWebRTC {
 
     consumer.on("message", (msg: ArrayBuffer) => {
       stamp++;
-      receivedSize += msg.byteLength;
-      writer.write(new Uint8Array(msg));
+      const parse = parseAppProtocol(new Uint8Array(msg));
+      receivedSize += parse.data.byteLength;
+      writer.write(parse.data);
+
       if (receivedSize === fileInfo.fileSize) {
         isClosed = true;
         writer.close();
@@ -318,7 +363,7 @@ export class BrowserWebRTC {
       if (stamp === checkStamp) {
         limit--;
         if (limit == 0) {
-          console.log(`cannot recieve file: ${fileInfo.fileName}`);
+          console.log(`timeout recieve file: ${fileInfo.fileName}`);
           writer.abort();
           socket.emit("endTransferFile", fileInfo.fileTransferId);
           break;
@@ -342,7 +387,7 @@ export class BrowserWebRTC {
           const fileSize = fileUpload.input.files.item(i)?.size;
           const fileStream = fileUpload.input.files.item(i)?.stream();
           if (fileName && fileSize && fileStream) {
-            console.log(`file name: ${fileName} | size: ${fileSize}`);
+            // console.log(`file name: ${fileName} | size: ${fileSize}`);
             this.startSendFile(
               device,
               socket,
@@ -378,10 +423,10 @@ export class BrowserWebRTC {
     const producer = await getSendFileProducer(transport);
 
     const reader = fileStream.getReader();
-    // producer.on("close", () => {
-    //     reader.releaseLock();
-    //     fileStream.cancel();
-    // });
+    producer.on("close", () => {
+      reader.releaseLock();
+      fileStream.cancel();
+    });
 
     const status = await WaitFileConsumer(
       socket,
@@ -391,10 +436,10 @@ export class BrowserWebRTC {
     );
     if (status === fileTransferId) {
       if (producer.readyState === "open") {
-        await this.sendFile(producer, reader);
+        await this.sendFile(producer, reader, fileSize);
       } else {
         producer.on("open", async () => {
-          await this.sendFile(producer, reader);
+          await this.sendFile(producer, reader, fileSize);
         });
       }
     }
@@ -403,27 +448,86 @@ export class BrowserWebRTC {
   private async sendFile(
     producer: mediasoupClient.types.DataProducer,
     reader: ReadableStreamDefaultReader<Uint8Array>,
+    fileSize: number,
   ): Promise<void> {
-    const chunkSize = 65536;
-    // eslint-disable-next-line no-constant-condition
-    while (1) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (value.byteLength > chunkSize) {
-        let offset = 0;
-        console.log(`Buffer Size Over`);
+    const id = getRandomInt(appMaxId);
+    const chunkSize = appMax - appHeader;
+    let order = 0;
+    let total = 0;
+    try {
+      // eslint-disable-next-line no-constant-condition
+      while (1) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-        while (offset < value.byteLength) {
-          const sliceBuf = value.slice(offset, offset + chunkSize);
-          producer.send(sliceBuf);
-          offset += sliceBuf.byteLength;
+        if (value.byteLength > chunkSize) {
+          let sliceOffset = 0;
+          console.log(`Buffer Size Over`);
+          while (sliceOffset < value.byteLength) {
+            const sliceBuf = value.slice(sliceOffset, sliceOffset + chunkSize);
+
+            total += sliceBuf.byteLength;
+            if (order === 0) {
+              const appData = createAppProtocol(
+                sliceBuf,
+                id,
+                appStatus.start,
+                order,
+              );
+              producer.send(appData);
+            } else if (total < fileSize) {
+              const appData = createAppProtocol(
+                sliceBuf,
+                id,
+                appStatus.middle,
+                order,
+              );
+              producer.send(appData);
+            } else {
+              const appData = createAppProtocol(
+                sliceBuf,
+                id,
+                appStatus.end,
+                order,
+              );
+              producer.send(appData);
+            }
+
+            sliceOffset += sliceBuf.byteLength;
+            order++;
+            await timer(10);
+          }
+        } else {
+          total += value.byteLength;
+          if (order === 0) {
+            const appData = createAppProtocol(
+              value,
+              id,
+              appStatus.start,
+              order,
+            );
+            producer.send(appData);
+          } else if (total < fileSize) {
+            const appData = createAppProtocol(
+              value,
+              id,
+              appStatus.middle,
+              order,
+            );
+            producer.send(appData);
+          } else {
+            const appData = createAppProtocol(value, id, appStatus.end, order);
+            producer.send(appData);
+          }
+
+          order++;
           await timer(10);
         }
-      } else {
-        producer.send(value);
-        await timer(10);
       }
+      reader.releaseLock();
+    } catch (error) {
+      console.log(`closed transport`);
+      console.log(error);
     }
-    reader.releaseLock();
   }
 }
