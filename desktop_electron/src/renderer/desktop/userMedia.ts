@@ -125,7 +125,8 @@ export class DesktopWebRTCUserMedia {
     video: HTMLVideoElement,
     interval: number,
   ): NodeJS.Timer | undefined {
-    let preJpegBuffer = Buffer.alloc(0);
+    // let preJpegBuffer = Buffer.alloc(0);
+    let preBase64Jpeg: string;
 
     return setInterval(async () => {
       try {
@@ -134,15 +135,19 @@ export class DesktopWebRTCUserMedia {
         canvas.getContext("2d")?.drawImage(video, 0, 0);
 
         const base64Jpeg = canvas
-          .toDataURL("image/jpeg", 1.0)
+          // .toDataURL("image/jpeg")
+          .toDataURL("image/jpeg", 0.7)
           .replace(/^data:\w+\/\w+;base64,/, "");
-        const jpegBuffer = Buffer.from(base64Jpeg, "base64");
-        // console.log(`${video.videoWidth} | ${video.videoHeight}`)
-        if (Buffer.compare(jpegBuffer, preJpegBuffer) != 0) {
+        // const jpegBuffer = Buffer.from(base64Jpeg, "base64");
+
+        // if (Buffer.compare(jpegBuffer, preJpegBuffer) != 0) {
+        if (base64Jpeg != preBase64Jpeg) {
+          const jpegBuffer = Buffer.from(base64Jpeg, "base64");
           await sendAppProtocol(jpegBuffer, async (buf) => {
             producer.send(buf);
           });
-          preJpegBuffer = jpegBuffer;
+          // preJpegBuffer = jpegBuffer;
+          preBase64Jpeg = base64Jpeg;
         }
       } catch (err) {
         console.log(err);
