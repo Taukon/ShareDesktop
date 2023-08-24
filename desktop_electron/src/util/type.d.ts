@@ -1,6 +1,8 @@
 import { FileMsgType } from "./index";
 import { WriteStream } from "fs";
 
+export type DisplayInfo = { name: string; id: string };
+
 export type ControlData = {
   move?: {
     x: number | undefined;

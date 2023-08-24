@@ -1,13 +1,24 @@
 import { networkInterfaces } from "os";
 import { exec } from "child_process";
-import { BrowserWindow, ipcMain } from "electron";
+import { BrowserWindow, desktopCapturer, ipcMain } from "electron";
 import { screenshot, converter, xtest } from "./x11lib";
 import { Xvfb } from "./xvfb";
 import { AppProcess } from "./appProcess";
-import { AudioData, ControlData } from "../../util/type";
+import { AudioData, ControlData, DisplayInfo } from "../../util/type";
 import { FileShare } from "./fileShare";
 
 export const initIpcHandler = (mainWindow: BrowserWindow): void => {
+  ipcMain.handle("getDisplayInfo", async () => {
+    const sources = await desktopCapturer.getSources({
+      types: ["window", "screen"],
+    });
+    const info: DisplayInfo[] = [];
+    for (const source of sources) {
+      info.push({ name: source.name, id: source.id });
+    }
+    return info;
+  });
+
   ipcMain.handle(
     "testControl",
     (
@@ -89,10 +100,12 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
       event: Electron.IpcMainInvokeEvent,
       displayNum: number,
       appPath: string,
+      x?: number,
+      y?: number,
     ) => {
       const xvfb = new Xvfb(displayNum, {
-        width: 1200,
-        height: 720,
+        width: x && x > 0 ? x : 1200,
+        height: y && y > 0 ? y : 720,
         depth: 24,
       });
       if (xvfb.start()) {

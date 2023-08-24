@@ -1,7 +1,10 @@
 import { ipcRenderer } from "electron";
-import { AudioData, ControlData } from "../util/type";
+import { AudioData, ControlData, DisplayInfo } from "../util/type";
 
 export const desktop = {
+  getDisplayInfo: async (): Promise<DisplayInfo[]> => {
+    return await ipcRenderer.invoke("getDisplayInfo");
+  },
   testControl: async (
     displayName: string,
     data: ControlData,
@@ -24,8 +27,19 @@ export const desktop = {
     );
     return jpegImg;
   },
-  startApp: async (displayNum: number, appPath: string): Promise<boolean> => {
-    const result = await ipcRenderer.invoke("startApp", displayNum, appPath);
+  startApp: async (
+    displayNum: number,
+    appPath: string,
+    width?: number,
+    height?: number,
+  ): Promise<boolean> => {
+    const result = await ipcRenderer.invoke(
+      "startApp",
+      displayNum,
+      appPath,
+      width,
+      height,
+    );
     return result;
   },
   getAudio: async (
