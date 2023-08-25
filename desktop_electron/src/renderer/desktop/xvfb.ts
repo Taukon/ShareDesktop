@@ -33,7 +33,7 @@ export class DesktopWebRTCXvfb {
   public socket: Socket;
 
   private displayName: string;
-  private intervalId?: NodeJS.Timer;
+  private intervalId?: NodeJS.Timeout;
 
   public canvas = document.createElement("canvas");
   public image = new Image();
@@ -147,7 +147,7 @@ export class DesktopWebRTCXvfb {
     interval: number,
     onDisplayScreen: boolean,
     isFullScreen: boolean,
-  ): NodeJS.Timer | undefined {
+  ): NodeJS.Timeout | undefined {
     let preImg = Buffer.alloc(0);
 
     if (!isFullScreen) {

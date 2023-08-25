@@ -33,7 +33,7 @@ export class DesktopWebRTCUserMedia {
   public socket: Socket;
 
   private displayName: string;
-  private intervalId?: NodeJS.Timer;
+  private intervalId?: NodeJS.Timeout;
 
   public canvas = document.createElement("canvas");
   public video = document.createElement("video");
@@ -124,7 +124,7 @@ export class DesktopWebRTCUserMedia {
     canvas: HTMLCanvasElement,
     video: HTMLVideoElement,
     interval: number,
-  ): NodeJS.Timer | undefined {
+  ): NodeJS.Timeout | undefined {
     // let preJpegBuffer = Buffer.alloc(0);
     let preBase64Jpeg: string;
 
