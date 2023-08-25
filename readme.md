@@ -2,24 +2,20 @@
 
 * Server
 ```bash
-sudo apt-get install -y build-essential nodejs npm python3 python3-pip
+(sudo apt install -y nodejs npm)
+sudo apt install -y build-essential python3 python3-pip
 ```
 
 * Desktop Client
 ```bash
-sudo apt-get install -y build-essential nodejs npm python3 python3-pip
-sudo apt-get install -y libx11-dev libxtst-dev libjpeg-dev
-sudo apt-get install -y xvfb xterm firefox
+(sudo apt install -y nodejs npm)
+sudo apt install -y build-essential python3 python3-pip
+sudo apt install -y libx11-dev libxtst-dev libjpeg-dev xvfb
+sudo apt install -y xterm firefox
 # for audio
-sudo apt-get install -y ffmpeg pulseaudio
+sudo apt install -y ffmpeg pulseaudio
 
 ```
-
-* Module
-```
-ShareDesktop$ npm install
-```
-
 ---
 
 ### Start
@@ -27,20 +23,23 @@ ShareDesktop$ npm install
 * Server
 ```bash
 ShareDesktop$ cd server/backend
+ShareDesktop/server/backend$ npm install
 ShareDesktop/server/backend$ npm run build
 
 ShareDesktop$ cd server/frontend
+ShareDesktop/server/frontend$ npm install
 ShareDesktop/server/frontend$ npm run build
 
 ShareDesktop$ cd server/backend
 ShareDesktop/server/backend$ npm run start
 # without audio
-ShareDesktop$ npm run start2
+ShareDesktop/server/backend$ npm run start2
 ```
 
 * Desktop Client
 ```bash
 ShareDesktop$ cd desktop_electron
+ShareDesktop/desktop_electron$ npm install
 ShareDesktop/desktop_electron$ npm run configure
 ShareDesktop/desktop_electron$ npm run build
 ShareDesktop/desktop_electron$ npm run prod

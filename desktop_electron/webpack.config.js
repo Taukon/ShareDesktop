@@ -1,9 +1,15 @@
 const path = require('path');
-const { DefinePlugin } = require('webpack');
+const { DefinePlugin, IgnorePlugin } = require('webpack');
 
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
+
+const optionalPlugins = [];
+if (process.platform !== "darwin") {
+  optionalPlugins.push(new IgnorePlugin({ resourceRegExp: /^fsevents$/ }));
+}
+
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -42,6 +48,7 @@ const main = {
       },
     ],
   },
+  plugins: [ ...optionalPlugins ],
 };
 
 
@@ -74,6 +81,7 @@ const preload = {
       },
     ],
   },
+  plugins: [ ...optionalPlugins ],
 };
 
 
@@ -121,13 +129,11 @@ const renderer = {
     ],
   },
   devtool: isDev ? 'inline-source-map' : false,
-  plugins : [
+  plugins: [
+    ...optionalPlugins,
     new DefinePlugin({
       'process.env.VERSION_ENV': `"${require('./package.json').version}"`,
-    })
-  ],
-
-  plugins: [
+    }),
     new HtmlWebpackPlugin({
       template: './src/index.html',
       minify: !isDev,
