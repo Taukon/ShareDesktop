@@ -1,6 +1,6 @@
 import * as mediasoupClient from "mediasoup-client";
 import { ButtonJson, KeyJson, MotionJson, MousePos } from "./type";
-import { KeySims } from "./keySim";
+import { KeySyms } from "./x11keySym";
 
 export const controlEventListener = (
   canvas: HTMLCanvasElement,
@@ -60,6 +60,11 @@ export const controlEventListener = (
       if (keySim) {
         const key: KeyJson = { key: { keySim: keySim, down: true } };
         producer.send(JSON.stringify(key));
+        if (keySim === 0xff2a || keySim === 0xff28 || keySim === 0xff29) {
+          producer.send(
+            JSON.stringify({ key: { keySim: keySim, down: false } }),
+          );
+        }
       }
       //console.log("keycode down: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
     },
@@ -115,47 +120,57 @@ const keyborad = (msg: KeyboardEvent): number | undefined => {
   } else if (msg.key.match(/^F[1-9]*/)) {
     //F1~9
     const keys = msg.key.match(/^F[1-9]*/);
-    const keySim = keys ? KeySims[`${keys[0]}${keys[1]}`] : undefined;
+    const keySim = keys ? KeySyms[`${keys[0]}${keys[1]}`] : undefined;
     return keySim;
     //console.log("F: "+JSON.stringify(msg.key));
   } else if (msg.key == "Control") {
-    return KeySims["Control_L"];
+    return KeySyms["Control_L"];
   } else if (msg.key == "Alt") {
-    return KeySims["Alt_L"];
+    return KeySyms["Alt_L"];
   } else if (msg.key == "Shift") {
-    return KeySims["Shift_L"];
+    return KeySyms["Shift_L"];
   } else if (msg.key == "Escape") {
-    return KeySims["Escape"];
+    return KeySyms["Escape"];
   } else if (msg.key == "Enter") {
-    return KeySims["Return"];
+    return KeySyms["Return"];
   } else if (msg.key == "Backspace") {
-    return KeySims["BackSpace"];
+    return KeySyms["BackSpace"];
   } else if (msg.key == "Tab") {
-    return KeySims["Tab"];
+    return KeySyms["Tab"];
   } else if (msg.key == "Home") {
-    return KeySims["Home"];
+    return KeySyms["Home"];
   } else if (msg.key == "End") {
-    return KeySims["End"];
+    return KeySyms["End"];
   } else if (msg.key == "PageUp") {
-    return KeySims["Page_Up"];
+    return KeySyms["Page_Up"];
   } else if (msg.key == "PageDown") {
-    return KeySims["Page_Down"];
+    return KeySyms["Page_Down"];
   } else if (msg.key == "ArrowRight") {
-    return KeySims["Right"];
+    return KeySyms["Right"];
   } else if (msg.key == "ArrowLeft") {
-    return KeySims["Left"];
+    return KeySyms["Left"];
   } else if (msg.key == "ArrowUp") {
-    return KeySims["Up"];
+    return KeySyms["Up"];
   } else if (msg.key == "ArrowDown") {
-    return KeySims["Down"];
+    return KeySyms["Down"];
   } else if (msg.key == "Insert") {
-    return KeySims["Insert"];
+    return KeySyms["Insert"];
   } else if (msg.key == "Delete") {
-    return KeySims["Delete"];
+    return KeySyms["Delete"];
   } else if (msg.key == " ") {
     return msg.key.charCodeAt(0);
   } else if (msg.key == "Alphanumeric") {
-    return KeySims["Caps_Lock"];
+    return KeySyms["Caps_Lock"];
+  } else if (msg.key == "Hankaku") {
+    return KeySyms["Hankaku"];
+  } else if (msg.key == "Zenkaku") {
+    return KeySyms["Zenkaku"];
+  } else if (msg.key == "NonConvert") {
+    return KeySyms["Muhenkan"];
+  } else if (msg.key == "Convert") {
+    return KeySyms["Henkan"];
+  } else if (msg.key == "Hiragana") {
+    return KeySyms["Hiragana_Katakana"];
   } else if (msg.key == "[" || msg.keyCode == 219) {
     return msg.key.charCodeAt(0);
   } else if (msg.key == "]" || msg.keyCode == 221) {

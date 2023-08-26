@@ -20,11 +20,11 @@ Napi::Value testKeyEvent(const Napi::CallbackInfo &info)
     Display *display = XOpenDisplay(display_name);
 
     if(display){
-        uint32_t keySim = info[1].As<Napi::Number>().Uint32Value();
+        uint32_t keySym = info[1].As<Napi::Number>().Uint32Value();
         bool down = info[2].As<Napi::Boolean>().Value();
 
-        uint32_t keyCode = XKeysymToKeycode(display, keySim);
-
+        uint32_t keyCode = XKeysymToKeycode(display, keySym);
+        //  printf("keySym: %x code: %x down: %x\n", keySym, keyCode, down);
         if (keyCode != 0)
         {
             //printf("key: %d \n", down);

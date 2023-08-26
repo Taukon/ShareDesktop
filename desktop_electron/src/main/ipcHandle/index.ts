@@ -6,6 +6,10 @@ import { Xvfb } from "./xvfb";
 import { AppProcess } from "./appProcess";
 import { AudioData, ControlData, DisplayInfo } from "../../util/type";
 import { FileShare } from "./fileShare";
+import { setXkbLayout } from "./xkbmap";
+import { Uim } from "./IM/uim";
+import { Fcitx5 } from "./IM/fcitx5";
+import { Ibus } from "./IM/ibus";
 
 export const initIpcHandler = (mainWindow: BrowserWindow): void => {
   ipcMain.handle("getDisplayInfo", async () => {
@@ -95,6 +99,46 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
   );
 
   ipcMain.handle(
+    "setXkbLayout",
+    (
+      event: Electron.IpcMainInvokeEvent,
+      displayNum: number,
+      layout: string,
+    ) => {
+      const process = setXkbLayout(displayNum, layout);
+      if (process) {
+        return true;
+      }
+
+      return false;
+    },
+  );
+
+  let im: Uim | Fcitx5 | Ibus | undefined;
+  ipcMain.handle(
+    "setInputMethod",
+    (event: Electron.IpcMainInvokeEvent, displayNum: number) => {
+      if (im) {
+        return false;
+      }
+
+      if (process.env.XMODIFIERS === `@im=uim`) {
+        im = new Uim(displayNum);
+      } else if (process.env.XMODIFIERS === `@im=ibus`) {
+        im = new Ibus(displayNum);
+      } else if (process.env.XMODIFIERS === `@im=fcitx`) {
+        im = new Fcitx5(displayNum);
+      }
+
+      if (im?.process) {
+        return true;
+      }
+
+      return false;
+    },
+  );
+
+  ipcMain.handle(
     "startApp",
     (
       event: Electron.IpcMainInvokeEvent,
@@ -109,9 +153,7 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
         depth: 24,
       });
       if (xvfb.start()) {
-        const appProcess = new AppProcess(displayNum, appPath, [], () =>
-          xvfb.stop(),
-        );
+        const appProcess = new AppProcess(displayNum, appPath, []);
 
         process.on("exit", (e) => {
           console.log(`exit: ${e}`);

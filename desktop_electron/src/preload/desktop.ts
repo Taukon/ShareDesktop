@@ -27,6 +27,17 @@ export const desktop = {
     );
     return jpegImg;
   },
+  setXkbLayout: async (
+    displayNum: number,
+    layout: string,
+  ): Promise<boolean> => {
+    const result = await ipcRenderer.invoke("setXkbLayout", displayNum, layout);
+    return result;
+  },
+  setInputMethod: async (displayNum: number): Promise<boolean> => {
+    const result = await ipcRenderer.invoke("setInputMethod", displayNum);
+    return result;
+  },
   startApp: async (
     displayNum: number,
     appPath: string,

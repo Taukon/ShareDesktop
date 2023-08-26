@@ -40,9 +40,9 @@ const xvfbMode = () => {
   xvfbOption.id = "xvfbOption";
   desktopOption.append(xvfbOption);
 
+  // Xvfb Size
   const xvfbSizeForm = document.createElement("p");
   xvfbOption.appendChild(xvfbSizeForm);
-
   xvfbSizeForm.appendChild(document.createTextNode(" width: "));
   const inputWidth = document.createElement("input");
   inputWidth.setAttribute("type", "number");
@@ -56,110 +56,121 @@ const xvfbMode = () => {
   inputHeight.value = "720";
   xvfbSizeForm.appendChild(inputHeight);
 
+  // xkbmap layout
+  let display = 0;
+  const xkbForm = document.createElement("p");
+  xvfbOption.appendChild(xkbForm);
+  xkbForm.appendChild(document.createTextNode(" keyboard layout: "));
+  const xkbLayout = document.createElement("input");
+  xkbLayout.value = "jp";
+  xkbForm.appendChild(xkbLayout);
+  const xkbButton = document.createElement("button");
+  xkbButton.textContent = "run";
+  xkbButton.disabled = true;
+  xkbButton.onclick = () => {
+    if (display) window.desktop.setXkbLayout(display, xkbLayout.value);
+  };
+  xkbForm.appendChild(xkbButton);
+
+  const imForm = document.createElement("p");
+  imForm.textContent = "Input Method enable: ";
+  xvfbOption.appendChild(imForm);
+  const im = document.createElement("input");
+  im.setAttribute("type", "radio");
+  imForm.appendChild(im);
+  im.checked = true;
+
+  // app process
   const inputAppPath = document.createElement("input");
   inputAppPath.value = "xterm";
   xvfbOption.appendChild(inputAppPath);
 
   const runButton = document.createElement("button");
   runButton.textContent = "run";
-  runButton.onclick = () => {
+  runButton.onclick = async () => {
     desktopMode.disabled = true;
-    startXvfb(
-      inputAppPath.value,
-      runButton,
-      parseInt(inputWidth.value),
-      parseInt(inputHeight.value),
-    );
+    for (let displayNum = 1; ; displayNum++) {
+      if (
+        await startXvfb(
+          displayNum,
+          inputAppPath.value,
+          xkbLayout.value,
+          im.checked,
+          runButton,
+          parseInt(inputWidth.value),
+          parseInt(inputHeight.value),
+        )
+      ) {
+        display = displayNum;
+        xkbButton.disabled = false;
+        break;
+      }
+    }
   };
   xvfbOption.appendChild(runButton);
 };
 
 const startXvfb = async (
+  displayNum: number,
   appPath: string,
+  xkbLayout: string,
+  im: boolean,
   runButton: HTMLButtonElement,
   width: number,
   height: number,
-) => {
+): Promise<boolean> => {
   if (appPath === "") {
-    return;
+    return false;
   }
 
-  for (let displayNum = 1; ; displayNum++) {
-    const isStart = await window.desktop.startApp(
-      displayNum,
-      appPath,
-      width,
-      height,
-    );
-    if (isStart) {
-      runButton.disabled = true;
+  const isStart = await window.desktop.startApp(
+    displayNum,
+    appPath,
+    width,
+    height,
+  );
+  if (isStart) {
+    runButton.disabled = true;
 
-      const ip_addr = await window.util.getAddress();
+    const ip_addr = await window.util.getAddress();
 
-      const socket = io(`https://${ip_addr}:3100`, {
-        secure: true,
-        rejectUnauthorized: false,
-      });
-
-      socket.on("desktopId", (msg) => {
-        if (typeof msg === "string") {
-          if (desktopIdList) {
-            desktopIdList.textContent = `desktopID: ${msg}`;
-          }
-
-          const desktopWebRTC = new DesktopWebRTCXvfb(
-            displayNum,
-            msg,
-            socket,
-            interval,
-            onDisplayScreen,
-            false,
-            onAudio,
-          );
-
-          screen?.appendChild(desktopWebRTC.canvas);
-
-          socket.on("disconnect", () => {
-            desktopWebRTC.deleteDesktop();
-          });
-
-          if (fileList) {
-            const inputDirPath: HTMLInputElement =
-              document.createElement("input");
-            fileList.appendChild(inputDirPath);
-            window.util.getBasePath().then((path) => {
-              inputDirPath.value = `${path}/test`;
-            });
-
-            const fileButton: HTMLButtonElement =
-              document.createElement("button");
-            fileButton.textContent = "fileShare";
-            fileList.appendChild(fileButton);
-            fileButton.onclick = async () => {
-              const dirPath = inputDirPath.value;
-              if (dirPath === "") {
-                return;
-              }
-              const fileShare = document.createElement("div");
-              fileList.appendChild(fileShare);
-              const result = await desktopWebRTC.startFileShare(
-                dirPath,
-                fileShare,
-              );
-
-              if (result) {
-                fileButton.disabled = true;
-                fileList.removeChild(inputDirPath);
-                fileList.removeChild(fileButton);
-              }
-            };
-          }
-        }
-      });
-
-      break;
+    const socket = io(`https://${ip_addr}:3100`, {
+      secure: true,
+      rejectUnauthorized: false,
+    });
+    window.desktop.setXkbLayout(displayNum, xkbLayout);
+    if (im) {
+      window.desktop.setInputMethod(displayNum);
     }
+
+    socket.on("desktopId", (msg) => {
+      if (typeof msg === "string") {
+        if (desktopIdList) {
+          desktopIdList.textContent = `desktopID: ${msg}`;
+        }
+
+        const desktopWebRTC = new DesktopWebRTCXvfb(
+          displayNum,
+          msg,
+          socket,
+          interval,
+          onDisplayScreen,
+          false,
+          onAudio,
+        );
+
+        screen?.appendChild(desktopWebRTC.canvas);
+
+        socket.on("disconnect", () => {
+          desktopWebRTC.deleteDesktop();
+        });
+
+        setFileShare(desktopWebRTC);
+      }
+    });
+    return true;
   }
+  return false;
 };
 
 const userMediaMode = async () => {
@@ -244,42 +255,43 @@ const startUserMedia = async (sourceId: string, audio: boolean) => {
           desktopWebRTC.deleteDesktop();
         });
 
-        if (fileList) {
-          const inputDirPath: HTMLInputElement =
-            document.createElement("input");
-          fileList.appendChild(inputDirPath);
-          window.util.getBasePath().then((path) => {
-            inputDirPath.value = `${path}/test`;
-          });
-
-          const fileButton: HTMLButtonElement =
-            document.createElement("button");
-          fileButton.textContent = "fileShare";
-          fileList.appendChild(fileButton);
-          fileButton.onclick = async () => {
-            const dirPath = inputDirPath.value;
-            if (dirPath === "") {
-              return;
-            }
-            const fileShare = document.createElement("div");
-            fileList.appendChild(fileShare);
-            const result = await desktopWebRTC.startFileShare(
-              dirPath,
-              fileShare,
-            );
-
-            if (result) {
-              fileButton.disabled = true;
-              fileList.removeChild(inputDirPath);
-              fileList.removeChild(fileButton);
-            }
-          };
-        }
+        setFileShare(desktopWebRTC);
       }
     });
   } catch (e) {
     console.log("error. orz");
     console.log(e);
+  }
+};
+
+const setFileShare = (
+  desktopWebRTC: DesktopWebRTCXvfb | DesktopWebRTCUserMedia,
+) => {
+  if (fileList) {
+    const inputDirPath: HTMLInputElement = document.createElement("input");
+    fileList.appendChild(inputDirPath);
+    window.util.getBasePath().then((path) => {
+      inputDirPath.value = `${path}/test`;
+    });
+
+    const fileButton: HTMLButtonElement = document.createElement("button");
+    fileButton.textContent = "fileShare";
+    fileList.appendChild(fileButton);
+    fileButton.onclick = async () => {
+      const dirPath = inputDirPath.value;
+      if (dirPath === "") {
+        return;
+      }
+      const fileShare = document.createElement("div");
+      fileList.appendChild(fileShare);
+      const result = await desktopWebRTC.startFileShare(dirPath, fileShare);
+
+      if (result) {
+        fileButton.disabled = true;
+        fileList.removeChild(inputDirPath);
+        fileList.removeChild(fileButton);
+      }
+    };
   }
 };
 

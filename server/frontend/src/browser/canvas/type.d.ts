@@ -4,6 +4,6 @@ export type MotionJson = { move: { x: number; y: number } };
 
 export type MousePos = { x: number; y: number };
 
-export type KeySimObject = {
+export type KeySymObject = {
   [prop: string]: number;
 };
