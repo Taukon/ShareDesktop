@@ -78,7 +78,6 @@ const xvfbMode = () => {
   const im = document.createElement("input");
   im.setAttribute("type", "radio");
   imForm.appendChild(im);
-  im.checked = true;
 
   // app process
   const inputAppPath = document.createElement("input");
