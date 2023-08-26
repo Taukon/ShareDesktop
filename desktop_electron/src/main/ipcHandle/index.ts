@@ -114,26 +114,51 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
     },
   );
 
-  let im: Uim | Fcitx5 | Ibus | undefined;
+  //let im: Uim | Fcitx5 | Ibus | undefined;
+  let imRun = false;
   ipcMain.handle(
     "setInputMethod",
     (event: Electron.IpcMainInvokeEvent, displayNum: number) => {
-      if (im) {
+      if (imRun) {
         return false;
       }
 
       if (process.env.XMODIFIERS === `@im=uim`) {
-        im = new Uim(displayNum);
+        const im = new Uim(displayNum);
+        imRun = im.isRun();
       } else if (process.env.XMODIFIERS === `@im=ibus`) {
-        im = new Ibus(displayNum);
+        const im = new Ibus(displayNum);
+        imRun = im.isRun();
       } else if (process.env.XMODIFIERS === `@im=fcitx`) {
-        im = new Fcitx5(displayNum);
+        const im = new Fcitx5(displayNum);
+        imRun = im.isRun();
       }
 
-      if (im?.process) {
+      if (imRun) {
         return true;
       }
 
+      return false;
+    },
+  );
+
+  let xvfb: Xvfb | undefined;
+  ipcMain.handle(
+    "startXvfb",
+    (
+      event: Electron.IpcMainInvokeEvent,
+      displayNum: number,
+      x?: number,
+      y?: number,
+    ) => {
+      xvfb = new Xvfb(displayNum, {
+        width: x && x > 0 ? x : 1200,
+        height: y && y > 0 ? y : 720,
+        depth: 24,
+      });
+      if (xvfb.start()) {
+        return true;
+      }
       return false;
     },
   );
@@ -144,21 +169,14 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
       event: Electron.IpcMainInvokeEvent,
       displayNum: number,
       appPath: string,
-      x?: number,
-      y?: number,
     ) => {
-      const xvfb = new Xvfb(displayNum, {
-        width: x && x > 0 ? x : 1200,
-        height: y && y > 0 ? y : 720,
-        depth: 24,
-      });
-      if (xvfb.start()) {
+      if (xvfb) {
         const appProcess = new AppProcess(displayNum, appPath, []);
 
         process.on("exit", (e) => {
           console.log(`exit: ${e}`);
           appProcess.stop();
-          xvfb.stop();
+          xvfb?.stop();
         });
 
         process.on("SIGINT", (e) => {
@@ -170,7 +188,7 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
         process.on("uncaughtException", (e) => {
           console.log(`uncaughtException: ${e}`);
           appProcess.stop();
-          xvfb.stop();
+          xvfb?.stop();
         });
 
         return true;

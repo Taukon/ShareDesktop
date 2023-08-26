@@ -1,4 +1,5 @@
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
+import { existsSync } from "fs";
 
 export class AppProcess {
   private displayName: string;
@@ -12,8 +13,10 @@ export class AppProcess {
     this.displayName = `:${displayNum}`;
     this.command = command;
     this.args = options;
-
-    this.start();
+    if (existsSync(`/tmp/.X${displayNum}-lock`) && !this.process) {
+      this.setDisplayEnv();
+      this.spawnProcess();
+    }
   }
 
   public isRun(): boolean {
@@ -23,13 +26,6 @@ export class AppProcess {
   public stop() {
     this.killProcess();
     this.restoreDisplayEnv();
-  }
-
-  private start() {
-    if (!this.process) {
-      this.setDisplayEnv();
-      this.spawnProcess();
-    }
   }
 
   private spawnProcess() {

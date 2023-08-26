@@ -123,14 +123,15 @@ const startXvfb = async (
     return false;
   }
 
-  const isStart = await window.desktop.startApp(
-    displayNum,
-    appPath,
-    width,
-    height,
-  );
+  const isStart = await window.desktop.startXvfb(displayNum, width, height);
   if (isStart) {
     runButton.disabled = true;
+
+    await window.desktop.setXkbLayout(displayNum, xkbLayout);
+    if (im) {
+      await window.desktop.setInputMethod(displayNum);
+    }
+    await window.desktop.startApp(displayNum, appPath);
 
     const ip_addr = await window.util.getAddress();
 
@@ -138,10 +139,6 @@ const startXvfb = async (
       secure: true,
       rejectUnauthorized: false,
     });
-    window.desktop.setXkbLayout(displayNum, xkbLayout);
-    if (im) {
-      window.desktop.setInputMethod(displayNum);
-    }
 
     socket.on("desktopId", (msg) => {
       if (typeof msg === "string") {

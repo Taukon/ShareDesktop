@@ -13,7 +13,7 @@ type Fcitx5Env = {
 export class Fcitx5 {
   private oldEnv: Fcitx5Env;
   private silent: boolean = false;
-  public process: ChildProcessWithoutNullStreams | undefined;
+  private process: ChildProcessWithoutNullStreams | undefined;
 
   constructor(displayNum: number) {
     this.oldEnv = {
@@ -45,6 +45,10 @@ export class Fcitx5 {
         });
       }
     }
+  }
+
+  public isRun(): boolean {
+    return this.process ? true : false;
   }
 
   private setEnv() {

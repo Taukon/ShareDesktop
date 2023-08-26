@@ -14,7 +14,7 @@ type UimEnv = {
 export class Uim {
   private oldEnv: UimEnv;
   private silent: boolean = false;
-  public process: ChildProcessWithoutNullStreams | undefined;
+  private process: ChildProcessWithoutNullStreams | undefined;
 
   constructor(displayNum: number) {
     this.oldEnv = {
@@ -46,6 +46,10 @@ export class Uim {
         });
       }
     }
+  }
+
+  public isRun(): boolean {
+    return this.process ? true : false;
   }
 
   private setEnv() {

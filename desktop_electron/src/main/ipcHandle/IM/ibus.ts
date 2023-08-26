@@ -13,7 +13,7 @@ type IbusEnv = {
 export class Ibus {
   private oldEnv: IbusEnv;
   private silent: boolean = false;
-  public process: ChildProcessWithoutNullStreams | undefined;
+  private process: ChildProcessWithoutNullStreams | undefined;
 
   constructor(displayNum: number) {
     this.oldEnv = {
@@ -45,6 +45,10 @@ export class Ibus {
         });
       }
     }
+  }
+
+  public isRun(): boolean {
+    return this.process ? true : false;
   }
 
   private setEnv() {

@@ -38,19 +38,21 @@ export const desktop = {
     const result = await ipcRenderer.invoke("setInputMethod", displayNum);
     return result;
   },
-  startApp: async (
+  startXvfb: async (
     displayNum: number,
-    appPath: string,
     width?: number,
     height?: number,
   ): Promise<boolean> => {
     const result = await ipcRenderer.invoke(
-      "startApp",
+      "startXvfb",
       displayNum,
-      appPath,
       width,
       height,
     );
+    return result;
+  },
+  startApp: async (displayNum: number, appPath: string): Promise<boolean> => {
+    const result = await ipcRenderer.invoke("startApp", displayNum, appPath);
     return result;
   },
   getAudio: async (
