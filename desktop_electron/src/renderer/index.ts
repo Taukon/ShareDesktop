@@ -80,19 +80,32 @@ const xvfbMode = () => {
   imForm.appendChild(im);
 
   // app process
+  const appForm = document.createElement("p");
+  xvfbOption.appendChild(appForm);
   const inputAppPath = document.createElement("input");
   inputAppPath.value = "xterm";
-  xvfbOption.appendChild(inputAppPath);
+  appForm.appendChild(inputAppPath);
+  const appButton = document.createElement("button");
+  appButton.textContent = "app run";
+  appButton.disabled = true;
+  appButton.onclick = async () => {
+    if (inputAppPath.value === "") {
+      return;
+    }
+    if (display) {
+      await window.desktop.startApp(display, inputAppPath.value);
+    }
+  };
+  appForm.appendChild(appButton);
 
   const runButton = document.createElement("button");
-  runButton.textContent = "run";
+  runButton.textContent = "Xvfb run";
   runButton.onclick = async () => {
     desktopMode.disabled = true;
     for (let displayNum = 1; ; displayNum++) {
       if (
         await startXvfb(
           displayNum,
-          inputAppPath.value,
           xkbLayout.value,
           im.checked,
           runButton,
@@ -102,6 +115,7 @@ const xvfbMode = () => {
       ) {
         display = displayNum;
         xkbButton.disabled = false;
+        appButton.disabled = false;
         break;
       }
     }
@@ -111,17 +125,12 @@ const xvfbMode = () => {
 
 const startXvfb = async (
   displayNum: number,
-  appPath: string,
   xkbLayout: string,
   im: boolean,
   runButton: HTMLButtonElement,
   width: number,
   height: number,
 ): Promise<boolean> => {
-  if (appPath === "") {
-    return false;
-  }
-
   const isStart = await window.desktop.startXvfb(displayNum, width, height);
   if (isStart) {
     runButton.disabled = true;
@@ -130,7 +139,6 @@ const startXvfb = async (
     if (im) {
       await window.desktop.setInputMethod(displayNum);
     }
-    await window.desktop.startApp(displayNum, appPath);
 
     const ip_addr = await window.util.getAddress();
 
