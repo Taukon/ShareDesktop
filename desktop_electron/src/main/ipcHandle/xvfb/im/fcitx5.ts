@@ -1,21 +1,21 @@
 import { existsSync } from "fs";
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 
-// sudo apt install ibus-mozc
+// sudo apt install fcitx-mozc
 
-type IbusEnv = {
+type Fcitx5Env = {
   DISPLAY: string | undefined;
   GTK_IM_MODULE: string | undefined;
   QT_IM_MODULE: string | undefined;
   XMODIFIERS: string | undefined;
 };
 
-export class Ibus {
-  private oldEnv: IbusEnv;
+export class Fcitx5 {
+  private oldEnv: Fcitx5Env;
   private silent: boolean = false;
   private process: ChildProcessWithoutNullStreams | undefined;
 
-  constructor(displayNum: number) {
+  constructor(displayNum: number, onSet?: boolean) {
     this.oldEnv = {
       DISPLAY: process.env.DISPLAY,
       GTK_IM_MODULE: process.env.GTK_IM_MODULE,
@@ -24,10 +24,10 @@ export class Ibus {
     };
     if (existsSync(`/tmp/.X${displayNum}-lock`)) {
       // TODO
-      if (existsSync(`/usr/bin/ibus-daemon`)) {
+      if (existsSync(`/usr/bin/fcitx5`)) {
         process.env.DISPLAY = `:${displayNum}`;
-        this.setEnv();
-        this.process = spawn("ibus-daemon", ["-rx"]);
+        if (onSet) this.setEnv();
+        this.process = spawn("fcitx5");
         process.env.DISPLAY = this.oldEnv.DISPLAY;
 
         this.process.on("exit", (code) => {
@@ -52,9 +52,9 @@ export class Ibus {
   }
 
   private setEnv() {
-    process.env.GTK_IM_MODULE = `ibus`;
-    process.env.QT_IM_MODULE = `ibus`;
-    process.env.XMODIFIERS = `@im=ibus`;
+    process.env.GTK_IM_MODULE = `fcitx`;
+    process.env.QT_IM_MODULE = `fcitx`;
+    process.env.XMODIFIERS = `@im=fcitx`;
   }
 
   public restoreEnv() {

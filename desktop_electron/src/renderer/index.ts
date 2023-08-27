@@ -93,7 +93,7 @@ const xvfbMode = () => {
       return;
     }
     if (display) {
-      await window.desktop.startApp(display, inputAppPath.value);
+      await window.desktop.startX11App(display, inputAppPath.value);
     }
   };
   appForm.appendChild(appButton);

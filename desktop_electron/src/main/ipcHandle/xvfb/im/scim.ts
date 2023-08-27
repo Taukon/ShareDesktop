@@ -1,34 +1,33 @@
 import { existsSync } from "fs";
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 
-// sudo apt install uim uim-mozc uim-xim
+// sudo apt install scim-mozc
 
-type UimEnv = {
+type ScimEnv = {
   DISPLAY: string | undefined;
   GTK_IM_MODULE: string | undefined;
   QT_IM_MODULE: string | undefined;
   XMODIFIERS: string | undefined;
-  UIM_CANDWIN_PROG: string | undefined;
 };
 
-export class Uim {
-  private oldEnv: UimEnv;
+export class Scim {
+  private oldEnv: ScimEnv;
   private silent: boolean = false;
   private process: ChildProcessWithoutNullStreams | undefined;
 
-  constructor(displayNum: number) {
+  constructor(displayNum: number, onSet?: boolean) {
     this.oldEnv = {
       DISPLAY: process.env.DISPLAY,
       GTK_IM_MODULE: process.env.GTK_IM_MODULE,
       QT_IM_MODULE: process.env.QT_IM_MODULE,
       XMODIFIERS: process.env.XMODIFIERS,
-      UIM_CANDWIN_PROG: process.env.UIM_CANDWIN_PROG,
     };
     if (existsSync(`/tmp/.X${displayNum}-lock`)) {
-      if (existsSync(`/usr/bin/uim-xim`)) {
+      // TODO
+      if (existsSync(`/usr/bin/scim`)) {
         process.env.DISPLAY = `:${displayNum}`;
-        this.setEnv();
-        this.process = spawn("uim-xim");
+        if (onSet) this.setEnv();
+        this.process = spawn("scim");
         process.env.DISPLAY = this.oldEnv.DISPLAY;
 
         this.process.on("exit", (code) => {
@@ -53,16 +52,14 @@ export class Uim {
   }
 
   private setEnv() {
-    process.env.GTK_IM_MODULE = `uim`;
-    process.env.QT_IM_MODULE = `uim`;
-    process.env.XMODIFIERS = `@im=uim`;
-    process.env.UIM_CANDWIN_PROG = `uim-candwin-gtk`;
+    process.env.GTK_IM_MODULE = `scim`;
+    process.env.QT_IM_MODULE = `scim`;
+    process.env.XMODIFIERS = `@im=SCIM`;
   }
 
   public restoreEnv() {
     process.env.GTK_IM_MODULE = this.oldEnv.GTK_IM_MODULE;
     process.env.QT_IM_MODULE = this.oldEnv.QT_IM_MODULE;
     process.env.XMODIFIERS = this.oldEnv.XMODIFIERS;
-    process.env.UIM_CANDWIN_PROG = this.oldEnv.UIM_CANDWIN_PROG;
   }
 }

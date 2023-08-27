@@ -66,6 +66,10 @@ export class Xvfb {
     return false;
   }
 
+  public isRun(): boolean {
+    return this.process ? true : false;
+  }
+
   public stop(): boolean {
     this.killProcess();
     this.restoreDisplayEnv();

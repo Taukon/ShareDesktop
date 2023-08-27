@@ -153,7 +153,7 @@ export class DesktopWebRTCXvfb {
     if (!isFullScreen) {
       return setInterval(async () => {
         try {
-          const img = await window.desktop.getScreenshot(displayName);
+          const img = await window.desktop.getX11Screenshot(displayName);
           if (img) {
             if (Buffer.compare(img, preImg) != 0) {
               if (onDisplayScreen) {
@@ -172,7 +172,7 @@ export class DesktopWebRTCXvfb {
     } else {
       return setInterval(async () => {
         try {
-          const img = await window.desktop.getFullScreenshot(displayName);
+          const img = await window.desktop.getX11FullScreenshot(displayName);
           if (img) {
             if (Buffer.compare(img, preImg) != 0) {
               if (onDisplayScreen) {

@@ -11,22 +11,21 @@ export const desktop = {
   ): Promise<void> => {
     await ipcRenderer.invoke("testControl", displayName, data);
   },
-  getScreenshot: async (displayName: string): Promise<Buffer | undefined> => {
-    const jpegImg: Buffer | undefined = await ipcRenderer.invoke(
-      "getScreenshot",
-      displayName,
+  getAudio: async (
+    pulseAudioDevice: number,
+    data: AudioData,
+  ): Promise<number | undefined> => {
+    const ffmpegPid: number | undefined = await ipcRenderer.invoke(
+      "getAudio",
+      pulseAudioDevice,
+      data,
     );
-    return jpegImg;
+    return ffmpegPid;
   },
-  getFullScreenshot: async (
-    displayName: string,
-  ): Promise<Buffer | undefined> => {
-    const jpegImg: Buffer | undefined = await ipcRenderer.invoke(
-      "getFullScreenshot",
-      displayName,
-    );
-    return jpegImg;
+  stopAudio: async (ffmpegPid: number): Promise<void> => {
+    await ipcRenderer.invoke("stopAudio", ffmpegPid);
   },
+  // Xvfb
   setXkbLayout: async (
     displayNum: number,
     layout: string,
@@ -51,22 +50,29 @@ export const desktop = {
     );
     return result;
   },
-  startApp: async (displayNum: number, appPath: string): Promise<boolean> => {
-    const result = await ipcRenderer.invoke("startApp", displayNum, appPath);
-    return result;
-  },
-  getAudio: async (
-    pulseAudioDevice: number,
-    data: AudioData,
-  ): Promise<number | undefined> => {
-    const ffmpegPid: number | undefined = await ipcRenderer.invoke(
-      "getAudio",
-      pulseAudioDevice,
-      data,
+  getX11Screenshot: async (
+    displayName: string,
+  ): Promise<Buffer | undefined> => {
+    const jpegImg: Buffer | undefined = await ipcRenderer.invoke(
+      "getX11Screenshot",
+      displayName,
     );
-    return ffmpegPid;
+    return jpegImg;
   },
-  stopAudio: async (ffmpegPid: number): Promise<void> => {
-    await ipcRenderer.invoke("stopAudio", ffmpegPid);
+  getX11FullScreenshot: async (
+    displayName: string,
+  ): Promise<Buffer | undefined> => {
+    const jpegImg: Buffer | undefined = await ipcRenderer.invoke(
+      "getX11FullScreenshot",
+      displayName,
+    );
+    return jpegImg;
+  },
+  startX11App: async (
+    displayNum: number,
+    appPath: string,
+  ): Promise<boolean> => {
+    const result = await ipcRenderer.invoke("startX11App", displayNum, appPath);
+    return result;
   },
 };
