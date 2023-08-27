@@ -32,7 +32,6 @@ export class DesktopWebRTCUserMedia {
   public desktopId: string;
   public socket: Socket;
 
-  private displayName: string;
   private intervalId?: NodeJS.Timeout;
 
   public canvas = document.createElement("canvas");
@@ -48,7 +47,6 @@ export class DesktopWebRTCUserMedia {
   private device?: mediasoupClient.types.Device;
 
   constructor(
-    displayNum: number,
     desktopId: string,
     socket: Socket,
     interval: number,
@@ -56,8 +54,6 @@ export class DesktopWebRTCUserMedia {
     videoStream: MediaStream,
     onAudio: boolean,
   ) {
-    this.displayName = `:${displayNum}`;
-
     this.desktopId = desktopId;
     this.socket = socket;
 
@@ -65,28 +61,30 @@ export class DesktopWebRTCUserMedia {
     this.video.srcObject = videoStream;
     this.video.onloadedmetadata = () => this.video.play();
 
-    createDevice(socket, desktopId).then((device) => {
-      this.startScreen(
-        device,
-        socket,
-        desktopId,
-        this.canvas,
-        this.video,
-        interval,
-      );
+    window.desktop.getXDisplayEnv().then((displayName) => {
+      createDevice(socket, desktopId).then((device) => {
+        this.startScreen(
+          device,
+          socket,
+          desktopId,
+          this.canvas,
+          this.video,
+          interval,
+        );
 
-      this.startControl(device, socket, desktopId, this.displayName);
-      if (onDisplayScreen) {
-        controlEventListener(this.canvas, this.displayName);
-      }
+        this.startControl(device, socket, desktopId, displayName);
+        if (onDisplayScreen) {
+          controlEventListener(this.canvas, displayName);
+        }
 
-      if (onAudio) {
-        this.startAudio(socket, desktopId).then((ffmpegPid) => {
-          this.ffmpegPid = ffmpegPid;
-        });
-      }
+        if (onAudio) {
+          this.startAudio(socket, desktopId).then((ffmpegPid) => {
+            this.ffmpegPid = ffmpegPid;
+          });
+        }
 
-      this.device = device;
+        this.device = device;
+      });
     });
   }
 

@@ -97,7 +97,7 @@ export const setXvfbIpcHandler = (): void => {
         process.on("SIGINT", (e) => {
           console.log(`SIGINT: ${e}`);
           // appProcess.stop();
-          // xvfb.stop();
+          xvfb?.stop();
           process.exit(0);
         });
         process.on("uncaughtException", (e) => {
@@ -147,4 +147,8 @@ export const setXvfbIpcHandler = (): void => {
       }
     },
   );
+
+  ipcMain.handle("getXDisplayEnv", () => {
+    return `${process.env.DISPLAY}`;
+  });
 };

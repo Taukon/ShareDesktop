@@ -79,6 +79,38 @@ const xvfbMode = () => {
   im.setAttribute("type", "radio");
   imForm.appendChild(im);
 
+  const screenForm = document.createElement("p");
+  screenForm.textContent = "Full Screen enable: ";
+  xvfbOption.appendChild(screenForm);
+  const screen = document.createElement("input");
+  screen.setAttribute("type", "radio");
+  screenForm.appendChild(screen);
+
+  const runButton = document.createElement("button");
+  runButton.textContent = "Xvfb run";
+  runButton.onclick = async () => {
+    desktopMode.disabled = true;
+    for (let displayNum = 1; ; displayNum++) {
+      if (
+        await startXvfb(
+          displayNum,
+          xkbLayout.value,
+          im.checked,
+          screen.checked,
+          runButton,
+          parseInt(inputWidth.value),
+          parseInt(inputHeight.value),
+        )
+      ) {
+        display = displayNum;
+        xkbButton.disabled = false;
+        appButton.disabled = false;
+        break;
+      }
+    }
+  };
+  xvfbOption.appendChild(runButton);
+
   // app process
   const appForm = document.createElement("p");
   xvfbOption.appendChild(appForm);
@@ -97,36 +129,13 @@ const xvfbMode = () => {
     }
   };
   appForm.appendChild(appButton);
-
-  const runButton = document.createElement("button");
-  runButton.textContent = "Xvfb run";
-  runButton.onclick = async () => {
-    desktopMode.disabled = true;
-    for (let displayNum = 1; ; displayNum++) {
-      if (
-        await startXvfb(
-          displayNum,
-          xkbLayout.value,
-          im.checked,
-          runButton,
-          parseInt(inputWidth.value),
-          parseInt(inputHeight.value),
-        )
-      ) {
-        display = displayNum;
-        xkbButton.disabled = false;
-        appButton.disabled = false;
-        break;
-      }
-    }
-  };
-  xvfbOption.appendChild(runButton);
 };
 
 const startXvfb = async (
   displayNum: number,
   xkbLayout: string,
   im: boolean,
+  fullScreen: boolean,
   runButton: HTMLButtonElement,
   width: number,
   height: number,
@@ -159,7 +168,7 @@ const startXvfb = async (
           socket,
           interval,
           onDisplayScreen,
-          false,
+          fullScreen,
           onAudio,
         );
 
@@ -242,7 +251,6 @@ const startUserMedia = async (sourceId: string, audio: boolean) => {
         }
 
         const desktopWebRTC = new DesktopWebRTCUserMedia(
-          0,
           msg,
           socket,
           interval,

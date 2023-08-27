@@ -75,4 +75,8 @@ export const desktop = {
     const result = await ipcRenderer.invoke("startX11App", displayNum, appPath);
     return result;
   },
+  getXDisplayEnv: async (): Promise<string> => {
+    const path: string = await ipcRenderer.invoke("getXDisplayEnv");
+    return path;
+  },
 };

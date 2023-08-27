@@ -12,7 +12,7 @@ type ScimEnv = {
 
 export class Scim {
   private oldEnv: ScimEnv;
-  private silent: boolean = false;
+  private silent: boolean = true;
   private process: ChildProcessWithoutNullStreams | undefined;
 
   constructor(displayNum: number, onSet?: boolean) {

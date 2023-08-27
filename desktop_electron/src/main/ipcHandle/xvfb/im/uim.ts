@@ -13,7 +13,7 @@ type UimEnv = {
 
 export class Uim {
   private oldEnv: UimEnv;
-  private silent: boolean = false;
+  private silent: boolean = true;
   private process: ChildProcessWithoutNullStreams | undefined;
 
   constructor(displayNum: number, onSet?: boolean) {

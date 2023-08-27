@@ -43,13 +43,13 @@ export class AppProcess {
     });
     this.process.on("exit", (code) => {
       if (!this.silent) {
-        console.log("CODE", code);
+        console.log("App CODE", code);
       }
       this.stop();
     });
     this.process.on("error", (code) => {
       if (!this.silent) {
-        console.log("CODE", code);
+        console.log("App CODE", code);
       }
       this.stop();
     });

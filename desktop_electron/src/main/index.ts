@@ -24,7 +24,10 @@ app.whenReady().then(async () => {
   createWindow();
 });
 
-app.once("window-all-closed", () => app.quit());
+app.once("window-all-closed", () => {
+  app.quit();
+  process.exit(0);
+});
 
 app.on(
   "certificate-error",
