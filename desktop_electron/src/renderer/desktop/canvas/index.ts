@@ -61,13 +61,13 @@ export const controlEventListener = (
     "keydown",
     (event) => {
       event.preventDefault();
-      const keySim = keyboradX11(event);
-      if (keySim) {
-        const key = { key: { keySim: keySim, down: true } };
+      const keySym = keyboradX11(event);
+      if (keySym) {
+        const key = { key: { keySym: keySym, down: true } };
         window.desktop.testControl(displayName, key);
-        if (keySim === 0xff2a || keySim === 0xff28 || keySim === 0xff29) {
+        if (keySym === 0xff2a || keySym === 0xff28 || keySym === 0xff29) {
           window.desktop.testControl(displayName, {
-            key: { keySim: keySim, down: false },
+            key: { keySym: keySym, down: false },
           });
         }
       }
@@ -79,9 +79,9 @@ export const controlEventListener = (
     "keyup",
     (event) => {
       event.preventDefault();
-      const keySim = keyboradX11(event);
-      if (keySim) {
-        const key = { key: { keySim: keySim, down: false } };
+      const keySym = keyboradX11(event);
+      if (keySym) {
+        const key = { key: { keySym: keySym, down: false } };
         window.desktop.testControl(displayName, key);
       }
       // console.log("keycode up: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
@@ -119,8 +119,8 @@ const keyboradX11 = (msg: KeyboardEvent): number | undefined => {
   } else if (msg.key.match(/^F[1-9]*/)) {
     //F1~9
     const keys = msg.key.match(/^F[1-9]*/);
-    const keySim = keys ? KeySyms[`${keys[0]}${keys[1]}`] : undefined;
-    return keySim;
+    const keySym = keys ? KeySyms[`${keys[0]}${keys[1]}`] : undefined;
+    return keySym;
     //console.log("F: "+JSON.stringify(msg.key));
   } else if (msg.key == "Control") {
     return KeySyms["Control_L"];
@@ -223,8 +223,8 @@ const keyboradX11 = (msg: KeyboardEvent): number | undefined => {
   } else if (msg.key == ")") {
     return msg.key.charCodeAt(0);
   } else if (msg.key.length == 1) {
-    const keySim = msg.key.charCodeAt(0);
-    return !Number.isNaN(keySim) ? keySim : undefined;
+    const keySym = msg.key.charCodeAt(0);
+    return !Number.isNaN(keySym) ? keySym : undefined;
   }
 
   //console.log(JSON.stringify(keydata));

@@ -13,7 +13,7 @@ export type ControlData = {
     down: boolean | undefined;
   };
   key?: {
-    keySim: number | undefined;
+    keySym: number | undefined;
     down: boolean | undefined;
   };
 };

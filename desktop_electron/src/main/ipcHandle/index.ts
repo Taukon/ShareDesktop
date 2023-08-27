@@ -49,10 +49,10 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
         } catch (error) {
           console.error(error);
         }
-      } else if (data.key?.keySim != undefined && data.key.down != undefined) {
+      } else if (data.key?.keySym != undefined && data.key.down != undefined) {
         try {
-          //console.log("try: " + data.key.keySim + " : " + data.key.down);
-          xtest.testKeyEvent(displayName, data.key.keySim, data.key.down);
+          //console.log("try: " + data.key.keySym + " : " + data.key.down);
+          xtest.testKeyEvent(displayName, data.key.keySym, data.key.down);
         } catch (error) {
           console.error(error);
         }
