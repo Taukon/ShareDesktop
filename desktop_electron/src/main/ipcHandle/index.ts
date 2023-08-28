@@ -91,8 +91,13 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
         }
       } else if (data.key?.keySym != undefined && data.key.down != undefined) {
         try {
-          //console.log("try: " + data.key.keySym + " : " + data.key.down);
-          xtest.keyEvent(displayName, data.key.keySym, data.key.down);
+          // console.log("try: " + data.key.keySym + " : " + data.key.down);
+          xtest.keyEventXID(
+            displayName,
+            data.key.keySym,
+            data.key.down,
+            windowId,
+          );
         } catch (error) {
           console.error(error);
         }

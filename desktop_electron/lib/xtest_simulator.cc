@@ -21,10 +21,39 @@ Napi::Value keyEvent(const Napi::CallbackInfo &info)
     Display *display = XOpenDisplay(display_name);
 
     if(display){
-        uint32_t keySym = info[1].As<Napi::Number>().Uint32Value();
+        KeySym keySym = info[1].As<Napi::Number>().Int64Value();
         bool down = info[2].As<Napi::Boolean>().Value();
 
-        uint32_t keyCode = XKeysymToKeycode(display, keySym);
+        KeyCode keyCode = XKeysymToKeycode(display, keySym);
+        //  printf("keySym: %x code: %x down: %x\n", keySym, keyCode, down);
+        if (keyCode != 0)
+        {
+            //printf("key: %d \n", down);
+            XTestFakeKeyEvent(display, keyCode, down, 0L);
+        }
+
+        XCloseDisplay(display);
+        //display = NULL;
+    }
+
+    return env.Null();
+}
+
+// TODO use Linux Input Subsystem
+Napi::Value keyEventXID(const Napi::CallbackInfo &info)
+{
+   Napi::Env env = info.Env();
+
+    //Display *display = XOpenDisplay(NULL);
+    std::string arg_str = info[0].As<Napi::String>();
+    const char* display_name = arg_str.c_str();
+    Display *display = XOpenDisplay(display_name);
+
+    if(display){
+        KeySym keySym = info[1].As<Napi::Number>().Int64Value();
+        bool down = info[2].As<Napi::Boolean>().Value();
+
+        KeyCode keyCode = XKeysymToKeycode(display, keySym);
         //  printf("keySym: %x code: %x down: %x\n", keySym, keyCode, down);
         if (keyCode != 0)
         {
@@ -81,12 +110,17 @@ Napi::Value motionEventXID(const Napi::CallbackInfo &info)
     xcb_get_geometry_cookie_t parent_geometry_cookie;
     xcb_get_geometry_reply_t *parent_geometry;
 
-    connection = xcb_connect(NULL, NULL);
+    connection = xcb_connect(display_name, NULL);
+    if(!connection)
+    {
+        return env.Null();
+    }
 
     geometry_cookie = xcb_get_geometry(connection, window);
     geometry = xcb_get_geometry_reply(connection, geometry_cookie, NULL);
     if (!geometry) {
         // printf("Error: Failed to get window geometry\n");
+        xcb_disconnect(connection);
         return env.Null();
     }
 
@@ -94,12 +128,17 @@ Napi::Value motionEventXID(const Napi::CallbackInfo &info)
     tree_reply = xcb_query_tree_reply(connection, tree_cookie, NULL);
     if(!tree_reply){
         // printf("Error: Failed to get window tree information\n");
+        free(geometry);
+        xcb_disconnect(connection);
         return env.Null();
     }
     parent_geometry_cookie = xcb_get_geometry(connection, tree_reply->parent);
     parent_geometry = xcb_get_geometry_reply(connection, parent_geometry_cookie, NULL);
     if (!parent_geometry) {
-        // printf("Error: Failed to get window geometry\n");
+        // printf("Error: Failed to get window parent geometry\n");
+        free(geometry);
+        free(tree_reply);
+        xcb_disconnect(connection);
         return env.Null();
     }
 
@@ -110,8 +149,8 @@ Napi::Value motionEventXID(const Napi::CallbackInfo &info)
     int base_x = parent_geometry->x + geometry->x;
     int base_y = parent_geometry->y + geometry->y;
     
-    free(tree_reply);
     free(geometry);
+    free(tree_reply);
     free(parent_geometry);
     xcb_disconnect(connection);
 
@@ -188,6 +227,8 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
     exports.Set(Napi::String::New(env, "keyEvent"),
                 Napi::Function::New(env, keyEvent));
+    exports.Set(Napi::String::New(env, "keyEventXID"),
+                Napi::Function::New(env, keyEventXID));
     exports.Set(Napi::String::New(env, "motionEvent"),
                 Napi::Function::New(env, motionEvent));
     exports.Set(Napi::String::New(env, "motionEventXID"),
