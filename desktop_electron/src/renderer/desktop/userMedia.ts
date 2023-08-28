@@ -15,7 +15,7 @@ import {
   WaitFileConsumer,
 } from "./desktop";
 import { Buffer } from "buffer";
-import { controlEventListener } from "./canvas";
+import { controlEventListenerWID } from "./canvas";
 import { ControlData } from "../../util/type";
 import { establishDesktopAudio, setFileConsumer } from "./signaling";
 import { FileInfo } from "./signaling/type";
@@ -47,6 +47,7 @@ export class DesktopWebRTCUserMedia {
   private device?: mediasoupClient.types.Device;
 
   constructor(
+    windowId: number,
     desktopId: string,
     socket: Socket,
     interval: number,
@@ -72,9 +73,9 @@ export class DesktopWebRTCUserMedia {
           interval,
         );
 
-        this.startControl(device, socket, desktopId, displayName);
+        this.startControl(device, socket, desktopId, windowId, displayName);
         if (onDisplayScreen) {
-          controlEventListener(this.canvas, displayName);
+          controlEventListenerWID(this.canvas, displayName, windowId);
         }
 
         if (onAudio) {
@@ -157,6 +158,7 @@ export class DesktopWebRTCUserMedia {
     device: mediasoupClient.types.Device,
     socket: Socket,
     desktopId: string,
+    windowId: number,
     displayName: string,
   ): Promise<void> {
     const transport = await createControlTransport(device, socket, desktopId);
@@ -166,7 +168,7 @@ export class DesktopWebRTCUserMedia {
       const buf = Buffer.from(msg as ArrayBuffer);
       const data: ControlData = JSON.parse(buf.toString());
 
-      window.desktop.testControl(displayName, data);
+      window.desktop.controlWID(displayName, windowId, data);
     });
   }
 

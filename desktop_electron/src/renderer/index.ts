@@ -204,7 +204,7 @@ const userMediaMode = async () => {
   const info = await window.desktop.getDisplayInfo();
   for (const item of info) {
     const button = document.createElement("button");
-    button.textContent = item.name;
+    button.textContent = `${item.name} | ${item.id}`;
     button.addEventListener("click", async () => {
       desktopMode.disabled = true;
       startUserMedia(item.id, audio.checked);
@@ -249,25 +249,32 @@ const startUserMedia = async (sourceId: string, audio: boolean) => {
         if (desktopIdList) {
           desktopIdList.textContent = `desktopID: ${msg}`;
         }
+        //
+        const regex = /:(\d+):/; // 正規表現パターンを定義
+        const match = sourceId.match(regex); // 正規表現にマッチする部分を抽出
+        if (match && match[1]) {
+          const extractedNumber = parseInt(match[1], 10); // マッチした部分をnumber型に変換
+          const desktopWebRTC = new DesktopWebRTCUserMedia(
+            extractedNumber, //sourceId
+            msg,
+            socket,
+            interval,
+            onDisplayScreen,
+            stream,
+            onAudio,
+          );
 
-        const desktopWebRTC = new DesktopWebRTCUserMedia(
-          msg,
-          socket,
-          interval,
-          onDisplayScreen,
-          stream,
-          onAudio,
-        );
+          if (onDisplayScreen) {
+            screen?.appendChild(desktopWebRTC.canvas);
+          }
 
-        if (onDisplayScreen) {
-          screen?.appendChild(desktopWebRTC.canvas);
+          socket.on("disconnect", () => {
+            desktopWebRTC.deleteDesktop();
+          });
+
+          setFileShare(desktopWebRTC);
         }
-
-        socket.on("disconnect", () => {
-          desktopWebRTC.deleteDesktop();
-        });
-
-        setFileShare(desktopWebRTC);
+        //
       }
     });
   } catch (e) {

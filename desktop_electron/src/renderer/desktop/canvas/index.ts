@@ -18,7 +18,7 @@ export const controlEventListener = (
     "mousedown",
     () => {
       const button = { button: { buttonMask: 0x1, down: true } };
-      window.desktop.testControl(displayName, button);
+      window.desktop.control(displayName, button);
       //console.log("mousedown: " + JSON.stringify(event));
     },
     false,
@@ -27,7 +27,7 @@ export const controlEventListener = (
     "mouseup",
     () => {
       const button = { button: { buttonMask: 0x1, down: false } };
-      window.desktop.testControl(displayName, button);
+      window.desktop.control(displayName, button);
       //console.log("mouseup: " + JSON.stringify(event));
     },
     false,
@@ -38,7 +38,7 @@ export const controlEventListener = (
       const mouseX = event.clientX - canvas.getBoundingClientRect().left;
       const mouseY = event.clientY - canvas.getBoundingClientRect().top;
       const motion = { move: { x: Math.round(mouseX), y: Math.round(mouseY) } };
-      window.desktop.testControl(displayName, motion);
+      window.desktop.control(displayName, motion);
       //console.log("mousemove : x=" + mouseX + ", y=" + mouseY);
     },
     false,
@@ -50,8 +50,8 @@ export const controlEventListener = (
       event.preventDefault();
       const buttonDown = { button: { buttonMask: 0x4, down: true } };
       const buttonUp = { button: { buttonMask: 0x4, down: false } };
-      window.desktop.testControl(displayName, buttonDown);
-      window.desktop.testControl(displayName, buttonUp);
+      window.desktop.control(displayName, buttonDown);
+      window.desktop.control(displayName, buttonUp);
       //console.log(JSON.stringify(event));
     },
     false,
@@ -64,9 +64,9 @@ export const controlEventListener = (
       const keySym = keyboradX11(event);
       if (keySym) {
         const key = { key: { keySym: keySym, down: true } };
-        window.desktop.testControl(displayName, key);
+        window.desktop.control(displayName, key);
         if (keySym === 0xff2a || keySym === 0xff28 || keySym === 0xff29) {
-          window.desktop.testControl(displayName, {
+          window.desktop.control(displayName, {
             key: { keySym: keySym, down: false },
           });
         }
@@ -82,7 +82,7 @@ export const controlEventListener = (
       const keySym = keyboradX11(event);
       if (keySym) {
         const key = { key: { keySym: keySym, down: false } };
-        window.desktop.testControl(displayName, key);
+        window.desktop.control(displayName, key);
       }
       // console.log("keycode up: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
     },
@@ -95,10 +95,107 @@ export const controlEventListener = (
       event.preventDefault();
       if (event.deltaY / 100 > 0) {
         const button = { button: { buttonMask: 0x10, down: true } };
-        window.desktop.testControl(displayName, button);
+        window.desktop.control(displayName, button);
       } else {
         const button = { button: { buttonMask: 0x8, down: true } };
-        window.desktop.testControl(displayName, button);
+        window.desktop.control(displayName, button);
+      }
+      //console.log("scroll: "+JSON.stringify(data.wheel));
+    },
+    false,
+  );
+};
+
+export const controlEventListenerWID = (
+  canvas: HTMLCanvasElement,
+  displayName: string,
+  windowId: number,
+): void => {
+  canvas.addEventListener(
+    "mousedown",
+    () => {
+      const button = { button: { buttonMask: 0x1, down: true } };
+      window.desktop.controlWID(displayName, windowId, button);
+      //console.log("mousedown: " + JSON.stringify(event));
+    },
+    false,
+  );
+  canvas.addEventListener(
+    "mouseup",
+    () => {
+      const button = { button: { buttonMask: 0x1, down: false } };
+      window.desktop.controlWID(displayName, windowId, button);
+      //console.log("mouseup: " + JSON.stringify(event));
+    },
+    false,
+  );
+  canvas.addEventListener(
+    "mousemove",
+    (event) => {
+      const mouseX = event.clientX - canvas.getBoundingClientRect().left;
+      const mouseY = event.clientY - canvas.getBoundingClientRect().top;
+      const motion = { move: { x: Math.round(mouseX), y: Math.round(mouseY) } };
+      window.desktop.controlWID(displayName, windowId, motion);
+      //console.log("mousemove : x=" + mouseX + ", y=" + mouseY);
+    },
+    false,
+  );
+
+  canvas.addEventListener(
+    "contextmenu",
+    (event) => {
+      event.preventDefault();
+      const buttonDown = { button: { buttonMask: 0x4, down: true } };
+      const buttonUp = { button: { buttonMask: 0x4, down: false } };
+      window.desktop.controlWID(displayName, windowId, buttonDown);
+      window.desktop.controlWID(displayName, windowId, buttonUp);
+      //console.log(JSON.stringify(event));
+    },
+    false,
+  );
+
+  canvas.addEventListener(
+    "keydown",
+    (event) => {
+      event.preventDefault();
+      const keySym = keyboradX11(event);
+      if (keySym) {
+        const key = { key: { keySym: keySym, down: true } };
+        window.desktop.controlWID(displayName, windowId, key);
+        if (keySym === 0xff2a || keySym === 0xff28 || keySym === 0xff29) {
+          window.desktop.controlWID(displayName, windowId, {
+            key: { keySym: keySym, down: false },
+          });
+        }
+      }
+      // console.log("keycode down: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
+    },
+    false,
+  );
+  canvas.addEventListener(
+    "keyup",
+    (event) => {
+      event.preventDefault();
+      const keySym = keyboradX11(event);
+      if (keySym) {
+        const key = { key: { keySym: keySym, down: false } };
+        window.desktop.controlWID(displayName, windowId, key);
+      }
+      // console.log("keycode up: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
+    },
+    false,
+  );
+
+  canvas.addEventListener(
+    "wheel",
+    (event) => {
+      event.preventDefault();
+      if (event.deltaY / 100 > 0) {
+        const button = { button: { buttonMask: 0x10, down: true } };
+        window.desktop.controlWID(displayName, windowId, button);
+      } else {
+        const button = { button: { buttonMask: 0x8, down: true } };
+        window.desktop.controlWID(displayName, windowId, button);
       }
       //console.log("scroll: "+JSON.stringify(data.wheel));
     },

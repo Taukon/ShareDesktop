@@ -22,7 +22,7 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
   });
 
   ipcMain.handle(
-    "testControl",
+    "control",
     (
       event: Electron.IpcMainInvokeEvent,
       displayName: string,
@@ -31,7 +31,7 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
       if (data.move?.x != undefined && data.move?.y != undefined) {
         try {
           //console.log("try: "+data.move.x +" :"+ data.move.y);
-          xtest.testMotionEvent(displayName, data.move.x, data.move.y);
+          xtest.motionEvent(displayName, data.move.x, data.move.y);
         } catch (error) {
           console.error(error);
         }
@@ -41,7 +41,7 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
       ) {
         try {
           //console.log("try: " + data.button.buttonMask + " : " + data.button.down);
-          xtest.testButtonEvent(
+          xtest.buttonEvent(
             displayName,
             data.button.buttonMask,
             data.button.down,
@@ -52,7 +52,47 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
       } else if (data.key?.keySym != undefined && data.key.down != undefined) {
         try {
           //console.log("try: " + data.key.keySym + " : " + data.key.down);
-          xtest.testKeyEvent(displayName, data.key.keySym, data.key.down);
+          xtest.keyEvent(displayName, data.key.keySym, data.key.down);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "controlWID",
+    (
+      event: Electron.IpcMainInvokeEvent,
+      displayName: string,
+      windowId: number,
+      data: ControlData,
+    ) => {
+      if (data.move?.x != undefined && data.move?.y != undefined) {
+        try {
+          //console.log("try: "+data.move.x +" :"+ data.move.y);
+          xtest.motionEventXID(displayName, data.move.x, data.move.y, windowId);
+        } catch (error) {
+          console.error(error);
+        }
+      } else if (
+        data.button?.buttonMask != undefined &&
+        data.button.down != undefined
+      ) {
+        try {
+          //console.log("try: " + data.button.buttonMask + " : " + data.button.down);
+          xtest.buttonEvent(
+            displayName,
+            data.button.buttonMask,
+            data.button.down,
+          );
+        } catch (error) {
+          console.error(error);
+        }
+      } else if (data.key?.keySym != undefined && data.key.down != undefined) {
+        try {
+          //console.log("try: " + data.key.keySym + " : " + data.key.down);
+          xtest.keyEvent(displayName, data.key.keySym, data.key.down);
         } catch (error) {
           console.error(error);
         }

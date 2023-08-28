@@ -5,11 +5,15 @@ export const desktop = {
   getDisplayInfo: async (): Promise<DisplayInfo[]> => {
     return await ipcRenderer.invoke("getDisplayInfo");
   },
-  testControl: async (
+  control: async (displayName: string, data: ControlData): Promise<void> => {
+    await ipcRenderer.invoke("control", displayName, data);
+  },
+  controlWID: async (
     displayName: string,
+    windowId: number,
     data: ControlData,
   ): Promise<void> => {
-    await ipcRenderer.invoke("testControl", displayName, data);
+    await ipcRenderer.invoke("controlWID", displayName, windowId, data);
   },
   getAudio: async (
     pulseAudioDevice: number,

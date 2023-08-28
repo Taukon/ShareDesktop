@@ -35,7 +35,7 @@
             "<!@(node -p \"require('node-addon-api').include\")"
         ],
         'libraries': [
-            '-lX11', '-lXtst'
+            '-lX11', '-lXtst', '-lxcb'
         ],
         'defines': ['NAPI_DISABLE_CPP_EXCEPTIONS'],
     }

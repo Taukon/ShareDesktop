@@ -8,9 +8,10 @@
 #include <X11/XKBlib.h>
 #include <X11/keysym.h>
 #include <X11/extensions/XTest.h> //sudo apt-get install libxtst-dev
+#include <xcb/xcb.h>
 
 
-Napi::Value testKeyEvent(const Napi::CallbackInfo &info)
+Napi::Value keyEvent(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
@@ -38,7 +39,7 @@ Napi::Value testKeyEvent(const Napi::CallbackInfo &info)
     return env.Null();
 }
 
-Napi::Value testMotionEvent(const Napi::CallbackInfo &info)
+Napi::Value motionEvent(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
@@ -61,7 +62,70 @@ Napi::Value testMotionEvent(const Napi::CallbackInfo &info)
     return env.Null();
 }
 
-Napi::Value testButtonEvent(const Napi::CallbackInfo &info)
+Napi::Value motionEventXID(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    //Display *display = XOpenDisplay(NULL);
+    std::string arg_str = info[0].As<Napi::String>();
+    const char* display_name = arg_str.c_str();
+    int x = info[1].As<Napi::Number>().Int32Value();
+    int y = info[2].As<Napi::Number>().Int32Value();
+    xcb_window_t window = info[3].As<Napi::Number>().Int32Value();
+
+    xcb_connection_t *connection;
+    xcb_query_tree_cookie_t tree_cookie;
+    xcb_query_tree_reply_t *tree_reply;
+    xcb_get_geometry_cookie_t geometry_cookie;
+    xcb_get_geometry_reply_t *geometry;
+    xcb_get_geometry_cookie_t parent_geometry_cookie;
+    xcb_get_geometry_reply_t *parent_geometry;
+
+    connection = xcb_connect(NULL, NULL);
+
+    geometry_cookie = xcb_get_geometry(connection, window);
+    geometry = xcb_get_geometry_reply(connection, geometry_cookie, NULL);
+    if (!geometry) {
+        // printf("Error: Failed to get window geometry\n");
+        return env.Null();
+    }
+
+    tree_cookie = xcb_query_tree(connection, window);
+    tree_reply = xcb_query_tree_reply(connection, tree_cookie, NULL);
+    if(!tree_reply){
+        // printf("Error: Failed to get window tree information\n");
+        return env.Null();
+    }
+    parent_geometry_cookie = xcb_get_geometry(connection, tree_reply->parent);
+    parent_geometry = xcb_get_geometry_reply(connection, parent_geometry_cookie, NULL);
+    if (!parent_geometry) {
+        // printf("Error: Failed to get window geometry\n");
+        return env.Null();
+    }
+
+    // printf("X: %d\n", geometry->x);
+    // printf("Y: %d\n", geometry->y);
+    // printf("PX: %d\n", parent_geometry->x);
+    // printf("PY: %d\n", parent_geometry->y);
+    int base_x = parent_geometry->x + geometry->x;
+    int base_y = parent_geometry->y + geometry->y;
+    
+    free(tree_reply);
+    free(geometry);
+    free(parent_geometry);
+    xcb_disconnect(connection);
+
+    Display *display = XOpenDisplay(display_name);
+    if (display)
+    {
+        XTestFakeMotionEvent(display, -1, base_x + x, base_y + y, 0L);
+        XCloseDisplay(display);
+    }
+
+    return env.Null();
+}
+
+Napi::Value buttonEvent(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
@@ -122,12 +186,14 @@ Napi::Value testButtonEvent(const Napi::CallbackInfo &info)
 
 Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
-    exports.Set(Napi::String::New(env, "testKeyEvent"),
-                Napi::Function::New(env, testKeyEvent));
-    exports.Set(Napi::String::New(env, "testMotionEvent"),
-                Napi::Function::New(env, testMotionEvent));
-    exports.Set(Napi::String::New(env, "testButtonEvent"),
-                Napi::Function::New(env, testButtonEvent));
+    exports.Set(Napi::String::New(env, "keyEvent"),
+                Napi::Function::New(env, keyEvent));
+    exports.Set(Napi::String::New(env, "motionEvent"),
+                Napi::Function::New(env, motionEvent));
+    exports.Set(Napi::String::New(env, "motionEventXID"),
+                Napi::Function::New(env, motionEventXID));
+    exports.Set(Napi::String::New(env, "buttonEvent"),
+                Napi::Function::New(env, buttonEvent));
     return exports;
 }
 

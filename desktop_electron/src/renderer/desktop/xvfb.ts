@@ -204,7 +204,7 @@ export class DesktopWebRTCXvfb {
       const buf = Buffer.from(msg as ArrayBuffer);
       const data: ControlData = JSON.parse(buf.toString());
 
-      window.desktop.testControl(displayName, data);
+      window.desktop.control(displayName, data);
     });
   }
 
