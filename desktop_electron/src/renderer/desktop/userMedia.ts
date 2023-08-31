@@ -15,7 +15,7 @@ import {
   WaitFileConsumer,
 } from "./desktop";
 import { Buffer } from "buffer";
-import { controlEventListener } from "./canvas";
+import { controlEventListenerWID } from "./canvas";
 import { ControlData } from "../../util/type";
 import { establishDesktopAudio, setFileConsumer } from "./signaling";
 import { FileInfo } from "./signaling/type";
@@ -32,7 +32,6 @@ export class DesktopWebRTCUserMedia {
   public desktopId: string;
   public socket: Socket;
 
-  private displayName: string;
   private intervalId?: NodeJS.Timeout;
 
   public canvas = document.createElement("canvas");
@@ -48,7 +47,7 @@ export class DesktopWebRTCUserMedia {
   private device?: mediasoupClient.types.Device;
 
   constructor(
-    displayNum: number,
+    windowId: number,
     desktopId: string,
     socket: Socket,
     interval: number,
@@ -56,8 +55,6 @@ export class DesktopWebRTCUserMedia {
     videoStream: MediaStream,
     onAudio: boolean,
   ) {
-    this.displayName = `:${displayNum}`;
-
     this.desktopId = desktopId;
     this.socket = socket;
 
@@ -65,28 +62,30 @@ export class DesktopWebRTCUserMedia {
     this.video.srcObject = videoStream;
     this.video.onloadedmetadata = () => this.video.play();
 
-    createDevice(socket, desktopId).then((device) => {
-      this.startScreen(
-        device,
-        socket,
-        desktopId,
-        this.canvas,
-        this.video,
-        interval,
-      );
+    window.desktop.getXDisplayEnv().then((displayName) => {
+      createDevice(socket, desktopId).then((device) => {
+        this.startScreen(
+          device,
+          socket,
+          desktopId,
+          this.canvas,
+          this.video,
+          interval,
+        );
 
-      this.startControl(device, socket, desktopId, this.displayName);
-      if (onDisplayScreen) {
-        controlEventListener(this.canvas, this.displayName);
-      }
+        this.startControl(device, socket, desktopId, windowId, displayName);
+        if (onDisplayScreen) {
+          controlEventListenerWID(this.canvas, displayName, windowId);
+        }
 
-      if (onAudio) {
-        this.startAudio(socket, desktopId).then((ffmpegPid) => {
-          this.ffmpegPid = ffmpegPid;
-        });
-      }
+        if (onAudio) {
+          this.startAudio(socket, desktopId).then((ffmpegPid) => {
+            this.ffmpegPid = ffmpegPid;
+          });
+        }
 
-      this.device = device;
+        this.device = device;
+      });
     });
   }
 
@@ -159,6 +158,7 @@ export class DesktopWebRTCUserMedia {
     device: mediasoupClient.types.Device,
     socket: Socket,
     desktopId: string,
+    windowId: number,
     displayName: string,
   ): Promise<void> {
     const transport = await createControlTransport(device, socket, desktopId);
@@ -168,7 +168,7 @@ export class DesktopWebRTCUserMedia {
       const buf = Buffer.from(msg as ArrayBuffer);
       const data: ControlData = JSON.parse(buf.toString());
 
-      window.desktop.testControl(displayName, data);
+      window.desktop.controlWID(displayName, windowId, data);
     });
   }
 

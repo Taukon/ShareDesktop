@@ -40,9 +40,9 @@ const xvfbMode = () => {
   xvfbOption.id = "xvfbOption";
   desktopOption.append(xvfbOption);
 
+  // Xvfb Size
   const xvfbSizeForm = document.createElement("p");
   xvfbOption.appendChild(xvfbSizeForm);
-
   xvfbSizeForm.appendChild(document.createTextNode(" width: "));
   const inputWidth = document.createElement("input");
   inputWidth.setAttribute("type", "number");
@@ -56,110 +56,134 @@ const xvfbMode = () => {
   inputHeight.value = "720";
   xvfbSizeForm.appendChild(inputHeight);
 
-  const inputAppPath = document.createElement("input");
-  inputAppPath.value = "xterm";
-  xvfbOption.appendChild(inputAppPath);
+  // xkbmap layout
+  let display = 0;
+  const xkbForm = document.createElement("p");
+  xvfbOption.appendChild(xkbForm);
+  xkbForm.appendChild(document.createTextNode(" keyboard layout: "));
+  const xkbLayout = document.createElement("input");
+  xkbLayout.value = "jp";
+  xkbForm.appendChild(xkbLayout);
+  const xkbButton = document.createElement("button");
+  xkbButton.textContent = "run";
+  xkbButton.disabled = true;
+  xkbButton.onclick = () => {
+    if (display) window.desktop.setXkbLayout(display, xkbLayout.value);
+  };
+  xkbForm.appendChild(xkbButton);
+
+  const imForm = document.createElement("p");
+  imForm.textContent = "Input Method enable: ";
+  xvfbOption.appendChild(imForm);
+  const im = document.createElement("input");
+  im.setAttribute("type", "radio");
+  imForm.appendChild(im);
+
+  const screenForm = document.createElement("p");
+  screenForm.textContent = "Full Screen enable: ";
+  xvfbOption.appendChild(screenForm);
+  const screen = document.createElement("input");
+  screen.setAttribute("type", "radio");
+  screenForm.appendChild(screen);
 
   const runButton = document.createElement("button");
-  runButton.textContent = "run";
-  runButton.onclick = () => {
+  runButton.textContent = "Xvfb run";
+  runButton.onclick = async () => {
     desktopMode.disabled = true;
-    startXvfb(
-      inputAppPath.value,
-      runButton,
-      parseInt(inputWidth.value),
-      parseInt(inputHeight.value),
-    );
+    for (let displayNum = 1; ; displayNum++) {
+      if (
+        await startXvfb(
+          displayNum,
+          xkbLayout.value,
+          im.checked,
+          screen.checked,
+          runButton,
+          parseInt(inputWidth.value),
+          parseInt(inputHeight.value),
+        )
+      ) {
+        display = displayNum;
+        xkbButton.disabled = false;
+        appButton.disabled = false;
+        break;
+      }
+    }
   };
   xvfbOption.appendChild(runButton);
+
+  // app process
+  const appForm = document.createElement("p");
+  xvfbOption.appendChild(appForm);
+  const inputAppPath = document.createElement("input");
+  inputAppPath.value = "xterm";
+  appForm.appendChild(inputAppPath);
+  const appButton = document.createElement("button");
+  appButton.textContent = "app run";
+  appButton.disabled = true;
+  appButton.onclick = async () => {
+    if (inputAppPath.value === "") {
+      return;
+    }
+    if (display) {
+      await window.desktop.startX11App(display, inputAppPath.value);
+    }
+  };
+  appForm.appendChild(appButton);
 };
 
 const startXvfb = async (
-  appPath: string,
+  displayNum: number,
+  xkbLayout: string,
+  im: boolean,
+  fullScreen: boolean,
   runButton: HTMLButtonElement,
   width: number,
   height: number,
-) => {
-  if (appPath === "") {
-    return;
-  }
+): Promise<boolean> => {
+  const isStart = await window.desktop.startXvfb(displayNum, width, height);
+  if (isStart) {
+    runButton.disabled = true;
 
-  for (let displayNum = 1; ; displayNum++) {
-    const isStart = await window.desktop.startApp(
-      displayNum,
-      appPath,
-      width,
-      height,
-    );
-    if (isStart) {
-      runButton.disabled = true;
-
-      const ip_addr = await window.util.getAddress();
-
-      const socket = io(`https://${ip_addr}:3100`, {
-        secure: true,
-        rejectUnauthorized: false,
-      });
-
-      socket.on("desktopId", (msg) => {
-        if (typeof msg === "string") {
-          if (desktopIdList) {
-            desktopIdList.textContent = `desktopID: ${msg}`;
-          }
-
-          const desktopWebRTC = new DesktopWebRTCXvfb(
-            displayNum,
-            msg,
-            socket,
-            interval,
-            onDisplayScreen,
-            false,
-            onAudio,
-          );
-
-          screen?.appendChild(desktopWebRTC.canvas);
-
-          socket.on("disconnect", () => {
-            desktopWebRTC.deleteDesktop();
-          });
-
-          if (fileList) {
-            const inputDirPath: HTMLInputElement =
-              document.createElement("input");
-            fileList.appendChild(inputDirPath);
-            window.util.getBasePath().then((path) => {
-              inputDirPath.value = `${path}/test`;
-            });
-
-            const fileButton: HTMLButtonElement =
-              document.createElement("button");
-            fileButton.textContent = "fileShare";
-            fileList.appendChild(fileButton);
-            fileButton.onclick = async () => {
-              const dirPath = inputDirPath.value;
-              if (dirPath === "") {
-                return;
-              }
-              const fileShare = document.createElement("div");
-              fileList.appendChild(fileShare);
-              const result = await desktopWebRTC.startFileShare(
-                dirPath,
-                fileShare,
-              );
-
-              if (result) {
-                fileButton.disabled = true;
-                fileList.removeChild(inputDirPath);
-                fileList.removeChild(fileButton);
-              }
-            };
-          }
-        }
-      });
-
-      break;
+    await window.desktop.setXkbLayout(displayNum, xkbLayout);
+    if (im) {
+      await window.desktop.setInputMethod(displayNum);
     }
+
+    const ip_addr = await window.util.getAddress();
+
+    const socket = io(`https://${ip_addr}:3100`, {
+      secure: true,
+      rejectUnauthorized: false,
+    });
+
+    socket.on("desktopId", (msg) => {
+      if (typeof msg === "string") {
+        if (desktopIdList) {
+          desktopIdList.textContent = `desktopID: ${msg}`;
+        }
+
+        const desktopWebRTC = new DesktopWebRTCXvfb(
+          displayNum,
+          msg,
+          socket,
+          interval,
+          onDisplayScreen,
+          fullScreen,
+          onAudio,
+        );
+
+        screen?.appendChild(desktopWebRTC.canvas);
+
+        socket.on("disconnect", () => {
+          desktopWebRTC.deleteDesktop();
+        });
+
+        setFileShare(desktopWebRTC);
+      }
+    });
+    return true;
   }
+  return false;
 };
 
 const userMediaMode = async () => {
@@ -180,7 +204,7 @@ const userMediaMode = async () => {
   const info = await window.desktop.getDisplayInfo();
   for (const item of info) {
     const button = document.createElement("button");
-    button.textContent = item.name;
+    button.textContent = `${item.name} | ${item.id}`;
     button.addEventListener("click", async () => {
       desktopMode.disabled = true;
       startUserMedia(item.id, audio.checked);
@@ -225,61 +249,68 @@ const startUserMedia = async (sourceId: string, audio: boolean) => {
         if (desktopIdList) {
           desktopIdList.textContent = `desktopID: ${msg}`;
         }
+        //
+        const regex = /:(\d+):/; // 正規表現パターンを定義
+        const match = sourceId.match(regex); // 正規表現にマッチする部分を抽出
+        if (match && match[1]) {
+          const extractedNumber = parseInt(match[1], 10); // マッチした部分をnumber型に変換
+          const desktopWebRTC = new DesktopWebRTCUserMedia(
+            extractedNumber, //sourceId
+            msg,
+            socket,
+            interval,
+            onDisplayScreen,
+            stream,
+            onAudio,
+          );
 
-        const desktopWebRTC = new DesktopWebRTCUserMedia(
-          0,
-          msg,
-          socket,
-          interval,
-          onDisplayScreen,
-          stream,
-          onAudio,
-        );
+          if (onDisplayScreen) {
+            screen?.appendChild(desktopWebRTC.canvas);
+          }
 
-        if (onDisplayScreen) {
-          screen?.appendChild(desktopWebRTC.canvas);
-        }
-
-        socket.on("disconnect", () => {
-          desktopWebRTC.deleteDesktop();
-        });
-
-        if (fileList) {
-          const inputDirPath: HTMLInputElement =
-            document.createElement("input");
-          fileList.appendChild(inputDirPath);
-          window.util.getBasePath().then((path) => {
-            inputDirPath.value = `${path}/test`;
+          socket.on("disconnect", () => {
+            desktopWebRTC.deleteDesktop();
           });
 
-          const fileButton: HTMLButtonElement =
-            document.createElement("button");
-          fileButton.textContent = "fileShare";
-          fileList.appendChild(fileButton);
-          fileButton.onclick = async () => {
-            const dirPath = inputDirPath.value;
-            if (dirPath === "") {
-              return;
-            }
-            const fileShare = document.createElement("div");
-            fileList.appendChild(fileShare);
-            const result = await desktopWebRTC.startFileShare(
-              dirPath,
-              fileShare,
-            );
-
-            if (result) {
-              fileButton.disabled = true;
-              fileList.removeChild(inputDirPath);
-              fileList.removeChild(fileButton);
-            }
-          };
+          setFileShare(desktopWebRTC);
         }
+        //
       }
     });
   } catch (e) {
     console.log("error. orz");
     console.log(e);
+  }
+};
+
+const setFileShare = (
+  desktopWebRTC: DesktopWebRTCXvfb | DesktopWebRTCUserMedia,
+) => {
+  if (fileList) {
+    const inputDirPath: HTMLInputElement = document.createElement("input");
+    fileList.appendChild(inputDirPath);
+    window.util.getBasePath().then((path) => {
+      inputDirPath.value = `${path}/test`;
+    });
+
+    const fileButton: HTMLButtonElement = document.createElement("button");
+    fileButton.textContent = "fileShare";
+    fileList.appendChild(fileButton);
+    fileButton.onclick = async () => {
+      const dirPath = inputDirPath.value;
+      if (dirPath === "") {
+        return;
+      }
+      const fileShare = document.createElement("div");
+      fileList.appendChild(fileShare);
+      const result = await desktopWebRTC.startFileShare(dirPath, fileShare);
+
+      if (result) {
+        fileButton.disabled = true;
+        fileList.removeChild(inputDirPath);
+        fileList.removeChild(fileButton);
+      }
+    };
   }
 };
 

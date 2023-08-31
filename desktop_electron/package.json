@@ -14,6 +14,7 @@
     "dev": "webpack --mode development --progress",
     "prod": "webpack --mode production --progress",
     "start": "electron .",
+    "start2": "electron . --disable-gpu",
     "lint": "prettier --write 'src/**/*.ts' && eslint --fix --ext .ts src"
   },
   "keywords": [],

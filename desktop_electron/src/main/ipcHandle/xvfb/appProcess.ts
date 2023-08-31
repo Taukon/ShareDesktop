@@ -1,4 +1,5 @@
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
+import { existsSync } from "fs";
 
 export class AppProcess {
   private displayName: string;
@@ -6,19 +7,16 @@ export class AppProcess {
   private process: ChildProcessWithoutNullStreams | undefined;
   private silent: boolean = false;
   private command: string;
-  private options: string[];
+  private args: string[];
 
-  constructor(
-    displayNum: number,
-    command: string,
-    options: string[],
-    callback: () => boolean,
-  ) {
+  constructor(displayNum: number, command: string, options: string[]) {
     this.displayName = `:${displayNum}`;
     this.command = command;
-    this.options = options;
-
-    this.start(callback);
+    this.args = options;
+    if (existsSync(`/tmp/.X${displayNum}-lock`) && !this.process) {
+      this.setDisplayEnv();
+      this.spawnProcess();
+    }
   }
 
   public isRun(): boolean {
@@ -30,15 +28,8 @@ export class AppProcess {
     this.restoreDisplayEnv();
   }
 
-  private start(callback: () => boolean) {
-    if (!this.process) {
-      this.setDisplayEnv();
-      this.spawnProcess(callback);
-    }
-  }
-
-  private spawnProcess(callback: () => boolean) {
-    this.process = spawn(this.command, this.options);
+  private spawnProcess() {
+    this.process = spawn(this.command, this.args);
     // this.process.stdout.on('data', data => {
     //     if (!this.silent) {
     //         process.stdout.write(data);
@@ -52,17 +43,15 @@ export class AppProcess {
     });
     this.process.on("exit", (code) => {
       if (!this.silent) {
-        console.log("CODE", code);
+        console.log("App CODE", code);
       }
       this.stop();
-      callback();
     });
     this.process.on("error", (code) => {
       if (!this.silent) {
-        console.log("CODE", code);
+        console.log("App CODE", code);
       }
       this.stop();
-      callback();
     });
   }
 

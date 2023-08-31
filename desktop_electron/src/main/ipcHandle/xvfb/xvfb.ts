@@ -66,6 +66,10 @@ export class Xvfb {
     return false;
   }
 
+  public isRun(): boolean {
+    return this.process ? true : false;
+  }
+
   public stop(): boolean {
     this.killProcess();
     this.restoreDisplayEnv();
@@ -101,13 +105,13 @@ export class Xvfb {
     });
     this.process.on("exit", (code) => {
       if (!this.silent) {
-        console.log("CODE", code);
+        console.log("Xvfb CODE", code);
       }
       this.stop();
     });
     this.process.on("error", (code) => {
       if (!this.silent) {
-        console.log("CODE", code);
+        console.log("Xvfb CODE", code);
       }
       this.stop();
     });

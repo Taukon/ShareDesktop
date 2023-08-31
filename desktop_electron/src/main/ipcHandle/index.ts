@@ -1,13 +1,15 @@
 import { networkInterfaces } from "os";
 import { exec } from "child_process";
 import { BrowserWindow, desktopCapturer, ipcMain } from "electron";
-import { screenshot, converter, xtest } from "./x11lib";
-import { Xvfb } from "./xvfb";
-import { AppProcess } from "./appProcess";
+import { xtest } from "./xvfb/x11lib";
 import { AudioData, ControlData, DisplayInfo } from "../../util/type";
-import { FileShare } from "./fileShare";
+import { setXvfbIpcHandler } from "./xvfb";
+import { setFileShareIpcHandler } from "./fileShare";
 
 export const initIpcHandler = (mainWindow: BrowserWindow): void => {
+  setXvfbIpcHandler();
+  setFileShareIpcHandler(mainWindow);
+
   ipcMain.handle("getDisplayInfo", async () => {
     const sources = await desktopCapturer.getSources({
       types: ["window", "screen"],
@@ -20,7 +22,7 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
   });
 
   ipcMain.handle(
-    "testControl",
+    "control",
     (
       event: Electron.IpcMainInvokeEvent,
       displayName: string,
@@ -29,7 +31,7 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
       if (data.move?.x != undefined && data.move?.y != undefined) {
         try {
           //console.log("try: "+data.move.x +" :"+ data.move.y);
-          xtest.testMotionEvent(displayName, data.move.x, data.move.y);
+          xtest.motionEvent(displayName, data.move.x, data.move.y);
         } catch (error) {
           console.error(error);
         }
@@ -39,7 +41,7 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
       ) {
         try {
           //console.log("try: " + data.button.buttonMask + " : " + data.button.down);
-          xtest.testButtonEvent(
+          xtest.buttonEvent(
             displayName,
             data.button.buttonMask,
             data.button.down,
@@ -47,10 +49,10 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
         } catch (error) {
           console.error(error);
         }
-      } else if (data.key?.keySim != undefined && data.key.down != undefined) {
+      } else if (data.key?.keySym != undefined && data.key.down != undefined) {
         try {
-          //console.log("try: " + data.key.keySim + " : " + data.key.down);
-          xtest.testKeyEvent(displayName, data.key.keySim, data.key.down);
+          //console.log("try: " + data.key.keySym + " : " + data.key.down);
+          xtest.keyEvent(displayName, data.key.keySym, data.key.down);
         } catch (error) {
           console.error(error);
         }
@@ -59,81 +61,47 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
   );
 
   ipcMain.handle(
-    "getScreenshot",
-    (event: Electron.IpcMainInvokeEvent, displayName: string) => {
-      try {
-        const img = screenshot.screenshot(displayName);
-        const [width, height, depth, fb_bpp] =
-          screenshot.getScreenInfo(displayName);
-        if (width && height && depth && fb_bpp) {
-          const imgJpeg = converter.convert(img, width, height, depth, fb_bpp);
-          return imgJpeg;
-        }
-      } catch (err) {
-        console.log(err);
-        return undefined;
-      }
-    },
-  );
-
-  ipcMain.handle(
-    "getFullScreenshot",
-    (event: Electron.IpcMainInvokeEvent, displayName: string) => {
-      try {
-        const img = screenshot.screenshotFull(displayName);
-        const [width, height, depth, fb_bpp] =
-          screenshot.getFullScreenInfo(displayName);
-        if (width && height && depth && fb_bpp) {
-          const imgJpeg = converter.convert(img, width, height, depth, fb_bpp);
-          return imgJpeg;
-        }
-      } catch (err) {
-        console.log(err);
-        return undefined;
-      }
-    },
-  );
-
-  ipcMain.handle(
-    "startApp",
+    "controlWID",
     (
       event: Electron.IpcMainInvokeEvent,
-      displayNum: number,
-      appPath: string,
-      x?: number,
-      y?: number,
+      displayName: string,
+      windowId: number,
+      data: ControlData,
     ) => {
-      const xvfb = new Xvfb(displayNum, {
-        width: x && x > 0 ? x : 1200,
-        height: y && y > 0 ? y : 720,
-        depth: 24,
-      });
-      if (xvfb.start()) {
-        const appProcess = new AppProcess(displayNum, appPath, [], () =>
-          xvfb.stop(),
-        );
-
-        process.on("exit", (e) => {
-          console.log(`exit: ${e}`);
-          appProcess.stop();
-          xvfb.stop();
-        });
-
-        process.on("SIGINT", (e) => {
-          console.log(`SIGINT: ${e}`);
-          // appProcess.stop();
-          // xvfb.stop();
-          process.exit(0);
-        });
-        process.on("uncaughtException", (e) => {
-          console.log(`uncaughtException: ${e}`);
-          appProcess.stop();
-          xvfb.stop();
-        });
-
-        return true;
+      if (data.move?.x != undefined && data.move?.y != undefined) {
+        try {
+          //console.log("try: "+data.move.x +" :"+ data.move.y);
+          xtest.motionEventXID(displayName, data.move.x, data.move.y, windowId);
+        } catch (error) {
+          console.error(error);
+        }
+      } else if (
+        data.button?.buttonMask != undefined &&
+        data.button.down != undefined
+      ) {
+        try {
+          //console.log("try: " + data.button.buttonMask + " : " + data.button.down);
+          xtest.buttonEvent(
+            displayName,
+            data.button.buttonMask,
+            data.button.down,
+          );
+        } catch (error) {
+          console.error(error);
+        }
+      } else if (data.key?.keySym != undefined && data.key.down != undefined) {
+        try {
+          // console.log("try: " + data.key.keySym + " : " + data.key.down);
+          xtest.keyEventXID(
+            displayName,
+            data.key.keySym,
+            data.key.down,
+            windowId,
+          );
+        } catch (error) {
+          console.error(error);
+        }
       }
-      return false;
     },
   );
 
@@ -186,76 +154,6 @@ export const initIpcHandler = (mainWindow: BrowserWindow): void => {
       } catch (error) {
         console.log(error);
       }
-    },
-  );
-
-  const fileShare = new FileShare();
-
-  ipcMain.handle(
-    "getFileInfo",
-    async (event: Electron.IpcMainInvokeEvent, fileName: string) => {
-      return fileShare.getFileInfo(fileName);
-    },
-  );
-
-  ipcMain.handle(
-    "sendFileBuffer",
-    async (
-      event: Electron.IpcMainInvokeEvent,
-      fileName: string,
-      fileTransferId: string,
-    ) => {
-      return await fileShare.sendStreamFile(
-        fileName,
-        fileTransferId,
-        mainWindow,
-      );
-    },
-  );
-
-  ipcMain.handle(
-    "setFileInfo",
-    async (
-      event: Electron.IpcMainInvokeEvent,
-      fileName: string,
-      fileSize: number,
-    ) => {
-      return fileShare.setFileInfo(fileName, fileSize);
-    },
-  );
-
-  ipcMain.handle(
-    "recvFileBuffer",
-    async (
-      event: Electron.IpcMainInvokeEvent,
-      fileName: string,
-      buffer: Uint8Array,
-    ) => {
-      return fileShare.recvStreamFile(fileName, buffer, mainWindow);
-    },
-  );
-
-  ipcMain.handle(
-    "destroyRecvFileBuffer",
-    async (event: Electron.IpcMainInvokeEvent, fileName: string) => {
-      return fileShare.destroyRecvStreamFile(fileName);
-    },
-  );
-
-  ipcMain.handle(
-    "initFileWatch",
-    (event: Electron.IpcMainInvokeEvent, dirPath: string) => {
-      if (fileShare.initFileWatch(dirPath)) {
-        return fileShare.sendFilechange(mainWindow);
-      }
-      return false;
-    },
-  );
-
-  ipcMain.handle(
-    "sendFileWatch",
-    (event: Electron.IpcMainInvokeEvent, dirPath: string) => {
-      return fileShare.sendFilelist(mainWindow, dirPath);
     },
   );
 

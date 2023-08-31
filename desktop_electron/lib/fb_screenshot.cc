@@ -10,6 +10,8 @@ char *getImg(size_t *mem_size, const char* display_name)
 {
     Display *display;
     XImage *img;
+    // int x = 0;
+    // int y = 0;
     int width = 0;
     int height = 0;
     Window window, root_return, parent_return, *children_return;
@@ -37,11 +39,16 @@ char *getImg(size_t *mem_size, const char* display_name)
         {
             if (XGetWindowAttributes(display, children_return[nchildren_return], &attributes) && attributes.map_state == IsViewable)
             {
-                //window = root_return; // children_return[nchildren_return];
-                if (temp_width < attributes.width)
-                    temp_width = attributes.width;
-                if (temp_height < attributes.height)
-                    temp_height = attributes.height;
+                // window = root_return; // children_return[nchildren_return];
+                // if (temp_width < attributes.width)
+                //     temp_width = attributes.width;
+                // if (temp_height < attributes.height)
+                //     temp_height = attributes.height;
+
+                if (temp_width < attributes.x + attributes.width)
+                    temp_width = attributes.x + attributes.width;
+                if (temp_height < attributes.y + attributes.height)
+                    temp_height = attributes.y + attributes.height;
 
                 state = true;
                 //break;
@@ -147,10 +154,15 @@ Napi::Value getScreenInfo(const Napi::CallbackInfo &info)
             if (XGetWindowAttributes(display, children_return[nchildren_return], &attributes) && attributes.map_state == IsViewable)
             {
                 // window = root_return; // children_return[nchildren_return];
-                if (temp_width < attributes.width)
-                    temp_width = attributes.width;
-                if (temp_height < attributes.height)
-                    temp_height = attributes.height;
+                // if (temp_width < attributes.width)
+                //     temp_width = attributes.width;
+                // if (temp_height < attributes.height)
+                //     temp_height = attributes.height;
+
+                if (temp_width < attributes.x + attributes.width)
+                    temp_width = attributes.x + attributes.width;
+                if (temp_height < attributes.y + attributes.height)
+                    temp_height = attributes.y + attributes.height;
 
                 state = true;
                 // break;

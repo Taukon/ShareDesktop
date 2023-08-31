@@ -1,6 +1,6 @@
-import { KeySimObject } from "./type";
+import { KeySymObject } from "./type";
 
-export const KeySims: KeySimObject = {
+export const KeySyms: KeySymObject = {
   F1: 0xffbe,
   F2: 0xffbf,
   F3: 0xffc0,
@@ -121,4 +121,13 @@ export const KeySims: KeySimObject = {
   Mode_switch: 0xff7e /* Character set switch */,
   script_switch: 0xff7e /* Alias for mode_switch */,
   Num_Lock: 0xff7f,
+
+  //
+  Muhenkan: 0xff22,
+  Henkan: 0xff23,
+  Zenkaku: 0xff2a, //0xff28,
+  Hankaku: 0xff2a, //0xff29,
+  Zenkaku_Hankaku: 0xff2a,
+  Eisu_toggle: 0xff30,
+  Hiragana_Katakana: 0xff27,
 };

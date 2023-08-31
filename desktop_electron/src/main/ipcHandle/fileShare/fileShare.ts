@@ -11,9 +11,9 @@ import {
   createAppProtocol,
   parseAppProtocol,
   timer,
-} from "../../util";
-import { FileWatchMsg, WriteFileInfo } from "../../util/type";
-import { getRandomInt } from "../../util";
+} from "../../../util";
+import { FileWatchMsg, WriteFileInfo } from "../../../util/type";
+import { getRandomInt } from "../../../util";
 
 export class FileShare {
   private watcher?: chokidar.FSWatcher;

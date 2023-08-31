@@ -5,42 +5,15 @@ export const desktop = {
   getDisplayInfo: async (): Promise<DisplayInfo[]> => {
     return await ipcRenderer.invoke("getDisplayInfo");
   },
-  testControl: async (
+  control: async (displayName: string, data: ControlData): Promise<void> => {
+    await ipcRenderer.invoke("control", displayName, data);
+  },
+  controlWID: async (
     displayName: string,
+    windowId: number,
     data: ControlData,
   ): Promise<void> => {
-    await ipcRenderer.invoke("testControl", displayName, data);
-  },
-  getScreenshot: async (displayName: string): Promise<Buffer | undefined> => {
-    const jpegImg: Buffer | undefined = await ipcRenderer.invoke(
-      "getScreenshot",
-      displayName,
-    );
-    return jpegImg;
-  },
-  getFullScreenshot: async (
-    displayName: string,
-  ): Promise<Buffer | undefined> => {
-    const jpegImg: Buffer | undefined = await ipcRenderer.invoke(
-      "getFullScreenshot",
-      displayName,
-    );
-    return jpegImg;
-  },
-  startApp: async (
-    displayNum: number,
-    appPath: string,
-    width?: number,
-    height?: number,
-  ): Promise<boolean> => {
-    const result = await ipcRenderer.invoke(
-      "startApp",
-      displayNum,
-      appPath,
-      width,
-      height,
-    );
-    return result;
+    await ipcRenderer.invoke("controlWID", displayName, windowId, data);
   },
   getAudio: async (
     pulseAudioDevice: number,
@@ -55,5 +28,59 @@ export const desktop = {
   },
   stopAudio: async (ffmpegPid: number): Promise<void> => {
     await ipcRenderer.invoke("stopAudio", ffmpegPid);
+  },
+  // Xvfb
+  setXkbLayout: async (
+    displayNum: number,
+    layout: string,
+  ): Promise<boolean> => {
+    const result = await ipcRenderer.invoke("setXkbLayout", displayNum, layout);
+    return result;
+  },
+  setInputMethod: async (displayNum: number): Promise<boolean> => {
+    const result = await ipcRenderer.invoke("setInputMethod", displayNum);
+    return result;
+  },
+  startXvfb: async (
+    displayNum: number,
+    width?: number,
+    height?: number,
+  ): Promise<boolean> => {
+    const result = await ipcRenderer.invoke(
+      "startXvfb",
+      displayNum,
+      width,
+      height,
+    );
+    return result;
+  },
+  getX11Screenshot: async (
+    displayName: string,
+  ): Promise<Buffer | undefined> => {
+    const jpegImg: Buffer | undefined = await ipcRenderer.invoke(
+      "getX11Screenshot",
+      displayName,
+    );
+    return jpegImg;
+  },
+  getX11FullScreenshot: async (
+    displayName: string,
+  ): Promise<Buffer | undefined> => {
+    const jpegImg: Buffer | undefined = await ipcRenderer.invoke(
+      "getX11FullScreenshot",
+      displayName,
+    );
+    return jpegImg;
+  },
+  startX11App: async (
+    displayNum: number,
+    appPath: string,
+  ): Promise<boolean> => {
+    const result = await ipcRenderer.invoke("startX11App", displayNum, appPath);
+    return result;
+  },
+  getXDisplayEnv: async (): Promise<string> => {
+    const path: string = await ipcRenderer.invoke("getXDisplayEnv");
+    return path;
   },
 };
