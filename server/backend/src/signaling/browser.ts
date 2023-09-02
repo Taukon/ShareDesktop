@@ -11,46 +11,36 @@ import {
   type RtcTransportParams,
 } from "../serverWebRTC/common/type";
 import { type SignalingEventEmitter } from "./signalingEvent";
-import { Access, ClientInfo, type Callback, type FileInfo } from "./type";
+import {
+  Access,
+  ClientInfo,
+  type Callback,
+  type FileInfo,
+  AuthInfo,
+} from "./type";
 
 export const setSignalingBrowser = (
-  clientServer: Server,
+  desktopServer: Server,
   socket: Socket,
   serverWebRTC: ServerWebRTC,
   fileEventEmitter: SignalingEventEmitter,
-  enableAudio: boolean,
 ): void => {
-  fileEventEmitter.setRtpCap(
-    socket.id,
-    async (desktopId: string, clientId: string, status: boolean) => {
-      if (status) {
-        const dropId = serverWebRTC.verifyTotalBrowser();
-        if (dropId) {
-          clientServer.to(dropId).emit("end");
-        }
-        const rtpCap = await serverWebRTC.getRtpCapabilitiesForBrowser(
-          socket.id,
-          desktopId,
-          enableAudio,
-        );
-        clientServer.to(clientId).emit("resRtpCap", {
-          desktopId: desktopId,
-          token: "aaaa",
-          rtpCap: rtpCap,
-        });
-      }
-    },
-  );
+  const browserId = socket.id;
 
   socket.on("reqRtpCap", (info: ClientInfo) => {
-    fileEventEmitter.reqRtpCap(socket.id, info.desktopId, info.password);
+    const authInfo: AuthInfo = {
+      clientId: browserId,
+      desktopId: info.desktopId,
+      password: info.password,
+    };
+    desktopServer.to(info.desktopId).emit("reqRtpCap", authInfo);
   });
 
   socket.on(
     "createMediaControl",
     async (access: Access, callback: Callback<RtcTransportParams>) => {
       const params = await serverWebRTC.createBrowserControl(
-        socket.id,
+        browserId,
         access.desktopId,
       );
       if (params != null) {
@@ -66,7 +56,7 @@ export const setSignalingBrowser = (
       callback: Callback<true>,
     ) => {
       const params = await serverWebRTC.connectBrowserControl(
-        socket.id,
+        browserId,
         req.access.desktopId,
         req.dtlsParameters,
       );
@@ -83,7 +73,7 @@ export const setSignalingBrowser = (
       callback: Callback<string>,
     ) => {
       const params = await serverWebRTC.establishBrowserControl(
-        socket.id,
+        browserId,
         req.access.desktopId,
         req.produceParameters,
       );
@@ -100,7 +90,7 @@ export const setSignalingBrowser = (
       callback: Callback<RtcTransportParams>,
     ) => {
       const params = await serverWebRTC.createBrowserScreenOrAudio(
-        socket.id,
+        browserId,
         req.access.desktopId,
         req.isAudio,
       );
@@ -121,7 +111,7 @@ export const setSignalingBrowser = (
       callback: Callback<true>,
     ) => {
       const params = await serverWebRTC.connectBrowserScreenOrAudio(
-        socket.id,
+        browserId,
         req.access.desktopId,
         req.dtlsParameters,
         req.isAudio,
@@ -139,7 +129,7 @@ export const setSignalingBrowser = (
       callback: Callback<ConsumeDataParams | undefined>,
     ) => {
       const params = await serverWebRTC.establishBrowserScreen(
-        socket.id,
+        browserId,
         access.desktopId,
       );
       callback(params);
@@ -156,7 +146,7 @@ export const setSignalingBrowser = (
       callback: Callback<browserType.AudioResponse | undefined>,
     ) => {
       const params = await serverWebRTC.establishBrowserAudio(
-        socket.id,
+        browserId,
         req.access.desktopId,
         req.rtpCapabilities,
       );
@@ -168,7 +158,7 @@ export const setSignalingBrowser = (
     "createFileWatch",
     async (access: Access, callback: Callback<RtcTransportParams>) => {
       const params = await serverWebRTC.createBrowserFileWatch(
-        socket.id,
+        browserId,
         access.desktopId,
       );
       if (params != null) {
@@ -187,7 +177,7 @@ export const setSignalingBrowser = (
       callback: Callback<true>,
     ) => {
       const params = await serverWebRTC.connectBrowserFileWatch(
-        socket.id,
+        browserId,
         req.access.desktopId,
         req.dtlsParameters,
       );
@@ -204,7 +194,7 @@ export const setSignalingBrowser = (
       callback: Callback<ConsumeDataParams | undefined>,
     ) => {
       const params = await serverWebRTC.establishBrowserFileWatch(
-        socket.id,
+        browserId,
         access.desktopId,
       );
       callback(params);
@@ -216,7 +206,7 @@ export const setSignalingBrowser = (
   });
 
   socket.on("disconnect", () => {
-    serverWebRTC.disconnectBrowserClient(socket.id);
+    serverWebRTC.disconnectBrowserClient(browserId);
   });
 
   // -------------- File Transfer --------------

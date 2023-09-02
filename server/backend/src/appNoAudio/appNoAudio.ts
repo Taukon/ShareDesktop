@@ -102,16 +102,16 @@ const serverWebRtc = new ServerWebRTC(
 const fileEventEmitter = new SignalingEventEmitter(desktopServer);
 
 clientServer.on("connection", (sock) => {
-  setSignalingBrowser(
+  setSignalingBrowser(desktopServer, sock, serverWebRtc, fileEventEmitter);
+});
+
+desktopServer.on("connection", (sock) => {
+  console.log(`desktopId: ${sock.id}`);
+  setSignalingDesktop(
     clientServer,
     sock,
     serverWebRtc,
     fileEventEmitter,
     enableAudio,
   );
-});
-
-desktopServer.on("connection", (sock) => {
-  console.log(`desktopId: ${sock.id}`);
-  setSignalingDesktop(sock, serverWebRtc, fileEventEmitter, enableAudio);
 });
