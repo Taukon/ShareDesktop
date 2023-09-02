@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
-import { type Server } from "socket.io";
-import { type Callback, type FileInfo } from "./type";
+import { Socket, type Server } from "socket.io";
+import { AuthInfo, type Callback, type FileInfo } from "./type";
 
 export class SignalingEventEmitter {
   private readonly eventEmitter = new EventEmitter();
@@ -12,6 +12,46 @@ export class SignalingEventEmitter {
 
   public clean() {
     this.eventEmitter.removeAllListeners();
+  }
+
+  public reqRtpCap(clientId: string, desktopId: string, password: string) {
+    const info: AuthInfo = {
+      clientId: clientId,
+      desktopId: desktopId,
+      password: password,
+    };
+    this.eventEmitter.emit(`${desktopId}:reqRtpCap`, info);
+  }
+
+  public onReqRtpCap(desktopSocket: Socket) {
+    this.eventEmitter.on(`${desktopSocket.id}:reqRtpCap`, (req: AuthInfo) => {
+      desktopSocket.emit("reqRtpCap", req);
+    });
+  }
+
+  public resRtpCap(desktopId: string, clientId: string, status: boolean) {
+    this.eventEmitter.emit(
+      `${clientId}:resRtpCap`,
+      desktopId,
+      clientId,
+      status,
+    );
+  }
+
+  public setRtpCap(
+    socketId: string,
+    callback: (
+      desktopId: string,
+      clientId: string,
+      status: boolean,
+    ) => Promise<void>,
+  ) {
+    this.eventEmitter.on(
+      `${socketId}:resRtpCap`,
+      (desktopId: string, clientId: string, status: boolean) => {
+        if (socketId === clientId) callback(desktopId, clientId, status);
+      },
+    );
   }
 
   public requestDropId(desktopSocketId: string) {

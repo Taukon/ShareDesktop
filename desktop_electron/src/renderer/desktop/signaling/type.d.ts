@@ -5,3 +5,9 @@ export type FileInfo = {
   fileName: string;
   fileSize: number;
 };
+
+export type AuthInfo = {
+  desktopId: string;
+  password: string;
+  clientId: string;
+};

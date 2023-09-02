@@ -23,7 +23,7 @@ function start() {
     socket = createWebSocket();
   }
 
-  const client = new BrowserWebRTC(inputMessage, socket, true);
+  const client = new BrowserWebRTC(inputMessage, socket, true, "aaa");
 
   const elementScreen = document.getElementById("screen");
   if (elementScreen) {

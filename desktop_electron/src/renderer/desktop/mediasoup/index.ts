@@ -14,21 +14,17 @@ export const loadDevice = async (
   return device;
 };
 
-export const createSendTransport = async (
+export const setDataProducer = async (
   device: mediasoupClient.types.Device,
-  forTransport: Signaling<void, TransportParams>,
-): Promise<mediasoupClient.types.Transport> => {
-  const params = await forTransport();
-  const transport = device.createSendTransport(params);
-
-  return transport;
-};
-
-export const sendEventEmitter = (
-  transport: mediasoupClient.types.Transport,
+  forTransport: Signaling<void, TransportParams | undefined>,
   forConnect: Signaling<mediasoupClient.types.DtlsParameters, void>,
-  forProducedata: Signaling<ProduceDataParam, string>,
-): void => {
+  forProducedata: Signaling<ProduceDataParam, string | undefined>,
+  options?: { ordered: boolean; maxRetransmits: number },
+): Promise<mediasoupClient.types.DataProducer | undefined> => {
+  const transportParams = await forTransport();
+  if (!transportParams) return undefined;
+  const transport = device.createSendTransport(transportParams);
+
   transport.on("connect", async ({ dtlsParameters }, callback, errback) => {
     forConnect(dtlsParameters).then(callback).catch(errback);
   });
@@ -36,7 +32,7 @@ export const sendEventEmitter = (
   transport.on("producedata", async (parameters, callback, errback) => {
     try {
       const id = await forProducedata(parameters);
-      callback({ id: id });
+      if (id) callback({ id: id });
     } catch (err: any) {
       errback(err);
     }
@@ -45,22 +41,29 @@ export const sendEventEmitter = (
   transport.observer.on("close", () => {
     transport.close();
   });
+
+  if (options) {
+    const producer = await transport.produceData({
+      ordered: options.ordered,
+      maxRetransmits: options.maxRetransmits,
+    });
+    return producer;
+  } else {
+    const producer = await transport.produceData({ ordered: true });
+    return producer;
+  }
 };
 
-export const createRecvTransport = async (
+export const setDataConsumer = async (
   device: mediasoupClient.types.Device,
-  forTransport: Signaling<void, TransportParams>,
-): Promise<mediasoupClient.types.Transport> => {
-  const params = await forTransport();
-  const transport = device.createRecvTransport(params);
-
-  return transport;
-};
-
-export const recvEventEmitter = (
-  transport: mediasoupClient.types.Transport,
+  forTransport: Signaling<void, TransportParams | undefined>,
   forConnect: Signaling<mediasoupClient.types.DtlsParameters, void>,
-): void => {
+  forConsumeData: Signaling<void, ConsumeDataParams | undefined>,
+): Promise<mediasoupClient.types.DataConsumer | undefined> => {
+  const transportParams = await forTransport();
+  if (!transportParams) return undefined;
+  const transport = device.createRecvTransport(transportParams);
+
   transport.on("connect", async ({ dtlsParameters }, callback, errback) => {
     forConnect(dtlsParameters).then(callback).catch(errback);
   });
@@ -68,13 +71,11 @@ export const recvEventEmitter = (
   transport.observer.on("close", () => {
     transport.close();
   });
-};
 
-export const getConsumeData = async (
-  transport: mediasoupClient.types.Transport,
-  forConsumeData: Signaling<void, ConsumeDataParams>,
-): Promise<mediasoupClient.types.DataConsumer> => {
-  const params = await forConsumeData();
-  const consumer = await transport.consumeData(params);
-  return consumer;
+  const consumerParams = await forConsumeData();
+  if (consumerParams) {
+    const consumer = await transport.consumeData(consumerParams);
+    return consumer;
+  }
+  return undefined;
 };

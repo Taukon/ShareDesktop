@@ -21,6 +21,12 @@ export const setSignalingDesktop = (
 ): void => {
   socket.emit("desktopId", socket.id);
 
+  fileEventEmitter.onReqRtpCap(socket);
+
+  socket.on("resRtpCap", (res: { clientId: string; status: boolean }) => {
+    fileEventEmitter.resRtpCap(socket.id, res.clientId, res.status);
+  });
+
   socket.on(
     "getRtpCapabilities",
     async (desktopId: string, callback: Callback<RtpCapabilities>) => {

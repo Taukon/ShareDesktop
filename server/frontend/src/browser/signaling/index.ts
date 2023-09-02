@@ -6,7 +6,7 @@ import {
   ProduceDataParam,
   TransportParams,
 } from "../mediasoup/type";
-import { FileInfo, Signaling } from "./type";
+import { Access, ClientInfo, FileInfo, Signaling } from "./type";
 
 const sendRequest = async <T>(
   socket: Socket,
@@ -19,40 +19,44 @@ const sendRequest = async <T>(
   });
 };
 
-export const getRtpCapabilities = (
-  socket: Socket,
-  desktopId: string,
-): Signaling<void, mediasoupClient.types.RtpCapabilities> => {
-  return () => sendRequest(socket, "getRtpCapabilities", desktopId);
+export const reqConnect = (socket: Socket, info: ClientInfo): void => {
+  socket.emit("reqRtpCap", info);
 };
+
+// export const getRtpCapabilities = (
+//   socket: Socket,
+//   access: Access
+// ): Signaling<void, mediasoupClient.types.RtpCapabilities> => {
+//   return () => sendRequest(socket, "getRtpCapabilities", access);
+// };
 
 // ------- Control
 
 export const createMediaControl = (
   socket: Socket,
-  desktopId: string,
-): Signaling<void, TransportParams> => {
-  return () => sendRequest(socket, "createMediaControl", desktopId);
+  access: Access,
+): Signaling<void, TransportParams | undefined> => {
+  return () => sendRequest(socket, "createMediaControl", access);
 };
 
 export const connectMediaControl = (
   socket: Socket,
-  desktopId: string,
+  access: Access,
 ): Signaling<mediasoupClient.types.DtlsParameters, void> => {
   return (dtlsParameters: mediasoupClient.types.DtlsParameters) =>
     sendRequest(socket, "connectMediaControl", {
-      desktopId: desktopId,
+      access: access,
       dtlsParameters: dtlsParameters,
     });
 };
 
 export const establishMediaControl = (
   socket: Socket,
-  desktopId: string,
+  access: Access,
 ): Signaling<ProduceDataParam, string> => {
   return (params: ProduceDataParam) =>
     sendRequest(socket, "establishMediaControl", {
-      desktopId: desktopId,
+      access: access,
       produceParameters: params,
     });
 };
@@ -61,22 +65,22 @@ export const establishMediaControl = (
 
 export const createMediaScreen = (
   socket: Socket,
-  desktopId: string,
-): Signaling<void, TransportParams> => {
+  access: Access,
+): Signaling<void, TransportParams | undefined> => {
   return () =>
     sendRequest(socket, "createMediaScreenOrAudio", {
-      desktopId: desktopId,
+      access: access,
       isAudio: false,
     });
 };
 
 export const connectMediaScreen = (
   socket: Socket,
-  desktopId: string,
+  access: Access,
 ): Signaling<mediasoupClient.types.DtlsParameters, void> => {
   return (dtlsParameters: mediasoupClient.types.DtlsParameters) =>
     sendRequest(socket, "connectMediaScreenOrAudio", {
-      desktopId: desktopId,
+      access: access,
       dtlsParameters: dtlsParameters,
       isAudio: false,
     });
@@ -84,31 +88,31 @@ export const connectMediaScreen = (
 
 export const establishMediaScreen = (
   socket: Socket,
-  desktopId: string,
+  access: Access,
 ): Signaling<void, ConsumeDataParams | undefined> => {
-  return () => sendRequest(socket, "establishMediaScreen", desktopId);
+  return () => sendRequest(socket, "establishMediaScreen", access);
 };
 
 // ------- Audio
 
 export const createMediaAudio = (
   socket: Socket,
-  desktopId: string,
-): Signaling<void, TransportParams> => {
+  access: Access,
+): Signaling<void, TransportParams | undefined> => {
   return () =>
     sendRequest(socket, "createMediaScreenOrAudio", {
-      desktopId: desktopId,
+      access: access,
       isAudio: true,
     });
 };
 
 export const connectMediaAudio = (
   socket: Socket,
-  desktopId: string,
+  access: Access,
 ): Signaling<mediasoupClient.types.DtlsParameters, void> => {
   return (dtlsParameters: mediasoupClient.types.DtlsParameters) =>
     sendRequest(socket, "connectMediaScreenOrAudio", {
-      desktopId: desktopId,
+      access: access,
       dtlsParameters: dtlsParameters,
       isAudio: true,
     });
@@ -116,12 +120,12 @@ export const connectMediaAudio = (
 
 export const establishMediaAudio = (
   socket: Socket,
-  desktopId: string,
+  access: Access,
   rtpCapabilities: mediasoupClient.types.RtpCapabilities,
 ): Signaling<void, ConsumeParams | undefined> => {
   return () =>
     sendRequest(socket, "establishMediaAudio", {
-      desktopId: desktopId,
+      access: access,
       rtpCapabilities: rtpCapabilities,
     });
 };
@@ -130,42 +134,42 @@ export const establishMediaAudio = (
 
 export const createBrowserFileWatch = (
   socket: Socket,
-  desktopId: string,
-): Signaling<void, TransportParams> => {
-  return () => sendRequest(socket, "createFileWatch", desktopId);
+  access: Access,
+): Signaling<void, TransportParams | undefined> => {
+  return () => sendRequest(socket, "createFileWatch", access);
 };
 
 export const connectBrowserFileWatch = (
   socket: Socket,
-  desktopId: string,
+  access: Access,
 ): Signaling<mediasoupClient.types.DtlsParameters, void> => {
   return (dtlsParameters: mediasoupClient.types.DtlsParameters) =>
     sendRequest(socket, "connectFileWatch", {
-      desktopId: desktopId,
+      access: access,
       dtlsParameters: dtlsParameters,
     });
 };
 
 export const establishBrowserFileWatch = (
   socket: Socket,
-  desktopId: string,
+  access: Access,
 ): Signaling<void, ConsumeDataParams | undefined> => {
-  return () => sendRequest(socket, "establishFileWatch", desktopId);
+  return () => sendRequest(socket, "establishFileWatch", access);
 };
 
 // -------- SendFile --------
 
 export const initSendFileTransfer = (
   socket: Socket,
-  desktopId: string,
+  access: Access,
 ): Signaling<void, string> => {
-  return () => sendRequest(socket, "initSendFileTransfer", desktopId);
+  return () => sendRequest(socket, "initSendFileTransfer", access);
 };
 
 export const createSendFile = (
   socket: Socket,
   fileTransferId: string,
-): Signaling<void, TransportParams> => {
+): Signaling<void, TransportParams | undefined> => {
   return () => sendRequest(socket, "createSendFile", fileTransferId);
 };
 
@@ -202,17 +206,17 @@ export const waitSetFileConsumer = (
 
 export const initRecvFileTransfer = (
   socket: Socket,
-  desktopId: string,
+  access: Access,
   fileName: string,
 ): Signaling<void, FileInfo> => {
   return () =>
-    sendRequest(socket, "initRecvFileTransfer", { desktopId, fileName });
+    sendRequest(socket, "initRecvFileTransfer", { access, fileName });
 };
 
 export const createRecvFile = (
   socket: Socket,
   fileTransferId: string,
-): Signaling<void, TransportParams> => {
+): Signaling<void, TransportParams | undefined> => {
   return () => sendRequest(socket, "createRecvFile", fileTransferId);
 };
 

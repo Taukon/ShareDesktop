@@ -170,6 +170,7 @@ const startXvfb = async (
           onDisplayScreen,
           fullScreen,
           onAudio,
+          "aaa",
         );
 
         screen?.appendChild(desktopWebRTC.canvas);
@@ -262,6 +263,7 @@ const startUserMedia = async (sourceId: string, audio: boolean) => {
             onDisplayScreen,
             stream,
             onAudio,
+            "aaa",
           );
 
           if (onDisplayScreen) {

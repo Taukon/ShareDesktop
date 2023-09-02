@@ -5,3 +5,19 @@ export interface FileInfo {
   fileName: string;
   fileSize: number;
 }
+
+export type Access = {
+  desktopId: string;
+  token: string;
+};
+
+type AuthInfo = {
+  desktopId: string;
+  password: string;
+  clientId: string;
+};
+
+export type ClientInfo = {
+  desktopId: string;
+  password: string;
+};
