@@ -19,6 +19,7 @@ import {
   AuthInfo,
 } from "./type";
 
+// TODO check access Token
 export const setSignalingBrowser = (
   desktopServer: Server,
   socket: Socket,
@@ -33,7 +34,12 @@ export const setSignalingBrowser = (
       desktopId: info.desktopId,
       password: info.password,
     };
-    desktopServer.to(info.desktopId).emit("reqRtpCap", authInfo);
+
+    if (serverWebRTC.isDesktopId(info.desktopId)) {
+      desktopServer.to(info.desktopId).emit("reqRtpCap", authInfo);
+    } else {
+      socket.emit("resRtpCap");
+    }
   });
 
   socket.on(

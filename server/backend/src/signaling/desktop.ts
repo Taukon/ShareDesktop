@@ -12,6 +12,7 @@ import {
 import type * as desktopType from "../serverWebRTC/desktop/type";
 import { type SignalingEventEmitter } from "./signalingEvent";
 import { type Callback, type FileInfo } from "./type";
+import { getRandomId } from "./utils";
 
 export const setSignalingDesktop = (
   clientServer: Server,
@@ -36,9 +37,11 @@ export const setSignalingDesktop = (
       );
       clientServer.to(res.clientId).emit("resRtpCap", {
         desktopId: desktopId,
-        token: "aaaa",
+        token: getRandomId(),
         rtpCap: rtpCap,
       });
+    } else {
+      clientServer.to(res.clientId).emit("resRtpCap");
     }
   });
 
