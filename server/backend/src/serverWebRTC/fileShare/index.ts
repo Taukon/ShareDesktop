@@ -1,4 +1,3 @@
-import * as crypto from "crypto";
 import {
   Router,
   DtlsParameters,
@@ -247,13 +246,5 @@ export class FileTransfer {
       return false;
     }
     return true;
-  }
-
-  public getRandomId(): string {
-    const S = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
-    return Array.from(crypto.getRandomValues(new Uint32Array(10)))
-      .map((v) => S[v % S.length])
-      .join("");
   }
 }

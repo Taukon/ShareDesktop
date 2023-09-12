@@ -1,29 +1,53 @@
 import { io, Socket } from "socket.io-client";
-import { BrowserWebRTC } from "../browser";
+import { RtpCapabilities } from "mediasoup-client/lib/types";
+import { BrowserWebRTC, reqAccess } from "../browser";
+import { Access } from "../browser/signaling/type";
+
+const createWebSocket = (): Socket => {
+  const sock = io("/");
+  sock.on("end", () => {
+    sock.close();
+  });
+  sock.on("disconnect", () => {
+    console.log("socket closed");
+    sock.close();
+  });
+  return sock;
+};
+
 const clientList: BrowserWebRTC[] = [];
-let socket: Socket;
+const socket = createWebSocket();
 
-const sendButton: HTMLButtonElement = <HTMLButtonElement>(
-  document.getElementById("sendButton")
+const setOption: HTMLDivElement = <HTMLDivElement>(
+  document.getElementById("setOption")
 );
-sendButton.onclick = () => start();
 
-function start() {
-  const elementInputMessage: HTMLInputElement = <HTMLInputElement>(
-    document.getElementById("inputText")
-  );
+const setOptionForm = (socket: Socket) => {
+  const optionForm = document.createElement("p");
+  setOption.appendChild(optionForm);
 
-  const inputMessage = elementInputMessage.value;
-  if (inputMessage === "") {
-    return;
-  }
-  //document.getElementById('inputText').value = '';
+  optionForm.appendChild(document.createTextNode(" desktopID: "));
+  const inputDesktopId = document.createElement("input");
+  optionForm.appendChild(inputDesktopId);
 
-  if (!socket) {
-    socket = createWebSocket();
-  }
+  optionForm.appendChild(document.createTextNode(" password: "));
+  const inputPwd = document.createElement("input");
+  inputPwd.value = "shareDesktop";
+  optionForm.appendChild(inputPwd);
 
-  const client = new BrowserWebRTC(inputMessage, socket, true);
+  const sendButton = document.createElement("button");
+  sendButton.textContent = "開始";
+  optionForm.appendChild(sendButton);
+  sendButton.onclick = () =>
+    reqAccess(socket, inputDesktopId.value, inputPwd.value, start);
+};
+
+const start = (
+  socket: Socket,
+  access: Access,
+  rtpCap: RtpCapabilities,
+): void => {
+  const client = new BrowserWebRTC(socket, access, rtpCap, true);
 
   const elementScreen = document.getElementById("screen");
   if (elementScreen) {
@@ -62,16 +86,6 @@ function start() {
   }
 
   clientList.push(client);
-}
-
-const createWebSocket = (): Socket => {
-  const sock = io("/");
-  sock.on("end", () => {
-    sock.close();
-  });
-  sock.on("disconnect", () => {
-    console.log("socket closed");
-    sock.close();
-  });
-  return sock;
 };
+
+setOptionForm(socket);

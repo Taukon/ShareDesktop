@@ -40,6 +40,14 @@ const xvfbMode = () => {
   xvfbOption.id = "xvfbOption";
   desktopOption.append(xvfbOption);
 
+  // password
+  const pwdForm = document.createElement("p");
+  xvfbOption.appendChild(pwdForm);
+  pwdForm.appendChild(document.createTextNode(" password: "));
+  const inputPwd = document.createElement("input");
+  inputPwd.value = "shareDesktop";
+  pwdForm.appendChild(inputPwd);
+
   // Xvfb Size
   const xvfbSizeForm = document.createElement("p");
   xvfbOption.appendChild(xvfbSizeForm);
@@ -93,6 +101,7 @@ const xvfbMode = () => {
     for (let displayNum = 1; ; displayNum++) {
       if (
         await startXvfb(
+          inputPwd.value,
           displayNum,
           xkbLayout.value,
           im.checked,
@@ -132,6 +141,7 @@ const xvfbMode = () => {
 };
 
 const startXvfb = async (
+  password: string,
   displayNum: number,
   xkbLayout: string,
   im: boolean,
@@ -170,6 +180,7 @@ const startXvfb = async (
           onDisplayScreen,
           fullScreen,
           onAudio,
+          password,
         );
 
         screen?.appendChild(desktopWebRTC.canvas);
@@ -193,6 +204,15 @@ const userMediaMode = async () => {
   userMediaOption.id = "xvfbOption";
   desktopOption.append(userMediaOption);
 
+  // password
+  const pwdForm = document.createElement("p");
+  userMediaOption.appendChild(pwdForm);
+  pwdForm.appendChild(document.createTextNode(" password: "));
+  const inputPwd = document.createElement("input");
+  inputPwd.value = "shareDesktop";
+  pwdForm.appendChild(inputPwd);
+
+  // audio
   const audioForm = document.createElement("p");
   audioForm.textContent = "audio enable: ";
   userMediaOption.appendChild(audioForm);
@@ -200,6 +220,7 @@ const userMediaMode = async () => {
   audio.setAttribute("type", "radio");
   audioForm.appendChild(audio);
 
+  // screen
   const screenForm = document.createElement("p");
   const info = await window.desktop.getDisplayInfo();
   for (const item of info) {
@@ -207,7 +228,7 @@ const userMediaMode = async () => {
     button.textContent = `${item.name} | ${item.id}`;
     button.addEventListener("click", async () => {
       desktopMode.disabled = true;
-      startUserMedia(item.id, audio.checked);
+      startUserMedia(inputPwd.value, item.id, audio.checked);
       userMediaOption.remove();
     });
     screenForm.appendChild(button);
@@ -216,7 +237,11 @@ const userMediaMode = async () => {
   userMediaOption.appendChild(screenForm);
 };
 
-const startUserMedia = async (sourceId: string, audio: boolean) => {
+const startUserMedia = async (
+  password: string,
+  sourceId: string,
+  audio: boolean,
+) => {
   try {
     const stream: MediaStream =
       await // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -262,6 +287,7 @@ const startUserMedia = async (sourceId: string, audio: boolean) => {
             onDisplayScreen,
             stream,
             onAudio,
+            password,
           );
 
           if (onDisplayScreen) {

@@ -459,4 +459,8 @@ export class Desktop {
     return this.getDesktopTransports(desktopId)?.fileWatchTransport?.producer
       ?.id;
   }
+
+  public isDesktopId(desktopId: string): boolean {
+    return this.getDesktopTransports(desktopId) ? true : false;
+  }
 }

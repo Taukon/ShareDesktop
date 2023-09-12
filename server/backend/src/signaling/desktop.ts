@@ -2,7 +2,7 @@ import {
   type DtlsParameters,
   type RtpCapabilities,
 } from "mediasoup/node/lib/types";
-import { type Socket } from "socket.io";
+import { type Server, type Socket } from "socket.io";
 import { type ServerWebRTC } from "../serverWebRTC";
 import {
   type ConsumeDataParams,
@@ -12,14 +12,38 @@ import {
 import type * as desktopType from "../serverWebRTC/desktop/type";
 import { type SignalingEventEmitter } from "./signalingEvent";
 import { type Callback, type FileInfo } from "./type";
+import { getRandomId } from "./utils";
 
 export const setSignalingDesktop = (
+  clientServer: Server,
   socket: Socket,
   serverWebRTC: ServerWebRTC,
   fileEventEmitter: SignalingEventEmitter,
   enableAudio: boolean,
 ): void => {
-  socket.emit("desktopId", socket.id);
+  const desktopId = socket.id;
+  socket.emit("desktopId", desktopId);
+
+  socket.on("resRtpCap", async (res: { clientId: string; status: boolean }) => {
+    if (res.status) {
+      const dropId = serverWebRTC.verifyTotalBrowser();
+      if (dropId) {
+        clientServer.to(dropId).emit("end");
+      }
+      const rtpCap = await serverWebRTC.getRtpCapabilitiesForBrowser(
+        res.clientId,
+        desktopId,
+        enableAudio,
+      );
+      clientServer.to(res.clientId).emit("resRtpCap", {
+        desktopId: desktopId,
+        token: getRandomId(),
+        rtpCap: rtpCap,
+      });
+    } else {
+      clientServer.to(res.clientId).emit("resRtpCap");
+    }
+  });
 
   socket.on(
     "getRtpCapabilities",
@@ -182,7 +206,7 @@ export const setSignalingDesktop = (
   );
 
   socket.on("disconnect", () => {
-    serverWebRTC.disconnectDesktop(socket.id);
+    serverWebRTC.disconnectDesktop(desktopId);
   });
 
   // -------------- File Transfer --------------

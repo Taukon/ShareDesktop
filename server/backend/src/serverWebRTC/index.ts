@@ -11,6 +11,7 @@ import { startWorker } from "./common";
 import { type ProduceDataParams } from "./common/type";
 import { Desktop } from "./desktop";
 import { FileTransfer } from "./fileShare";
+import { getRandomId } from "../signaling/utils";
 
 export class ServerWebRTC {
   private readonly ipAddr: string;
@@ -62,6 +63,10 @@ export class ServerWebRTC {
         dataProducer.send(msg);
       });
     }
+  }
+
+  public isDesktopId(desktopId: string) {
+    return this.desktop.isDesktopId(desktopId);
   }
 
   // ------------------------ Desktop --------------------------
@@ -310,7 +315,7 @@ export class ServerWebRTC {
       return undefined;
     }
 
-    const transferId = this.fileTransfer.getRandomId();
+    const transferId = getRandomId();
     if (this.fileTransfer.initFileTransports(transferId)) {
       return transferId;
     }
