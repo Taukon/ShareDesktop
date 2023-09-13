@@ -18,15 +18,17 @@ import {
   type FileInfo,
   AuthInfo,
 } from "./type";
+import { UserManage } from "../userManage";
 
-// TODO check access Token
+// TODO fileshare
 export const setSignalingBrowser = (
   desktopServer: Server,
   socket: Socket,
   serverWebRTC: ServerWebRTC,
   fileEventEmitter: SignalingEventEmitter,
+  userManage: UserManage,
 ): void => {
-  const browserId = socket.id;
+  const browserId = userManage.addBrowserUser(socket.id);
 
   socket.on("reqRtpCap", (info: ClientInfo) => {
     const authInfo: AuthInfo = {
@@ -35,8 +37,9 @@ export const setSignalingBrowser = (
       password: info.password,
     };
 
-    if (serverWebRTC.isDesktopId(info.desktopId)) {
-      desktopServer.to(info.desktopId).emit("reqRtpCap", authInfo);
+    const desktopSocketId = userManage.getDesktopUser(info.desktopId)?.socketId;
+    if (desktopSocketId && serverWebRTC.isDesktopId(info.desktopId)) {
+      desktopServer.to(desktopSocketId).emit("reqRtpCap", authInfo);
     } else {
       socket.emit("resRtpCap");
     }
@@ -45,11 +48,17 @@ export const setSignalingBrowser = (
   socket.on(
     "createMediaControl",
     async (access: Access, callback: Callback<RtcTransportParams>) => {
+      if (
+        !userManage.checkBrowserToken(browserId, access.desktopId, access.token)
+      ) {
+        return;
+      }
+
       const params = await serverWebRTC.createBrowserControl(
         browserId,
         access.desktopId,
       );
-      if (params != null) {
+      if (params) {
         callback(params);
       }
     },
@@ -61,6 +70,16 @@ export const setSignalingBrowser = (
       req: { access: Access; dtlsParameters: DtlsParameters },
       callback: Callback<true>,
     ) => {
+      if (
+        !userManage.checkBrowserToken(
+          browserId,
+          req.access.desktopId,
+          req.access.token,
+        )
+      ) {
+        return;
+      }
+
       const params = await serverWebRTC.connectBrowserControl(
         browserId,
         req.access.desktopId,
@@ -78,6 +97,16 @@ export const setSignalingBrowser = (
       req: { access: Access; produceParameters: ProduceDataParams },
       callback: Callback<string>,
     ) => {
+      if (
+        !userManage.checkBrowserToken(
+          browserId,
+          req.access.desktopId,
+          req.access.token,
+        )
+      ) {
+        return;
+      }
+
       const params = await serverWebRTC.establishBrowserControl(
         browserId,
         req.access.desktopId,
@@ -95,12 +124,22 @@ export const setSignalingBrowser = (
       req: { access: Access; isAudio: boolean },
       callback: Callback<RtcTransportParams>,
     ) => {
+      if (
+        !userManage.checkBrowserToken(
+          browserId,
+          req.access.desktopId,
+          req.access.token,
+        )
+      ) {
+        return;
+      }
+
       const params = await serverWebRTC.createBrowserScreenOrAudio(
         browserId,
         req.access.desktopId,
         req.isAudio,
       );
-      if (params != null) {
+      if (params) {
         callback(params);
       }
     },
@@ -116,6 +155,16 @@ export const setSignalingBrowser = (
       },
       callback: Callback<true>,
     ) => {
+      if (
+        !userManage.checkBrowserToken(
+          browserId,
+          req.access.desktopId,
+          req.access.token,
+        )
+      ) {
+        return;
+      }
+
       const params = await serverWebRTC.connectBrowserScreenOrAudio(
         browserId,
         req.access.desktopId,
@@ -134,6 +183,12 @@ export const setSignalingBrowser = (
       access: Access,
       callback: Callback<ConsumeDataParams | undefined>,
     ) => {
+      if (
+        !userManage.checkBrowserToken(browserId, access.desktopId, access.token)
+      ) {
+        return;
+      }
+
       const params = await serverWebRTC.establishBrowserScreen(
         browserId,
         access.desktopId,
@@ -151,6 +206,16 @@ export const setSignalingBrowser = (
       },
       callback: Callback<browserType.AudioResponse | undefined>,
     ) => {
+      if (
+        !userManage.checkBrowserToken(
+          browserId,
+          req.access.desktopId,
+          req.access.token,
+        )
+      ) {
+        return;
+      }
+
       const params = await serverWebRTC.establishBrowserAudio(
         browserId,
         req.access.desktopId,
@@ -163,11 +228,17 @@ export const setSignalingBrowser = (
   socket.on(
     "createFileWatch",
     async (access: Access, callback: Callback<RtcTransportParams>) => {
+      if (
+        !userManage.checkBrowserToken(browserId, access.desktopId, access.token)
+      ) {
+        return;
+      }
+
       const params = await serverWebRTC.createBrowserFileWatch(
         browserId,
         access.desktopId,
       );
-      if (params != null) {
+      if (params) {
         callback(params);
       }
     },
@@ -182,6 +253,16 @@ export const setSignalingBrowser = (
       },
       callback: Callback<true>,
     ) => {
+      if (
+        !userManage.checkBrowserToken(
+          browserId,
+          req.access.desktopId,
+          req.access.token,
+        )
+      ) {
+        return;
+      }
+
       const params = await serverWebRTC.connectBrowserFileWatch(
         browserId,
         req.access.desktopId,
@@ -199,6 +280,12 @@ export const setSignalingBrowser = (
       access: Access,
       callback: Callback<ConsumeDataParams | undefined>,
     ) => {
+      if (
+        !userManage.checkBrowserToken(browserId, access.desktopId, access.token)
+      ) {
+        return;
+      }
+
       const params = await serverWebRTC.establishBrowserFileWatch(
         browserId,
         access.desktopId,
@@ -208,10 +295,18 @@ export const setSignalingBrowser = (
   );
 
   socket.on("requestFileWatch", (access: Access) => {
-    fileEventEmitter.requestFileWatch(access.desktopId);
+    if (
+      !userManage.checkBrowserToken(browserId, access.desktopId, access.token)
+    ) {
+      return;
+    }
+
+    const socketId = userManage.getDesktopUser(access.desktopId)?.socketId;
+    if (socketId) fileEventEmitter.requestFileWatch(socketId);
   });
 
   socket.on("disconnect", () => {
+    userManage.removeBrowserUser(browserId);
     serverWebRTC.disconnectBrowserClient(browserId);
   });
 
@@ -226,14 +321,22 @@ export const setSignalingBrowser = (
       },
       callback: Callback<FileInfo>,
     ) => {
+      if (
+        !userManage.checkBrowserToken(
+          browserId,
+          req.access.desktopId,
+          req.access.token,
+        )
+      ) {
+        return;
+      }
+
       const params = serverWebRTC.initFileTransfer();
       console.log(`init recv ${params}`);
-      if (params) {
-        fileEventEmitter.requestSendFile(
-          req.access.desktopId,
-          req.fileName,
-          params,
-        );
+      const socketId = userManage.getDesktopUser(req.access.desktopId)
+        ?.socketId;
+      if (params && socketId) {
+        fileEventEmitter.requestSendFile(socketId, req.fileName, params);
         fileEventEmitter.waitFileProducer(params, callback); // p(D)=>c(B)
       }
     },
@@ -243,10 +346,17 @@ export const setSignalingBrowser = (
   socket.on(
     "initSendFileTransfer",
     async (access: Access, callback: Callback<string>) => {
+      if (
+        !userManage.checkBrowserToken(browserId, access.desktopId, access.token)
+      ) {
+        return;
+      }
+
       const params = serverWebRTC.initFileTransfer();
-      if (params) {
+      const socketId = userManage.getDesktopUser(access.desktopId)?.socketId;
+      if (params && socketId) {
         callback(params); // ->waitFileConsumer
-        fileEventEmitter.requestRecvFile(access.desktopId, params); // p(B)=>c(D)
+        fileEventEmitter.requestRecvFile(socketId, params); // p(B)=>c(D)
       }
     },
   );
@@ -259,7 +369,7 @@ export const setSignalingBrowser = (
     "createSendFile",
     async (fileTransferId: string, callback: Callback<RtcTransportParams>) => {
       const params = await serverWebRTC.createSendFile(fileTransferId);
-      if (params != null) {
+      if (params) {
         callback(params);
       }
     },
@@ -316,7 +426,7 @@ export const setSignalingBrowser = (
     "createRecvFile",
     async (fileTransferId: string, callback: Callback<RtcTransportParams>) => {
       const params = await serverWebRTC.createRecvFile(fileTransferId);
-      if (params != null) {
+      if (params) {
         callback(params);
       }
     },
@@ -346,7 +456,7 @@ export const setSignalingBrowser = (
     "establishRecvFile",
     async (fileTransferId: string, callback: Callback<ConsumeDataParams>) => {
       const params = await serverWebRTC.establishRecvFile(fileTransferId);
-      if (params != null) {
+      if (params) {
         callback(params);
       }
     },

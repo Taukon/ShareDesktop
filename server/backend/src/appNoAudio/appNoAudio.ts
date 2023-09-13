@@ -12,6 +12,7 @@ import { ServerWebRTC } from "../serverWebRTC";
 import { setSignalingBrowser } from "../signaling/browser";
 import { setSignalingDesktop } from "../signaling/desktop";
 import { SignalingEventEmitter } from "../signaling/signalingEvent";
+import { UserManage } from "../userManage";
 
 const getIpAddress = (): string | undefined => {
   const nets = networkInterfaces();
@@ -100,9 +101,16 @@ const serverWebRtc = new ServerWebRTC(
 );
 
 const fileEventEmitter = new SignalingEventEmitter(desktopServer);
+const userTable = new UserManage();
 
 clientServer.on("connection", (sock) => {
-  setSignalingBrowser(desktopServer, sock, serverWebRtc, fileEventEmitter);
+  setSignalingBrowser(
+    desktopServer,
+    sock,
+    serverWebRtc,
+    fileEventEmitter,
+    userTable,
+  );
 });
 
 desktopServer.on("connection", (sock) => {
@@ -113,5 +121,6 @@ desktopServer.on("connection", (sock) => {
     serverWebRtc,
     fileEventEmitter,
     enableAudio,
+    userTable,
   );
 });
