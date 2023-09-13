@@ -23,13 +23,6 @@ export const reqConnect = (socket: Socket, info: ClientInfo): void => {
   socket.emit("reqRtpCap", info);
 };
 
-// export const getRtpCapabilities = (
-//   socket: Socket,
-//   access: Access
-// ): Signaling<void, mediasoupClient.types.RtpCapabilities> => {
-//   return () => sendRequest(socket, "getRtpCapabilities", access);
-// };
-
 // ------- Control
 
 export const createMediaControl = (

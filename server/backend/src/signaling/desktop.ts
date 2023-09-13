@@ -12,7 +12,7 @@ import {
 import type * as desktopType from "../serverWebRTC/desktop/type";
 import { type SignalingEventEmitter } from "./signalingEvent";
 import { type Callback, type FileInfo } from "./type";
-import { getRandomId } from "./utils";
+import { UserManage } from "../userManage";
 
 export const setSignalingDesktop = (
   clientServer: Server,
@@ -20,28 +20,42 @@ export const setSignalingDesktop = (
   serverWebRTC: ServerWebRTC,
   fileEventEmitter: SignalingEventEmitter,
   enableAudio: boolean,
+  userManage: UserManage,
 ): void => {
-  const desktopId = socket.id;
+  const desktopId = userManage.addDesktopUser(socket.id);
   socket.emit("desktopId", desktopId);
 
   socket.on("resRtpCap", async (res: { clientId: string; status: boolean }) => {
-    if (res.status) {
+    const browserSocketId = userManage.getBrowserSocketId(res.clientId);
+
+    if (res.status && browserSocketId) {
       const dropId = serverWebRTC.verifyTotalBrowser();
       if (dropId) {
-        clientServer.to(dropId).emit("end");
+        const socketId = userManage.getDesktopUser(dropId)?.socketId;
+        if (socketId) clientServer.to(socketId).emit("end");
       }
-      const rtpCap = await serverWebRTC.getRtpCapabilitiesForBrowser(
+
+      const accessToken = userManage.createBrowserToken(
         res.clientId,
         desktopId,
-        enableAudio,
       );
-      clientServer.to(res.clientId).emit("resRtpCap", {
-        desktopId: desktopId,
-        token: getRandomId(),
-        rtpCap: rtpCap,
-      });
-    } else {
-      clientServer.to(res.clientId).emit("resRtpCap");
+      if (accessToken) {
+        const rtpCap = await serverWebRTC.getRtpCapabilitiesForBrowser(
+          res.clientId,
+          desktopId,
+          enableAudio,
+        );
+
+        clientServer.to(browserSocketId).emit("resRtpCap", {
+          desktopId: desktopId,
+          token: accessToken,
+          rtpCap: rtpCap,
+        });
+      } else {
+        clientServer.to(browserSocketId).emit("resRtpCap");
+      }
+    } else if (browserSocketId) {
+      clientServer.to(browserSocketId).emit("resRtpCap");
     }
   });
 
@@ -50,14 +64,14 @@ export const setSignalingDesktop = (
     async (desktopId: string, callback: Callback<RtpCapabilities>) => {
       const dropId = serverWebRTC.verifyTotalDesktop();
       if (dropId) {
-        // desktopServer.to(dropId).emit("end");
-        fileEventEmitter.requestDropId(dropId);
+        const socketId = userManage.getDesktopUser(dropId)?.socketId;
+        if (socketId) fileEventEmitter.requestDropId(socketId);
       }
       const params = await serverWebRTC.getRtpCapabilitiesForDesktop(
         desktopId,
         enableAudio,
       );
-      if (params != null) {
+      if (params) {
         callback(params);
       }
     },
@@ -67,7 +81,7 @@ export const setSignalingDesktop = (
     "createDesktopControl",
     async (desktopId: string, callback: Callback<RtcTransportParams>) => {
       const params = await serverWebRTC.createDesktopControl(desktopId);
-      if (params != null) {
+      if (params) {
         callback(params);
       }
     },
@@ -93,7 +107,7 @@ export const setSignalingDesktop = (
     "establishDesktopControl",
     async (desktopId: string, callback: Callback<ConsumeDataParams>) => {
       const params = await serverWebRTC.establishDesktopControl(desktopId);
-      if (params != null) {
+      if (params) {
         callback(params);
       }
     },
@@ -103,7 +117,7 @@ export const setSignalingDesktop = (
     "createDesktopScreen",
     async (desktopId: string, callback: Callback<RtcTransportParams>) => {
       const params = await serverWebRTC.createDesktopScreen(desktopId);
-      if (params != null) {
+      if (params) {
         callback(params);
       }
     },
@@ -152,7 +166,7 @@ export const setSignalingDesktop = (
     ) => {
       if (await serverWebRTC.createDesktopAudio(desktopId, false)) {
         const params = serverWebRTC.establishDesktopAudio(desktopId);
-        if (params != null) {
+        if (params) {
           callback(params);
         }
       }
@@ -164,7 +178,7 @@ export const setSignalingDesktop = (
     "createFileWatch",
     async (desktopId: string, callback: Callback<RtcTransportParams>) => {
       const params = await serverWebRTC.createDesktopFileWatch(desktopId);
-      if (params != null) {
+      if (params) {
         callback(params);
       }
     },
@@ -206,6 +220,7 @@ export const setSignalingDesktop = (
   );
 
   socket.on("disconnect", () => {
+    userManage.removeDesktopUser(desktopId);
     serverWebRTC.disconnectDesktop(desktopId);
   });
 
@@ -219,7 +234,7 @@ export const setSignalingDesktop = (
     "createSendFile",
     async (fileTransferId: string, callback: Callback<RtcTransportParams>) => {
       const params = await serverWebRTC.createSendFile(fileTransferId);
-      if (params != null) {
+      if (params) {
         callback(params);
       }
     },
@@ -276,7 +291,7 @@ export const setSignalingDesktop = (
     "createRecvFile",
     async (fileTransferId: string, callback: Callback<RtcTransportParams>) => {
       const params = await serverWebRTC.createRecvFile(fileTransferId);
-      if (params != null) {
+      if (params) {
         callback(params);
       }
     },
@@ -305,7 +320,7 @@ export const setSignalingDesktop = (
     "establishRecvFile",
     async (fileTransferId: string, callback: Callback<ConsumeDataParams>) => {
       const params = await serverWebRTC.establishRecvFile(fileTransferId);
-      if (params != null) {
+      if (params) {
         callback(params);
       }
     },
