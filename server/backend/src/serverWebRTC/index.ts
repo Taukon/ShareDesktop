@@ -11,7 +11,7 @@ import { startWorker } from "./common";
 import { type ProduceDataParams } from "./common/type";
 import { Desktop } from "./desktop";
 import { FileTransfer } from "./fileShare";
-import { getRandomId } from "../signaling/utils";
+import { getRandomId } from "../utils";
 
 export class ServerWebRTC {
   private readonly ipAddr: string;

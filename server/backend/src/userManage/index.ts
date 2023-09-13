@@ -1,4 +1,4 @@
-import { getRandomId } from "../signaling/utils";
+import { getRandomId } from "../utils";
 import {
   AccessToken,
   BrowserId,
