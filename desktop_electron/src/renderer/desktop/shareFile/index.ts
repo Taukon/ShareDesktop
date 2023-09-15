@@ -195,7 +195,6 @@ export class ShareFile {
           producer.send(appBuffer);
         }
 
-        // TODO
         // send File
       } else if (parse.status === appStatus.fileRequestRead) {
         // UTF-8エンコードされたUint8Arrayを文字列にデコード
@@ -256,6 +255,7 @@ export class ShareFile {
     const id = getRandomInt(appMaxId);
     let order = 0;
     let total = 0;
+    const loop = 5;
 
     let chunk = await window.shareFile.getFileChunk(fileName, fileTransferId);
 
@@ -297,7 +297,7 @@ export class ShareFile {
 
       order++;
       chunk = await window.shareFile.getFileChunk(fileName, fileTransferId);
-      await timer(10); // usleep(1 * 1000);
+      await timer(loop); // usleep(1 * 1000);
     }
     // endTransferFile(this.socket, fileTransferId);
   };

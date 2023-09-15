@@ -140,6 +140,7 @@ export const sendFile = async (
   }
 };
 
+const loop = 5;
 const sendFileBuffer = async (
   producer: mediasoupClient.types.DataProducer,
   reader: ReadableStreamDefaultReader<Uint8Array>,
@@ -190,7 +191,7 @@ const sendFileBuffer = async (
 
           sliceOffset += sliceBuf.byteLength;
           order++;
-          await timer(10);
+          await timer(loop);
         }
       } else {
         total += value.byteLength;
@@ -260,7 +261,6 @@ const reqReadFile = async (
   producer.send(data);
 };
 
-//TODO 再送制御
 const readFile = async (
   openProducer: mediasoupClient.types.DataProducer,
   openConsumer: mediasoupClient.types.DataConsumer,

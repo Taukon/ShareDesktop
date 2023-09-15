@@ -17,7 +17,6 @@ export class HandleFile {
   private dirPath?: string;
   private alreadyRun = false;
   private writeFileList: { [fileName: string]: WriteFileInfo | undefined } = {};
-  // private readingFile: { [fileName: string]: number | undefined } = {};
   private readingFile: {
     [fileName: string]: { [fileTransferId: string]: number };
   } = {};
