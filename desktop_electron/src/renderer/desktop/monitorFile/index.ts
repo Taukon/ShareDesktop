@@ -28,8 +28,10 @@ export const updateFiles = (
       break;
     case FileMsgType.writing:
       unlinkFiles(fileList, fileWatchMsg.msgItems);
+      writingFiles(fileList, fileWatchMsg.msgItems);
       break;
     case FileMsgType.saved:
+      unlinkFiles(fileList, fileWatchMsg.msgItems);
       addFiles(fileList, fileWatchMsg.msgItems);
       break;
     default:
@@ -41,6 +43,16 @@ const addFiles = (fileList: FileWatchList, msgItems: string[]) => {
   for (const item of msgItems) {
     const button = document.createElement("button");
     button.textContent = button.id = button.name = item;
+
+    fileList.appendChild(button);
+  }
+};
+
+const writingFiles = (fileList: FileWatchList, msgItems: string[]) => {
+  for (const item of msgItems) {
+    const button = document.createElement("button");
+    button.textContent = button.id = button.name = item;
+    button.disabled = true;
 
     fileList.appendChild(button);
   }

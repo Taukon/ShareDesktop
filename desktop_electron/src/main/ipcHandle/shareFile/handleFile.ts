@@ -1,11 +1,12 @@
 import * as chokidar from "chokidar";
 import { BrowserWindow } from "electron";
 import {
-  createReadStream,
   createWriteStream,
   statSync,
   existsSync,
-  ReadStream,
+  openSync,
+  readSync,
+  closeSync,
 } from "fs";
 // import * as path from "path";
 import { FileMsgType, appHeader, appMax } from "../../../util";
@@ -18,7 +19,7 @@ export class HandleFile {
   private writeFileList: { [fileName: string]: WriteFileInfo | undefined } = {};
   // private readingFile: { [fileName: string]: number | undefined } = {};
   private readingFile: {
-    [fileName: string]: { [fileTransferId: string]: ReadStream };
+    [fileName: string]: { [fileTransferId: string]: number };
   } = {};
 
   private isWritingFile(fileName: string): boolean {
@@ -26,7 +27,7 @@ export class HandleFile {
   }
 
   private isUnlockReadStream(fileName: string): boolean {
-    if (Object.keys(this.readingFile[fileName]).length > 0) {
+    if (this.readingFile[fileName]) {
       console.log(`locking read: ${fileName} | ${this.readingFile[fileName]}`);
       return false;
     }
@@ -36,30 +37,32 @@ export class HandleFile {
   private lockReadStream(
     fileName: string,
     fileTransferId: string,
-    stream: ReadStream,
+    totalBytesRead: number,
   ) {
     const streamList = this.readingFile[fileName];
     if (streamList) {
-      streamList[fileTransferId] = stream;
+      streamList[fileTransferId] = totalBytesRead;
     } else {
       this.readingFile[fileName] = {};
-      this.readingFile[fileName][fileTransferId] = stream;
+      this.readingFile[fileName][fileTransferId] = totalBytesRead;
     }
 
-    console.log(
-      `lock read: ${fileName} | ${
-        Object.keys(this.readingFile[fileName]).length
-      }`,
-    );
+    if (totalBytesRead == 0)
+      console.log(
+        `lock read: ${fileName} | ${
+          Object.keys(this.readingFile[fileName]).length
+        }`,
+      );
   }
 
   private haveReadStream(
     fileName: string,
     fileTransferId: string,
-  ): ReadStream | undefined {
+  ): number | undefined {
     const streamList = this.readingFile[fileName];
     if (streamList) {
-      return streamList[fileTransferId] ?? undefined;
+      const totalBytesRead = streamList[fileTransferId];
+      return totalBytesRead !== undefined ? totalBytesRead : undefined;
     }
     return undefined;
   }
@@ -123,34 +126,28 @@ export class HandleFile {
     const filePath = this.checkFilePath(fileName);
     const fileSize = this.getFileInfo(fileName)?.fileSize;
     if (filePath && fileSize && !this.isWritingFile(fileName)) {
-      const stream = this.haveReadStream(fileName, fileTransferId);
-      if (stream === undefined) {
-        const chunkSize = appMax - appHeader;
-        const fileReadStream = createReadStream(filePath, {
-          highWaterMark: chunkSize,
-        });
+      let totalBytesRead = this.haveReadStream(fileName, fileTransferId);
+      if (totalBytesRead === undefined) {
+        totalBytesRead = 0;
+        this.lockReadStream(fileName, fileTransferId, totalBytesRead);
+      }
+      const fd = openSync(filePath, "r");
+      const chunkSize = appMax - appHeader;
+      const tempChunk = Buffer.alloc(chunkSize);
 
-        this.lockReadStream(fileName, fileTransferId, fileReadStream);
+      const bytesRead = readSync(fd, tempChunk, 0, chunkSize, totalBytesRead);
+      if (bytesRead > 0) {
+        totalBytesRead += bytesRead;
+        this.lockReadStream(fileName, fileTransferId, totalBytesRead);
+        const chunk = tempChunk.subarray(0, bytesRead);
+        closeSync(fd);
 
-        // https://nodejs.org/api/stream.html#readablereadsize
-        const chunk: Buffer | null = fileReadStream.read();
-        console.log(`chunk ${chunk}`);
-        if (!chunk) {
-          fileReadStream.close();
+        if (totalBytesRead >= fileSize) {
           this.unlockReadStream(fileName, fileTransferId);
         }
-
         return chunk;
       }
-
-      const chunk: Buffer | null = stream.read();
-
-      if (!chunk) {
-        stream.close();
-        this.unlockReadStream(fileName, fileTransferId);
-      }
-
-      return chunk;
+      closeSync(fd);
     }
     return null;
   }
@@ -158,7 +155,7 @@ export class HandleFile {
   // TODO atomic
   public setFileInfo(fileName: string, fileSize: number): boolean {
     const filePath = `${this.dirPath}/${fileName}`;
-    console.log(`set: ${filePath}`);
+
     if (this.isUnlockReadStream(fileName) && !this.isWritingFile(fileName)) {
       const fileWriteStream = createWriteStream(filePath);
       if (fileSize === 0) {

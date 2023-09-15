@@ -5,10 +5,10 @@ export const timer = (ms: number) =>
     }, ms);
   });
 
-export const usleep = (microsec: number) => {
-  const stop = Date.now() + microsec / 1000;
-  while (Date.now() <= stop);
-};
+// export const usleep = (microsec: number) => {
+//   const stop = Date.now() + microsec / 1000;
+//   while (Date.now() <= stop);
+// };
 
 export enum FileMsgType {
   list = `list`,

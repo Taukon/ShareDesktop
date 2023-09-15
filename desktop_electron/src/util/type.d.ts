@@ -58,3 +58,8 @@ export type WriteFileInfo = {
   size: number;
   receivedSize: number;
 };
+
+export type ReadFileInfo = {
+  totalBytesRead: number;
+  order: number;
+};

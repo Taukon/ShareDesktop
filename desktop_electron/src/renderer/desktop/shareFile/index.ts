@@ -22,7 +22,8 @@ import {
   appStatus,
   getRandomInt,
   parseAppProtocol,
-  usleep,
+  timer,
+  // usleep,
 } from "../../../util";
 import { createAppProtocol, createAppProtocolFromJson } from "../util";
 import { updateFiles } from "../monitorFile";
@@ -170,13 +171,11 @@ export class ShareFile {
       if (writeInfo) {
         if (await this.writeFile(parse, writeInfo.fileName))
           endTransferFile(socket, fileTransferId);
-        // delete this.fileProducers[fileTransferId];
       } else if (parse.status === appStatus.fileRequestWrite) {
         // UTF-8エンコードされたUint8Arrayを文字列にデコード
         const decoder = new TextDecoder("utf-8");
         const jsonString = decoder.decode(Uint8Array.from(parse.data));
         const data: WriteFile = JSON.parse(jsonString);
-        console.log(``);
         const isSet = await window.shareFile.setFileInfo(
           data.fileName,
           data.fileSize,
@@ -217,7 +216,7 @@ export class ShareFile {
           );
           producer.send(appBuffer);
 
-          this.readFile(
+          await this.readFile(
             fileInfo.fileName,
             fileInfo.fileSize,
             fileTransferId,
@@ -259,7 +258,6 @@ export class ShareFile {
     let total = 0;
 
     let chunk = await window.shareFile.getFileChunk(fileName, fileTransferId);
-    // console.log(`chunk ${chunk}`);
 
     if (chunk === null) {
       const appData = createAppProtocol(
@@ -276,20 +274,31 @@ export class ShareFile {
     while (chunk !== null) {
       total += chunk.byteLength;
       if (order === 0) {
+        console.log(
+          `order: ${order} | chunkl: ${chunk.byteLength} | fileSize: ${fileSize} | total: ${total}`,
+        );
         const appData = createAppProtocol(chunk, id, appStatus.start, order);
         producer.send(appData);
       } else if (total < fileSize) {
+        // console.log(`m order: ${order} | chunkl: ${chunk.byteLength} | fileSize: ${fileSize} | total: ${total}`);
         const appData = createAppProtocol(chunk, id, appStatus.middle, order);
         producer.send(appData);
-      } else {
+      } else if (total === fileSize) {
+        console
+          .log
+          // `e order: ${order} | chunkl: ${chunk.byteLength} | fileSize: ${fileSize} | total: ${total}`,
+          ();
         const appData = createAppProtocol(chunk, id, appStatus.end, order);
         producer.send(appData);
+        break;
+      } else {
+        break;
       }
 
       order++;
       chunk = await window.shareFile.getFileChunk(fileName, fileTransferId);
-      usleep(1 * 1000);
+      await timer(10); // usleep(1 * 1000);
     }
-    endTransferFile(this.socket, fileTransferId);
+    // endTransferFile(this.socket, fileTransferId);
   };
 }

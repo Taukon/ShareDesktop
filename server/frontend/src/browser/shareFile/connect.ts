@@ -190,7 +190,7 @@ const sendFileBuffer = async (
 
           sliceOffset += sliceBuf.byteLength;
           order++;
-          await timer(100);
+          await timer(10);
         }
       } else {
         total += value.byteLength;
@@ -241,12 +241,12 @@ export const receiveFile = (
   fileName: string,
 ): void => {
   if (consumer.readyState === "open") {
-    reqReadFile(producer, { fileName });
     readFile(producer, consumer, socket);
+    reqReadFile(producer, { fileName });
   } else {
     consumer.on("open", () => {
-      reqReadFile(producer, { fileName });
       readFile(producer, consumer, socket);
+      reqReadFile(producer, { fileName });
     });
   }
 };
@@ -260,6 +260,7 @@ const reqReadFile = async (
   producer.send(data);
 };
 
+//TODO 再送制御
 const readFile = async (
   openProducer: mediasoupClient.types.DataProducer,
   openConsumer: mediasoupClient.types.DataConsumer,
@@ -285,8 +286,6 @@ const readFile = async (
       const info: FileInfo = JSON.parse(jsonString);
       fileInfo = info;
 
-      // console.log(`accept ${info.fileTransferId}`);
-
       const fileStream = streamSaver.createWriteStream(info.fileName, {
         size: info.fileSize,
       });
@@ -305,7 +304,11 @@ const readFile = async (
       stamp++;
       receivedSize += parse.data.byteLength;
       writer.write(parse.data);
-
+      // console.log(
+      //   `${
+      //     fileInfo.fileSize - receivedSize
+      //   } | receivedSize: ${receivedSize} | fileSize: ${fileInfo.fileSize}`,
+      // );
       if (receivedSize === fileInfo.fileSize) {
         isClosed = true;
         writer.close();
