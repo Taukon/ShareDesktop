@@ -47,15 +47,15 @@ export const signalingDesktop = (
     }
   });
 
-  signalingAppDesktop(
-    desktopServer,
-    socket,
-    shareApp,
-    enableAudio,
-    userManage
-  );
+  signalingAppDesktop(desktopServer, socket, shareApp, enableAudio, userManage);
 
-  signalingFileDesktop(desktopServer, clientServer, socket, shareFile, userManage);
+  signalingFileDesktop(
+    desktopServer,
+    clientServer,
+    socket,
+    shareFile,
+    userManage,
+  );
 
   socket.on("disconnect", () => {
     userManage.removeDesktopUser(desktopId);

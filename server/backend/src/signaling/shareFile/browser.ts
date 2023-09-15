@@ -36,23 +36,18 @@ export const signalingFileBrowser = (
 
   // -------------- File Watch --------------
 
-  socket.on(
-    "requestFileWatch",
-    (access: Access) => {
-      if (
-        !userManage.checkBrowserToken(browserId, access.desktopId, access.token)
-      ) {
-        return;
-      }
-
-      const transferId = shareFile.initFileTransfer();
-      console.log(`transferId ${transferId}`);
-      const socketId = userManage.getDesktopUser(access.desktopId)?.socketId;
-      if (transferId && socketId) {
-        desktopServer.to(socketId).emit("requestFileWatch");
-      }
+  socket.on("requestFileWatch", (access: Access) => {
+    if (
+      !userManage.checkBrowserToken(browserId, access.desktopId, access.token)
+    ) {
+      return;
     }
-  )
+
+    const socketId = userManage.getDesktopUser(access.desktopId)?.socketId;
+    if (socketId) {
+      desktopServer.to(socketId).emit("requestFileWatch");
+    }
+  });
 
   socket.on(
     "createFileWatch",
@@ -123,6 +118,13 @@ export const signalingFileBrowser = (
   );
 
   // -------------- File Transfer --------------
+  //   desktop              browser
+  // 1                      reqTransfer(get fileTransferId)
+  // 2                   <- setWebProducer
+  // 3 (create consumer)
+  // 4 setDtpProducer    ->
+  // 5                      (create consumer)
+  // 6 2 connection(send&recieve) establish
 
   socket.on(
     "reqTransfer",
@@ -135,10 +137,6 @@ export const signalingFileBrowser = (
 
       const transferId = shareFile.initFileTransfer();
       console.log(`transferId ${transferId}`);
-      const socketId = userManage.getDesktopUser(access.desktopId)?.socketId;
-      if (transferId && socketId) {
-        desktopServer.to(socketId).emit("reqTransfer", transferId, browserId);
-      }
       callback(transferId);
     },
   );
@@ -147,7 +145,7 @@ export const signalingFileBrowser = (
     shareFile.disconnectTransfer(fileTransferId);
   });
 
-  socket.on("setFileProducer", (fileTransferId: string, access: Access) => {
+  socket.on("setFileWebProducer", (fileTransferId: string, access: Access) => {
     if (
       !userManage.checkBrowserToken(browserId, access.desktopId, access.token)
     ) {
@@ -156,8 +154,15 @@ export const signalingFileBrowser = (
 
     const desktopSocketId = userManage.getDesktopUser(access.desktopId)
       ?.socketId;
-    if (desktopSocketId && shareFile.isDesktopId(access.desktopId)) {
-      desktopServer.to(desktopSocketId).emit("setFileProducer", fileTransferId);
+
+    if (
+      desktopSocketId &&
+      shareFile.isDesktopId(access.desktopId) &&
+      shareFile.checkTransferId(fileTransferId)
+    ) {
+      desktopServer
+        .to(desktopSocketId)
+        .emit("setFileWebProducer", fileTransferId, browserId);
     }
   });
 
@@ -239,7 +244,6 @@ export const signalingFileBrowser = (
         req.dtlsParameters,
         transferNode.browser,
       );
-      console.log(`connectRecvFile ${params}`);
       callback(params);
     },
   );

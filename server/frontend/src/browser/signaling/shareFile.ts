@@ -51,7 +51,6 @@ export const establishBrowserFileWatch = (
 export const requestTransfer = (
   socket: Socket,
   access: Access,
-  // fileName: string
 ): Signaling<void, string | undefined> => {
   return () => sendRequest(socket, "reqTransfer", access);
 };
@@ -63,19 +62,19 @@ export const endTransferFile = (
   socket.emit("endTransferFile", fileTransferId);
 };
 
-export const setFileProducer = (
+export const setFileWebProducer = (
   socket: Socket,
   fileTransferId: string,
   access: Access,
 ): void => {
-  socket.emit("setFileProducer", fileTransferId, access);
+  socket.emit("setFileWebProducer", fileTransferId, access);
 };
 
 export const listenDtpFileProducer = (
   socket: Socket,
   callback: (fileTransferId: string) => Promise<void>,
 ): void => {
-  socket.on("setFileProducer", async (fileTransferId: string) => {
+  socket.on("setFileDtpProducer", async (fileTransferId: string) => {
     await callback(fileTransferId);
   });
 };

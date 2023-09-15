@@ -16,9 +16,8 @@ export const signalingFileDesktop = (
   clientServer: Server,
   socket: Socket,
   shareFile: ShareFile,
-  userManage: UserManage
+  userManage: UserManage,
 ): void => {
-
   socket.on(
     "getRtpCapFile",
     async (
@@ -85,12 +84,17 @@ export const signalingFileDesktop = (
     shareFile.disconnectTransfer(fileTransferId);
   });
 
-  socket.on("setFileProducer", (fileTransferId: string, browserId: string) => {
-    const browserSocketId = userManage.getBrowserSocketId(browserId);
-    if (browserSocketId) {
-      clientServer.to(browserSocketId).emit("setFileProducer", fileTransferId);
-    }
-  });
+  socket.on(
+    "setFileDtpProducer",
+    (fileTransferId: string, browserId: string) => {
+      const browserSocketId = userManage.getBrowserSocketId(browserId);
+      if (browserSocketId) {
+        clientServer
+          .to(browserSocketId)
+          .emit("setFileDtpProducer", fileTransferId);
+      }
+    },
+  );
 
   socket.on(
     "createSendFile",

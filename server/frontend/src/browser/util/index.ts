@@ -5,10 +5,10 @@ export const timer = (ms: number) =>
     }, ms);
   });
 
-export const usleep = (microsec: number) => {
-  const stop = Date.now() + microsec / 1000;
-  while (Date.now() <= stop);
-};
+// export const usleep = (microsec: number) => {
+//   const stop = Date.now() + microsec / 1000;
+//   while (Date.now() <= stop);
+// };
 
 // App Protocol
 //   header: 9B
@@ -31,7 +31,8 @@ export const appStatus = {
   fileRequestWrite: 0x4,
   fileRequestRead: 0x5,
   fileAccept: 0x6,
-  control: 0x7,
+  fileError: 0x7,
+  control: 0x8,
 };
 
 type AppHeader = {

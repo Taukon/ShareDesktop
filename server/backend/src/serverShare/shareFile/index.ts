@@ -12,8 +12,6 @@ import { getRandomId } from "../../utils";
 export class ShareFile {
   private router: Router;
   private readonly transportOptions: WebRtcTransportOptions;
-  // private readonly workerSettings: WorkerSettings;
-  // private readonly mediaCodecs: RtpCodecCapability[];
 
   private readonly limitBrowser: number;
   private readonly limitDesktop: number;
@@ -29,8 +27,6 @@ export class ShareFile {
     limitTransfer: number,
     router: Router,
     transportOptions: WebRtcTransportOptions,
-    // workerSettings: WorkerSettings,
-    // mediaCodecs: RtpCodecCapability[]
   ) {
     this.limitBrowser = limitBrowser;
     this.limitDesktop = limitDesktop;
@@ -38,12 +34,14 @@ export class ShareFile {
 
     this.router = router;
     this.transportOptions = transportOptions;
-    // this.workerSettings = workerSettings;
-    // this.mediaCodecs = mediaCodecs;
   }
 
   public isDesktopId(desktopId: string) {
     return this.desktop.isDesktopId(desktopId);
+  }
+
+  public checkTransferId(fileTransferId: string) {
+    return this.transfer.checkTransferId(fileTransferId);
   }
 
   // ------------------------ Desktop --------------------------

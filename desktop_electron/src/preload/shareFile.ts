@@ -27,7 +27,7 @@ export const shareFile = {
     fileTransferId: string,
   ): Promise<Uint8Array | null> => {
     const result: Uint8Array | null = await ipcRenderer.invoke(
-      "sendFileBuffer",
+      "getFileChunk",
       fileName,
       fileTransferId,
     );

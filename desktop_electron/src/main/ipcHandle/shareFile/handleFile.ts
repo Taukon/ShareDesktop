@@ -25,36 +25,6 @@ export class HandleFile {
     return !!this.writeFileList[fileName];
   }
 
-  // private isUnlockReadStream(fileName: string): boolean {
-  //   const readingFile = this.readingFile[fileName];
-  //   if (typeof readingFile === "number" && readingFile > 0) {
-  //     console.log(`locking read: ${fileName} | ${this.readingFile[fileName]}`);
-  //     return false;
-  //   }
-  //   return true;
-  // }
-
-  // private lockReadStream(fileName: string) {
-  //   const readingFile = this.readingFile[fileName];
-  //   if (typeof readingFile === "number") {
-  //     this.readingFile[fileName] = readingFile + 1;
-  //   } else {
-  //     this.readingFile[fileName] = 1;
-  //   }
-  //   console.log(`lock read: ${fileName} | ${this.readingFile[fileName]}`);
-  // }
-
-  // private unlockReadStream(fileName: string) {
-  //   const endReadFile = this.readingFile[fileName];
-  //   if (typeof endReadFile === "number") {
-  //     this.readingFile[fileName] = endReadFile - 1;
-  //     if (endReadFile - 1 === 0) {
-  //       delete this.readingFile[fileName];
-  //     }
-  //   }
-  //   console.log(`unlock read: ${fileName} | ${this.readingFile[fileName]}`);
-  // }
-
   private isUnlockReadStream(fileName: string): boolean {
     if (Object.keys(this.readingFile[fileName]).length > 0) {
       console.log(`locking read: ${fileName} | ${this.readingFile[fileName]}`);
@@ -68,7 +38,14 @@ export class HandleFile {
     fileTransferId: string,
     stream: ReadStream,
   ) {
-    this.readingFile[fileName][fileTransferId] = stream;
+    const streamList = this.readingFile[fileName];
+    if (streamList) {
+      streamList[fileTransferId] = stream;
+    } else {
+      this.readingFile[fileName] = {};
+      this.readingFile[fileName][fileTransferId] = stream;
+    }
+
     console.log(
       `lock read: ${fileName} | ${
         Object.keys(this.readingFile[fileName]).length
@@ -80,18 +57,22 @@ export class HandleFile {
     fileName: string,
     fileTransferId: string,
   ): ReadStream | undefined {
-    if (fileTransferId in this.readingFile[fileName]) {
-      return this.readingFile[fileName][fileTransferId];
+    const streamList = this.readingFile[fileName];
+    if (streamList) {
+      return streamList[fileTransferId] ?? undefined;
     }
     return undefined;
   }
 
   private unlockReadStream(fileName: string, fileTransferId: string) {
-    if (fileTransferId in this.readingFile[fileName]) {
-      delete this.readingFile[fileName][fileTransferId];
-    }
-    if (Object.keys(this.readingFile[fileName]).length === 0) {
-      delete this.readingFile[fileName];
+    const streamList = this.readingFile[fileName];
+    if (streamList) {
+      if (streamList[fileTransferId]) {
+        delete streamList[fileTransferId];
+      }
+      if (Object.keys(streamList).length === 0) {
+        delete this.readingFile[fileName];
+      }
     }
     console.log(`unlock read: ${fileName} | ${this.readingFile[fileName]}`);
   }
@@ -143,7 +124,7 @@ export class HandleFile {
     const fileSize = this.getFileInfo(fileName)?.fileSize;
     if (filePath && fileSize && !this.isWritingFile(fileName)) {
       const stream = this.haveReadStream(fileName, fileTransferId);
-      if (!stream) {
+      if (stream === undefined) {
         const chunkSize = appMax - appHeader;
         const fileReadStream = createReadStream(filePath, {
           highWaterMark: chunkSize,
@@ -153,6 +134,7 @@ export class HandleFile {
 
         // https://nodejs.org/api/stream.html#readablereadsize
         const chunk: Buffer | null = fileReadStream.read();
+        console.log(`chunk ${chunk}`);
         if (!chunk) {
           fileReadStream.close();
           this.unlockReadStream(fileName, fileTransferId);

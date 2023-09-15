@@ -77,7 +77,9 @@ export class FileBrowser {
   private deleteBrowserTransports(browserTransports: BrowserTransports) {
     const fileWatchTransport = browserTransports.fileWatchTransport;
     if (fileWatchTransport) {
-      console.log(`delete Browser fileWatchTransportId: ${fileWatchTransport.id}`);
+      console.log(
+        `delete Browser fileWatchTransportId: ${fileWatchTransport.id}`,
+      );
       fileWatchTransport.close();
     }
   }

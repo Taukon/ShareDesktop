@@ -2,7 +2,6 @@ import { Socket } from "socket.io-client";
 import * as mediasoupClient from "mediasoup-client";
 import { Buffer } from "buffer";
 import { FileInfo, ReadFile, WriteFile } from "./type";
-import { FileProducers } from "../mediasoup/type";
 import {
   createDevice,
   createFileConsumer,
@@ -13,10 +12,9 @@ import {
 import { FileWatchList, FileWatchMsg } from "../monitorFile/type";
 import {
   endTransferFile,
-  listenBroFileProducer,
   listenJoinFileWatch,
-  listenTransfer,
-  setFileProducer,
+  listenWebFileProducer,
+  setFileDtpProducer,
 } from "../signaling/shareFile";
 import {
   AppHeader,
@@ -37,7 +35,7 @@ export class ShareFile {
   public desktopId: string;
   public socket: Socket;
 
-  private fileProducers: FileProducers = {};
+  // private fileProducers: FileProducers = {};
   private device?: mediasoupClient.types.Device;
 
   constructor(desktopId: string, socket: Socket) {
@@ -97,54 +95,60 @@ export class ShareFile {
   }
 
   private onFile(device: mediasoupClient.types.Device, socket: Socket) {
-    const setTransfer = async (
-      fileTransferId: string,
-      browserId: string,
-    ): Promise<void> => {
-      const producer = await createFileProducer(device, socket, fileTransferId);
-
-      if (producer?.readyState === "open") {
-        setFileProducer(socket, fileTransferId, browserId);
-        producer.on("close", () => {
-          delete this.fileProducers[fileTransferId];
-        });
-        this.fileProducers[fileTransferId] = producer;
-      } else if (producer) {
-        producer.on("open", () => {
-          setFileProducer(socket, fileTransferId, browserId);
-          producer.on("close", () => {
-            delete this.fileProducers[fileTransferId];
-          });
-          this.fileProducers[fileTransferId] = producer;
-        });
-      }
-    };
-
-    const setConsumer = async (fileTransferId: string) => {
+    const setTransfer = async (fileTransferId: string, browserId: string) => {
       const consumer = await createFileConsumer(device, socket, fileTransferId);
-      if (consumer) {
-        // 同期
-        const limit = 5;
-        let count = 0;
-        while (fileTransferId in this.fileProducers === false) {
-          usleep(1 * 1000);
-          count++;
-          if (count > limit) {
-            return endTransferFile(socket, fileTransferId);
-          }
-        }
-        const producer = this.fileProducers[fileTransferId];
 
-        if (consumer.readyState === "open") {
+      if (consumer?.readyState === "open") {
+        const producer = await createFileProducer(
+          device,
+          socket,
+          fileTransferId,
+        );
+        if (producer?.readyState === "open") {
           await this.listenFileMsg(socket, fileTransferId, producer, consumer);
-        } else {
-          await this.listenFileMsg(socket, fileTransferId, producer, consumer);
+          setFileDtpProducer(socket, fileTransferId, browserId);
+        } else if (producer) {
+          producer.on("open", async () => {
+            await this.listenFileMsg(
+              socket,
+              fileTransferId,
+              producer,
+              consumer,
+            );
+            setFileDtpProducer(socket, fileTransferId, browserId);
+          });
         }
+      } else if (consumer) {
+        consumer.on("open", async () => {
+          const producer = await createFileProducer(
+            device,
+            socket,
+            fileTransferId,
+          );
+          if (producer?.readyState === "open") {
+            await this.listenFileMsg(
+              socket,
+              fileTransferId,
+              producer,
+              consumer,
+            );
+            setFileDtpProducer(socket, fileTransferId, browserId);
+          } else if (producer) {
+            producer.on("open", async () => {
+              await this.listenFileMsg(
+                socket,
+                fileTransferId,
+                producer,
+                consumer,
+              );
+              setFileDtpProducer(socket, fileTransferId, browserId);
+            });
+          }
+        });
       }
     };
 
-    listenTransfer(socket, setTransfer);
-    listenBroFileProducer(socket, setConsumer);
+    listenWebFileProducer(socket, setTransfer);
   }
 
   private listenFileMsg = async (
@@ -172,6 +176,7 @@ export class ShareFile {
         const decoder = new TextDecoder("utf-8");
         const jsonString = decoder.decode(Uint8Array.from(parse.data));
         const data: WriteFile = JSON.parse(jsonString);
+        console.log(``);
         const isSet = await window.shareFile.setFileInfo(
           data.fileName,
           data.fileSize,
@@ -254,9 +259,22 @@ export class ShareFile {
     let total = 0;
 
     let chunk = await window.shareFile.getFileChunk(fileName, fileTransferId);
+    // console.log(`chunk ${chunk}`);
+
+    if (chunk === null) {
+      const appData = createAppProtocol(
+        Buffer.alloc(0),
+        id,
+        appStatus.start,
+        order,
+      );
+      producer.send(appData);
+      endTransferFile(this.socket, fileTransferId);
+      return;
+    }
+
     while (chunk !== null) {
       total += chunk.byteLength;
-
       if (order === 0) {
         const appData = createAppProtocol(chunk, id, appStatus.start, order);
         producer.send(appData);
@@ -272,5 +290,6 @@ export class ShareFile {
       chunk = await window.shareFile.getFileChunk(fileName, fileTransferId);
       usleep(1 * 1000);
     }
+    endTransferFile(this.socket, fileTransferId);
   };
 }

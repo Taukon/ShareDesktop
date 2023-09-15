@@ -12,7 +12,7 @@ import {
   createAppProtocolFromJson,
   getRandomInt,
   parseAppProtocol,
-  usleep,
+  timer,
 } from "../util";
 import {
   connectBrowserFileWatch,
@@ -100,24 +100,10 @@ const reqWriteFile = async (
   producer.send(data);
 };
 
-const reqReadFile = async (
-  producer: mediasoupClient.types.DataProducer,
-  readFile: ReadFile,
-): Promise<void> => {
-  const jsonString = JSON.stringify(readFile);
-  const data = createAppProtocolFromJson(
-    jsonString,
-    appStatus.fileRequestWrite,
-  );
-  producer.send(data);
-};
-
 export const sendFile = async (
   producer: mediasoupClient.types.DataProducer,
   consumer: mediasoupClient.types.DataConsumer,
   writeInfo: WriteInfo,
-  // reader: ReadableStreamDefaultReader<Uint8Array>,
-  // fileSize: number,
 ): Promise<void> => {
   if (consumer.readyState === "open") {
     consumer.on("message", async (msg) => {
@@ -204,7 +190,7 @@ const sendFileBuffer = async (
 
           sliceOffset += sliceBuf.byteLength;
           order++;
-          usleep(100);
+          await timer(100);
         }
       } else {
         total += value.byteLength;
@@ -220,7 +206,7 @@ const sendFileBuffer = async (
         }
 
         order++;
-        usleep(100);
+        await timer(100);
       }
     }
     reader.releaseLock();
@@ -255,20 +241,30 @@ export const receiveFile = (
   fileName: string,
 ): void => {
   if (consumer.readyState === "open") {
-    readFile(consumer, socket);
     reqReadFile(producer, { fileName });
+    readFile(producer, consumer, socket);
   } else {
     consumer.on("open", () => {
-      readFile(consumer, socket);
       reqReadFile(producer, { fileName });
+      readFile(producer, consumer, socket);
     });
   }
 };
 
-const readFile = (
+const reqReadFile = async (
+  producer: mediasoupClient.types.DataProducer,
+  readFile: ReadFile,
+): Promise<void> => {
+  const jsonString = JSON.stringify(readFile);
+  const data = createAppProtocolFromJson(jsonString, appStatus.fileRequestRead);
+  producer.send(data);
+};
+
+const readFile = async (
+  openProducer: mediasoupClient.types.DataProducer,
   openConsumer: mediasoupClient.types.DataConsumer,
   socket: Socket,
-): void => {
+): Promise<void> => {
   let receivedSize = 0;
 
   let stamp = 0;
@@ -289,6 +285,8 @@ const readFile = (
       const info: FileInfo = JSON.parse(jsonString);
       fileInfo = info;
 
+      // console.log(`accept ${info.fileTransferId}`);
+
       const fileStream = streamSaver.createWriteStream(info.fileName, {
         size: info.fileSize,
       });
@@ -299,6 +297,10 @@ const readFile = (
         endTransferFile(socket, info.fileTransferId);
         return;
       }
+    } else if (parse.status === appStatus.fileError) {
+      openConsumer.close();
+      openProducer.close();
+      if (fileInfo) endTransferFile(socket, fileInfo.fileTransferId);
     } else if (fileInfo && writer) {
       stamp++;
       receivedSize += parse.data.byteLength;
@@ -307,6 +309,8 @@ const readFile = (
       if (receivedSize === fileInfo.fileSize) {
         isClosed = true;
         writer.close();
+        openConsumer.close();
+        openProducer.close();
         endTransferFile(socket, fileInfo.fileTransferId);
       }
     }
@@ -314,7 +318,7 @@ const readFile = (
 
   // eslint-disable-next-line no-constant-condition
   while (1) {
-    usleep(2 * 1000);
+    await timer(2 * 1000);
     if (fileInfo && writer) {
       if (isClosed) break;
       if (stamp === checkStamp) {

@@ -11,14 +11,14 @@ import {
   setFileWatch,
 } from "./connect";
 import {
-  endTransferFile,
+  // endTransferFile,
   listenDtpFileProducer,
   requestTransfer,
   sendJoinFileWatch,
-  setFileProducer,
+  setFileWebProducer,
 } from "../signaling/shareFile";
 import { FileProducerInfo, FileProducerList, WriteInfoList } from "./type";
-import { usleep } from "../util";
+// import { usleep } from "../util";
 import { removeFileList, updateFiles } from "../monitorFile";
 import { DataProducer } from "mediasoup-client/lib/types";
 
@@ -121,17 +121,6 @@ export class ShareFile {
       const consumer = await createFileConsumer(device, socket, fileTransferId);
 
       if (consumer) {
-        // 同期
-        const limit = 5;
-        let count = 0;
-        while (this.fileProducers[fileTransferId] === undefined) {
-          usleep(1 * 1000);
-          count++;
-          if (count > limit) {
-            return endTransferFile(socket, fileTransferId);
-          }
-        }
-
         const fileProducerInfo = this.fileProducers[
           fileTransferId
         ] as FileProducerInfo;
@@ -171,7 +160,7 @@ export class ShareFile {
           fileName,
           type: "read",
         };
-        setFileProducer(socket, fileTransferId, access);
+        setFileWebProducer(socket, fileTransferId, access);
       } else if (producer) {
         producer.on("open", () => {
           producer.on("close", () => {
@@ -182,7 +171,7 @@ export class ShareFile {
             fileName,
             type: "read",
           };
-          setFileProducer(socket, fileTransferId, access);
+          setFileWebProducer(socket, fileTransferId, access);
         });
       }
     }
@@ -240,7 +229,7 @@ export class ShareFile {
       type: "write",
     };
     this.writeFileList[fileTransferId] = { fileName, fileSize, fileReader };
-    setFileProducer(socket, fileTransferId, access);
+    setFileWebProducer(socket, fileTransferId, access);
   }
 
   private async startSendFile(

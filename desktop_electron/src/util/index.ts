@@ -39,7 +39,8 @@ export const appStatus = {
   fileRequestWrite: 0x4,
   fileRequestRead: 0x5,
   fileAccept: 0x6,
-  control: 0x7,
+  fileError: 0x7,
+  control: 0x8,
 };
 
 export type AppHeader = {

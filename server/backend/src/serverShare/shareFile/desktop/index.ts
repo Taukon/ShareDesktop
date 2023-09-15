@@ -50,7 +50,9 @@ export class FileDesktop {
   ) {
     const fileWatchTransport = desktopTransports.fileWatchTransport;
     if (fileWatchTransport) {
-      console.log("delete Desktop fileWatchTransportId: " + fileWatchTransport.id);
+      console.log(
+        "delete Desktop fileWatchTransportId: " + fileWatchTransport.id,
+      );
       fileWatchTransport.close();
     }
 
@@ -108,7 +110,6 @@ export class FileDesktop {
         transportOptions,
       );
 
-
       transport.observer.on("close", () => {
         transport.close();
         //delete this.producerList[transport.id];
@@ -153,7 +154,7 @@ export class FileDesktop {
     if (fileWatchTransport) {
       const dataProducer =
         await fileWatchTransport.produceData(produceParameters);
-      
+
       fileWatchTransport.producer = dataProducer;
       return dataProducer.id;
     }

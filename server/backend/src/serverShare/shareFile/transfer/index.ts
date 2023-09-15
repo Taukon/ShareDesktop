@@ -135,8 +135,9 @@ export class FileTransfer {
 
     delete this.fileTransferList[fileTransferId];
     console.log(
-      "delete fileTransferList length: " +
-        Object.entries(this.fileTransferList).length,
+      `delete fileTransferList length: ${
+        Object.entries(this.fileTransferList).length
+      }}`,
     );
   }
 
@@ -300,5 +301,13 @@ export class FileTransfer {
       return false;
     }
     return true;
+  }
+
+  public checkTransferId(fileTransferId: string): boolean {
+    const transfer = this.fileTransferList[fileTransferId];
+    if (this.isTransfer(transfer)) {
+      return true;
+    }
+    return false;
   }
 }

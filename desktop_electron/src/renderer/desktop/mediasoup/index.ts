@@ -29,13 +29,6 @@ export const setDataProducer = async (
   const transport = device.createSendTransport(transportParams);
 
   transport.on("connect", async ({ dtlsParameters }, callback, errback) => {
-    // try {
-    //   const result = await forConnect(dtlsParameters);
-    //   console.log(`connect ${result}`);
-    //   callback();
-    // } catch (err: any) {
-    //   errback(err);
-    // }
     forConnect(dtlsParameters).then(callback).catch(errback);
   });
 

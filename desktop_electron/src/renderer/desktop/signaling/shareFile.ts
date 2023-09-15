@@ -54,18 +54,6 @@ export const establishDesktopFileWatch = (
 
 // -------- DesktopFileTransfer --------
 
-export const listenTransfer = (
-  socket: Socket,
-  callback: (fileTransferId: string, browserId: string) => Promise<void>,
-): void => {
-  socket.on(
-    "reqTransfer",
-    async (fileTransferId: string, browserId: string) => {
-      await callback(fileTransferId, browserId);
-    },
-  );
-};
-
 export const endTransferFile = (
   socket: Socket,
   fileTransferId: string,
@@ -73,21 +61,24 @@ export const endTransferFile = (
   socket.emit("endTransferFile", fileTransferId);
 };
 
-export const setFileProducer = (
+export const setFileDtpProducer = (
   socket: Socket,
   fileTransferId: string,
   browserId: string,
 ): void => {
-  socket.emit("setFileProducer", fileTransferId, browserId);
+  socket.emit("setFileDtpProducer", fileTransferId, browserId);
 };
 
-export const listenBroFileProducer = (
+export const listenWebFileProducer = (
   socket: Socket,
-  callback: (fileTransferId: string) => Promise<void>,
+  callback: (fileTransferId: string, browserId: string) => Promise<void>,
 ): void => {
-  socket.on("setFileProducer", async (fileTransferId: string) => {
-    await callback(fileTransferId);
-  });
+  socket.on(
+    "setFileWebProducer",
+    async (fileTransferId: string, browserId: string) => {
+      await callback(fileTransferId, browserId);
+    },
+  );
 };
 
 export const createSendFile = (
