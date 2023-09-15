@@ -5,6 +5,11 @@ export const timer = (ms: number) =>
     }, ms);
   });
 
+export const usleep = (microsec: number) => {
+  const stop = Date.now() + microsec / 1000;
+  while (Date.now() <= stop);
+};
+
 // App Protocol
 //   header: 9B
 // ---------------
@@ -23,6 +28,10 @@ export const appStatus = {
   middle: 0x1,
   end: 0x2,
   once: 0x3,
+  fileRequestWrite: 0x4,
+  fileRequestRead: 0x5,
+  fileAccept: 0x6,
+  control: 0x7,
 };
 
 type AppHeader = {
@@ -123,6 +132,18 @@ export const sendAppProtocol = async (
     const appBuffer = createAppProtocol(data, id, appStatus.once, 0);
     await send(appBuffer);
   }
+};
+
+export const createAppProtocolFromJson = (
+  jsonString: string,
+  status: number,
+): Uint8Array => {
+  // 文字列をUTF-8エンコードされたUint8Arrayに変換
+  const encoder = new TextEncoder();
+  const uint8Array = encoder.encode(jsonString);
+  const id = getRandomInt(appMaxId);
+  const data = createAppProtocol(uint8Array, id, status, 0);
+  return data;
 };
 
 export const appendBuffer = (buffer1: Uint8Array, buffer2: Uint8Array) => {

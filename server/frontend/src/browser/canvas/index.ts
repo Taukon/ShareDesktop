@@ -1,6 +1,7 @@
 import * as mediasoupClient from "mediasoup-client";
 import { ButtonJson, KeyJson, MotionJson, MousePos } from "./type";
 import { KeySyms } from "./x11keySym";
+import { appStatus, createAppProtocolFromJson } from "../util";
 
 export const controlEventListener = (
   canvas: HTMLCanvasElement,
@@ -10,7 +11,9 @@ export const controlEventListener = (
     "mousedown",
     () => {
       const button: ButtonJson = { button: { buttonMask: 0x1, down: true } };
-      producer.send(JSON.stringify(button));
+      producer.send(
+        createAppProtocolFromJson(JSON.stringify(button), appStatus.control),
+      );
       //console.log("mousedown: " + JSON.stringify(event));
     },
     false,
@@ -19,7 +22,9 @@ export const controlEventListener = (
     "mouseup",
     () => {
       const button: ButtonJson = { button: { buttonMask: 0x1, down: false } };
-      producer.send(JSON.stringify(button));
+      producer.send(
+        createAppProtocolFromJson(JSON.stringify(button), appStatus.control),
+      );
       //console.log("mouseup: " + JSON.stringify(event));
     },
     false,
@@ -31,7 +36,9 @@ export const controlEventListener = (
       const motion: MotionJson = {
         move: { x: Math.round(pos.x), y: Math.round(pos.y) },
       };
-      producer.send(JSON.stringify(motion));
+      producer.send(
+        createAppProtocolFromJson(JSON.stringify(motion), appStatus.control),
+      );
       //console.log("mousemove : x=" + pos.x + ", y=" + pos.y);
     },
     false,
@@ -45,8 +52,15 @@ export const controlEventListener = (
         button: { buttonMask: 0x4, down: true },
       };
       const buttonUp: ButtonJson = { button: { buttonMask: 0x4, down: false } };
-      producer.send(JSON.stringify(buttonDown));
-      producer.send(JSON.stringify(buttonUp));
+      producer.send(
+        createAppProtocolFromJson(
+          JSON.stringify(buttonDown),
+          appStatus.control,
+        ),
+      );
+      producer.send(
+        createAppProtocolFromJson(JSON.stringify(buttonUp), appStatus.control),
+      );
       //console.log(JSON.stringify(event));
     },
     false,
@@ -59,10 +73,15 @@ export const controlEventListener = (
       const keySym = keyborad(event);
       if (keySym) {
         const key: KeyJson = { key: { keySym: keySym, down: true } };
-        producer.send(JSON.stringify(key));
+        producer.send(
+          createAppProtocolFromJson(JSON.stringify(key), appStatus.control),
+        );
         if (keySym === 0xff2a || keySym === 0xff28 || keySym === 0xff29) {
           producer.send(
-            JSON.stringify({ key: { keySym: keySym, down: false } }),
+            createAppProtocolFromJson(
+              JSON.stringify({ key: { keySym: keySym, down: false } }),
+              appStatus.control,
+            ),
           );
         }
       }
@@ -77,7 +96,9 @@ export const controlEventListener = (
       const keySym = keyborad(event);
       if (keySym) {
         const key: KeyJson = { key: { keySym: keySym, down: false } };
-        producer.send(JSON.stringify(key));
+        producer.send(
+          createAppProtocolFromJson(JSON.stringify(key), appStatus.control),
+        );
       }
       //console.log("keycode up: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
     },
@@ -90,10 +111,14 @@ export const controlEventListener = (
       event.preventDefault();
       if (event.deltaY / 100 > 0) {
         const button: ButtonJson = { button: { buttonMask: 0x10, down: true } };
-        producer.send(JSON.stringify(button));
+        producer.send(
+          createAppProtocolFromJson(JSON.stringify(button), appStatus.control),
+        );
       } else {
         const button: ButtonJson = { button: { buttonMask: 0x8, down: true } };
-        producer.send(JSON.stringify(button));
+        producer.send(
+          createAppProtocolFromJson(JSON.stringify(button), appStatus.control),
+        );
       }
       //console.log("scroll: "+JSON.stringify(data.wheel));
     },

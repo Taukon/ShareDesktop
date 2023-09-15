@@ -14,7 +14,7 @@ export type Access = {
 type AuthInfo = {
   desktopId: string;
   password: string;
-  clientId: string;
+  browserId: string;
 };
 
 export type ClientInfo = {

@@ -5,6 +5,11 @@ export const timer = (ms: number) =>
     }, ms);
   });
 
+export const usleep = (microsec: number) => {
+  const stop = Date.now() + microsec / 1000;
+  while (Date.now() <= stop);
+};
+
 export enum FileMsgType {
   list = `list`,
   add = `add`,
@@ -31,9 +36,13 @@ export const appStatus = {
   middle: 0x1,
   end: 0x2,
   once: 0x3,
+  fileRequestWrite: 0x4,
+  fileRequestRead: 0x5,
+  fileAccept: 0x6,
+  control: 0x7,
 };
 
-type AppHeader = {
+export type AppHeader = {
   id: number;
   status: number;
   order: number;

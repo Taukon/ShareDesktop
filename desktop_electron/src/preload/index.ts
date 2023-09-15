@@ -1,8 +1,8 @@
 import { contextBridge } from "electron";
-import { desktop } from "./desktop";
-import { fileShare } from "./fileShare";
 import { util } from "./util";
+import { shareFile } from "./shareFile";
+import { shareApp } from "./shareApp";
 
-contextBridge.exposeInMainWorld("desktop", desktop);
-contextBridge.exposeInMainWorld("fileShare", fileShare);
+contextBridge.exposeInMainWorld("shareApp", shareApp);
+contextBridge.exposeInMainWorld("shareFile", shareFile);
 contextBridge.exposeInMainWorld("util", util);

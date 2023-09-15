@@ -8,11 +8,9 @@ import {
   type WorkerSettings,
 } from "mediasoup/node/lib/types";
 import { Server } from "socket.io";
-import { ServerWebRTC } from "../serverWebRTC";
-import { setSignalingBrowser } from "../signaling/browser";
-import { setSignalingDesktop } from "../signaling/desktop";
-import { SignalingEventEmitter } from "../signaling/signalingEvent";
+import { initServerShare } from "../serverShare";
 import { UserManage } from "../userManage";
+import { signalingBrowser, signalingDesktop } from "../signaling";
 
 const getIpAddress = (): string | undefined => {
   const nets = networkInterfaces();
@@ -22,9 +20,6 @@ const getIpAddress = (): string | undefined => {
 
 const MinPort = 2000; // --- RtcMinPort
 const MaxPort = 2020; // --- RtcMaxport
-const limitClient = 2;
-const limitDesktop = 2;
-const limitFileTransfer = 10;
 
 const clientPort = 3000; // --- https Port for client
 const desktopPort = 3100; // --- https Port for desktop
@@ -86,39 +81,44 @@ httpsServerForDesktop.listen(desktopPort, () => {
 });
 const desktopServer = new Server(httpsServerForDesktop);
 
-// --- MediaSoup Server ---
+const start = async () => {
+  const limitAppDtp = 2;
+  const limitAppBro = 2;
+  const limitFileDtp = 2;
+  const limitFileBro = 2;
+  const limitFileTrf = 5;
 
-const serverWebRtc = new ServerWebRTC(
-  limitDesktop,
-  limitClient,
-  limitFileTransfer,
-  transportOption,
-  workerSettings,
-  mediaCodecs,
-  ip_addr,
-);
-
-const fileEventEmitter = new SignalingEventEmitter(desktopServer);
-const userTable = new UserManage();
-
-clientServer.on("connection", (sock) => {
-  setSignalingBrowser(
-    desktopServer,
-    sock,
-    serverWebRtc,
-    fileEventEmitter,
-    userTable,
+  // --- MediaSoup Server ---
+  const { shareApp, shareFile } = await initServerShare(
+    limitAppDtp,
+    limitAppBro,
+    limitFileDtp,
+    limitFileBro,
+    limitFileTrf,
+    transportOption,
+    workerSettings,
+    mediaCodecs,
+    ip_addr,
   );
-});
 
-desktopServer.on("connection", (sock) => {
-  console.log(`desktopId: ${sock.id}`);
-  setSignalingDesktop(
-    clientServer,
-    sock,
-    serverWebRtc,
-    fileEventEmitter,
-    enableAudio,
-    userTable,
-  );
-});
+  const userTable = new UserManage();
+
+  clientServer.on("connection", (sock) => {
+    signalingBrowser(desktopServer, sock, shareApp, shareFile, userTable);
+  });
+
+  desktopServer.on("connection", (sock) => {
+    console.log(`desktopId: ${sock.id}`);
+    signalingDesktop(
+      desktopServer,
+      clientServer,
+      sock,
+      shareApp,
+      shareFile,
+      enableAudio,
+      userTable,
+    );
+  });
+};
+
+start();

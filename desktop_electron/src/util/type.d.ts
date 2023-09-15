@@ -18,7 +18,7 @@ export type ControlData = {
   };
 };
 
-export type AudioData = {
+export type AudioResponse = {
   rtp: number;
   rtcp?: number | undefined;
   ip_addr: string;
