@@ -117,13 +117,13 @@ export class FileTransfer {
   private closeFileTransports(fileTransports?: FileTransports): void {
     const recvTransport = fileTransports?.RecvTransport;
     if (recvTransport) {
-      console.log("delete RecvFileTransportId: " + recvTransport.id);
+      // console.log("delete RecvFileTransportId: " + recvTransport.id);
       recvTransport.close();
     }
 
     const sendTransport = fileTransports?.SendTransport;
     if (sendTransport) {
-      console.log("delete SendFileTransportId: " + sendTransport.id);
+      // console.log("delete SendFileTransportId: " + sendTransport.id);
       sendTransport.close();
     }
   }
@@ -135,9 +135,9 @@ export class FileTransfer {
 
     delete this.fileTransferList[fileTransferId];
     console.log(
-      `delete fileTransferList length: ${
+      `delete ${fileTransferId} | fileTransferList length: ${
         Object.entries(this.fileTransferList).length
-      }}`,
+      }`,
     );
   }
 
@@ -159,7 +159,7 @@ export class FileTransfer {
       this.setRecvFileTransport(fileTransferId, transport, nodeType);
       transport.observer.on("close", () => {
         transport.close();
-        this.deleteTransfer(fileTransferId);
+        delete this.fileTransferList[fileTransferId];
       });
 
       return params;
@@ -251,7 +251,7 @@ export class FileTransfer {
       this.setSendFileTransport(fileTransferId, transport, nodeType);
       transport.observer.on("close", () => {
         transport.close();
-        this.deleteTransfer(fileTransferId);
+        delete this.fileTransferList[fileTransferId];
       });
 
       return params;

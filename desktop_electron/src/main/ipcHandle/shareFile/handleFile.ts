@@ -7,6 +7,7 @@ import {
   openSync,
   readSync,
   closeSync,
+  unlinkSync,
 } from "fs";
 // import * as path from "path";
 import { FileWatchMsg, WriteFileInfo } from "../../../util/type";
@@ -213,6 +214,12 @@ export class HandleFile {
       writeFileInfo.stream.end();
       writeFileInfo.stream.destroy();
       delete this.writeFileList[fileName];
+      try {
+        const filePath = `${this.dirPath}/${fileName}`;
+        unlinkSync(filePath);
+      } catch (error) {
+        console.log(error);
+      }
       return true;
     }
     return false;

@@ -50,16 +50,15 @@ export class FileDesktop {
   ) {
     const fileWatchTransport = desktopTransports.fileWatchTransport;
     if (fileWatchTransport) {
-      console.log(
-        "delete Desktop fileWatchTransportId: " + fileWatchTransport.id,
-      );
+      // console.log(`delete Desktop fileWatchTransportId: ${fileWatchTransport.id}`);
       fileWatchTransport.close();
     }
 
     delete this.desktopList[desktopId];
     console.log(
-      "delete File desktopList length: " +
-        Object.entries(this.desktopList).length,
+      `delete File desktopList length: ${
+        Object.entries(this.desktopList).length
+      }`,
     );
   }
 
