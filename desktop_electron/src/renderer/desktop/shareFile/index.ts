@@ -1,6 +1,5 @@
 import { Socket } from "socket.io-client";
 import * as mediasoupClient from "mediasoup-client";
-import { Buffer } from "buffer";
 import { FileInfo, ReadFile, WriteFile } from "./type";
 import {
   createDevice,
@@ -16,21 +15,16 @@ import {
   listenWebFileProducer,
   setFileDtpProducer,
 } from "../signaling/shareFile";
+import { timer } from "../../../util";
+import { updateFiles } from "../monitorFile";
 import {
   AppHeader,
-  appMaxId,
-  appStatus,
-  getRandomInt,
+  createAppProtocol,
+  createAppProtocolFromJson,
+  decodeParseData,
   parseAppProtocol,
-  timer,
-  // usleep,
-} from "../../../util";
-import { createAppProtocol, createAppProtocolFromJson } from "../util";
-import { updateFiles } from "../monitorFile";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-window.Buffer = Buffer;
+} from "../../../protocol/renderer";
+import { appMaxId, appStatus, getRandomInt } from "../../../protocol/common";
 
 export class ShareFile {
   public desktopId: string;
@@ -172,10 +166,7 @@ export class ShareFile {
         if (await this.writeFile(parse, writeInfo.fileName))
           endTransferFile(socket, fileTransferId);
       } else if (parse.status === appStatus.fileRequestWrite) {
-        // UTF-8エンコードされたUint8Arrayを文字列にデコード
-        const decoder = new TextDecoder("utf-8");
-        const jsonString = decoder.decode(Uint8Array.from(parse.data));
-        const data: WriteFile = JSON.parse(jsonString);
+        const data: WriteFile = decodeParseData(parse.data);
         const isSet = await window.shareFile.setFileInfo(
           data.fileName,
           data.fileSize,
@@ -197,10 +188,7 @@ export class ShareFile {
 
         // send File
       } else if (parse.status === appStatus.fileRequestRead) {
-        // UTF-8エンコードされたUint8Arrayを文字列にデコード
-        const decoder = new TextDecoder("utf-8");
-        const jsonString = decoder.decode(Uint8Array.from(parse.data));
-        const data: ReadFile = JSON.parse(jsonString);
+        const data: ReadFile = decodeParseData(parse.data);
         const info = await window.shareFile.getFileInfo(data.fileName);
 
         if (info) {

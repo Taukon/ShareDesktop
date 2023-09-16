@@ -139,12 +139,12 @@ export class FileBrowser {
         router,
         transportOptions,
       );
-      transport.observer.on("close", () => {
-        transport.close();
-        //delete this.consumerList[transport.id];
-      });
 
       this.setFileWatchTransport(browserId, desktopId, transport);
+      transport.observer.on("close", () => {
+        transport.close();
+        delete this.browserList[browserId];
+      });
 
       return params;
     }

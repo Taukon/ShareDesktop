@@ -1,3 +1,5 @@
+import { appHeader, appMax, appMaxId, appStatus, getRandomInt } from "./common";
+
 // App Protocol
 //   header: 9B
 // ---------------
@@ -8,22 +10,7 @@
 // | 4B: order
 // ---------------
 
-export const appMax = 65536;
-export const appHeader = 9;
-export const appMaxId = 4294967295;
-export const appStatus = {
-  start: 0x0,
-  middle: 0x1,
-  end: 0x2,
-  once: 0x3,
-  fileRequestWrite: 0x4,
-  fileRequestRead: 0x5,
-  fileAccept: 0x6,
-  fileError: 0x7,
-  control: 0x8,
-};
-
-type AppHeader = {
+export type AppHeader = {
   id: number;
   status: number;
   order: number;
@@ -135,13 +122,17 @@ export const createAppProtocolFromJson = (
   return data;
 };
 
+export const decodeParseData = <T>(parseData: Uint8Array): T => {
+  // UTF-8エンコードされたUint8Arrayを文字列にデコード
+  const decoder = new TextDecoder("utf-8");
+  const jsonString = decoder.decode(parseData);
+  const data: T = JSON.parse(jsonString);
+  return data;
+};
+
 export const appendBuffer = (buffer1: Uint8Array, buffer2: Uint8Array) => {
   const tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
   tmp.set(new Uint8Array(buffer1), 0);
   tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
   return tmp;
-};
-
-export const getRandomInt = (max: number) => {
-  return Math.floor(Math.random() * max);
 };

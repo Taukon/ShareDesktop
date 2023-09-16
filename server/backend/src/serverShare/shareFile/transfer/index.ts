@@ -155,11 +155,12 @@ export class FileTransfer {
         router,
         transportOptions,
       );
-      transport.observer.on("close", () => {
-        transport.close();
-      });
 
       this.setRecvFileTransport(fileTransferId, transport, nodeType);
+      transport.observer.on("close", () => {
+        transport.close();
+        this.deleteTransfer(fileTransferId);
+      });
 
       return params;
     }
@@ -247,11 +248,11 @@ export class FileTransfer {
         transportOptions,
       );
 
+      this.setSendFileTransport(fileTransferId, transport, nodeType);
       transport.observer.on("close", () => {
         transport.close();
+        this.deleteTransfer(fileTransferId);
       });
-
-      this.setSendFileTransport(fileTransferId, transport, nodeType);
 
       return params;
     }

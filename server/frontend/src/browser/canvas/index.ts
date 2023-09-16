@@ -1,7 +1,7 @@
 import * as mediasoupClient from "mediasoup-client";
 import { ButtonJson, KeyJson, MotionJson, MousePos } from "./type";
 import { KeySyms } from "./x11keySym";
-import { appStatus, createAppProtocolFromJson } from "../util";
+import { appStatus, createAppProtocolFromJson } from "../protocol";
 
 export const controlEventListener = (
   canvas: HTMLCanvasElement,

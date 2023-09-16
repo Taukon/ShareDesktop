@@ -19,7 +19,7 @@ import {
   getRtpCapApp,
 } from "../signaling/shareApp";
 import { Access } from "../signaling/type";
-import { appStatus, appendBuffer, parseAppProtocol } from "../util";
+import { appStatus, appendBuffer, parseAppProtocol } from "../protocol";
 
 export const createDevice = async (
   socket: Socket,

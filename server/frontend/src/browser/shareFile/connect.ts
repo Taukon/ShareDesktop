@@ -12,8 +12,7 @@ import {
   createAppProtocolFromJson,
   getRandomInt,
   parseAppProtocol,
-  timer,
-} from "../util";
+} from "../protocol";
 import {
   connectBrowserFileWatch,
   connectRecvFile,
@@ -28,6 +27,7 @@ import {
   getRtpCapFile,
 } from "../signaling/shareFile";
 import { FileInfo, ReadFile, WriteFile, WriteInfo } from "./type";
+import { timer } from "../util";
 
 export const createDevice = async (
   socket: Socket,

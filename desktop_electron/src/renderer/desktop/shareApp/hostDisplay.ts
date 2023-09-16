@@ -1,9 +1,7 @@
 import { Socket } from "socket.io-client";
 import * as mediasoupClient from "mediasoup-client";
-import { Buffer } from "buffer";
 import { controlEventListenerWID } from "../canvas";
 import { ControlData } from "../../../util/type";
-import { sendAppProtocol } from "../../../util";
 import {
   createDevice,
   setAlreadyDevice,
@@ -11,10 +9,7 @@ import {
   setControl,
   setScreenProducer,
 } from "./connect";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-window.Buffer = Buffer;
+import { sendAppProtocol } from "../../../protocol/renderer";
 
 export class ShareHostApp {
   public desktopId: string;
@@ -181,7 +176,11 @@ export class ShareHostApp {
 
         // if (Buffer.compare(jpegBuffer, preJpegBuffer) != 0) {
         if (base64Jpeg != preBase64Jpeg) {
-          const jpegBuffer = Buffer.from(base64Jpeg, "base64");
+          const jpegBuffer = new Uint8Array(
+            atob(base64Jpeg)
+              .split("")
+              .map((char) => char.charCodeAt(0)),
+          );
           await sendAppProtocol(jpegBuffer, async (buf) => {
             producer.send(buf);
           });

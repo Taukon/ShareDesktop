@@ -2,7 +2,6 @@ import { Socket } from "socket.io-client";
 import * as mediasoupClient from "mediasoup-client";
 import { Buffer } from "buffer";
 import { controlEventListener, displayScreen } from "../canvas";
-import { sendAppProtocol } from "../../../util";
 import { ControlData } from "../../../util/type";
 import {
   createDevice,
@@ -11,6 +10,7 @@ import {
   setControl,
   setScreenProducer,
 } from "./connect";
+import { sendAppProtocol } from "../../../protocol/main";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore

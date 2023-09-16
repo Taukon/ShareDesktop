@@ -110,12 +110,11 @@ export class FileDesktop {
         transportOptions,
       );
 
+      this.setFileWatchTransport(desktopId, transport);
       transport.observer.on("close", () => {
         transport.close();
-        //delete this.producerList[transport.id];
+        delete this.desktopList[desktopId];
       });
-
-      this.setFileWatchTransport(desktopId, transport);
 
       return params;
     }

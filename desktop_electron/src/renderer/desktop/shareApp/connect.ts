@@ -12,7 +12,8 @@ import {
   establishDesktopScreen,
   getRtpCapApp,
 } from "../signaling/shareApp";
-import { appStatus, parseAppProtocol } from "../../../util";
+import { decodeParseData, parseAppProtocol } from "../../../protocol/renderer";
+import { appStatus } from "../../../protocol/common";
 
 export const createDevice = async (
   socket: Socket,
@@ -68,10 +69,7 @@ export const setControl = async (
       const parse = parseAppProtocol(Buffer.from(msg as ArrayBuffer));
 
       if (parse.status === appStatus.control) {
-        // UTF-8エンコードされたUint8Arrayを文字列にデコード
-        const decoder = new TextDecoder("utf-8");
-        const jsonString = decoder.decode(Uint8Array.from(parse.data));
-        const data: ControlData = JSON.parse(jsonString);
+        const data: ControlData = decodeParseData(parse.data);
 
         control(data);
       }
@@ -79,13 +77,10 @@ export const setControl = async (
   } else if (consumer) {
     consumer.on("open", () => {
       consumer.on("message", (msg) => {
-        const parse = parseAppProtocol(Buffer.from(msg as ArrayBuffer));
+        const parse = parseAppProtocol(new Uint8Array(msg as ArrayBuffer));
 
         if (parse.status === appStatus.control) {
-          // UTF-8エンコードされたUint8Arrayを文字列にデコード
-          const decoder = new TextDecoder("utf-8");
-          const jsonString = decoder.decode(Uint8Array.from(parse.data));
-          const data: ControlData = JSON.parse(jsonString);
+          const data: ControlData = decodeParseData(parse.data);
 
           control(data);
         }

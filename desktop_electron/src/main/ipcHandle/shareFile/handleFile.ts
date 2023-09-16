@@ -9,8 +9,9 @@ import {
   closeSync,
 } from "fs";
 // import * as path from "path";
-import { FileMsgType, appHeader, appMax } from "../../../util";
 import { FileWatchMsg, WriteFileInfo } from "../../../util/type";
+import { FileMsgType } from "../../../util";
+import { appHeader, appMax } from "../../../protocol/common";
 
 export class HandleFile {
   private watcher?: chokidar.FSWatcher;
