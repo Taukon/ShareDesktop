@@ -93,13 +93,13 @@ export class ShareFile {
         });
       }
 
-      this.onFile(this.device, this.socket);
+      this.onFileTransfer(this.device, this.socket);
       return true;
     }
     return false;
   }
 
-  private onFile(device: mediasoupClient.types.Device, socket: Socket) {
+  private onFileTransfer(device: mediasoupClient.types.Device, socket: Socket) {
     const setTransfer = async (fileTransferId: string, browserId: string) => {
       const consumer = await createFileConsumer(device, socket, fileTransferId);
 
@@ -110,16 +110,11 @@ export class ShareFile {
           fileTransferId,
         );
         if (producer?.readyState === "open") {
-          await this.listenFileMsg(socket, fileTransferId, producer, consumer);
+          this.listenFileTransfer(socket, fileTransferId, producer, consumer);
           setFileDtpProducer(socket, fileTransferId, browserId);
         } else if (producer) {
           producer.on("open", async () => {
-            await this.listenFileMsg(
-              socket,
-              fileTransferId,
-              producer,
-              consumer,
-            );
+            this.listenFileTransfer(socket, fileTransferId, producer, consumer);
             setFileDtpProducer(socket, fileTransferId, browserId);
           });
         }
@@ -131,16 +126,11 @@ export class ShareFile {
             fileTransferId,
           );
           if (producer?.readyState === "open") {
-            await this.listenFileMsg(
-              socket,
-              fileTransferId,
-              producer,
-              consumer,
-            );
+            this.listenFileTransfer(socket, fileTransferId, producer, consumer);
             setFileDtpProducer(socket, fileTransferId, browserId);
           } else if (producer) {
             producer.on("open", async () => {
-              await this.listenFileMsg(
+              this.listenFileTransfer(
                 socket,
                 fileTransferId,
                 producer,
@@ -156,12 +146,16 @@ export class ShareFile {
     listenWebFileProducer(socket, setTransfer);
   }
 
-  private listenFileMsg = async (
+  private listenFileTransfer = async (
     socket: Socket,
     fileTransferId: string,
     producer: mediasoupClient.types.DataProducer,
     consumer: mediasoupClient.types.DataConsumer,
   ): Promise<void> => {
+    let stamp = -1;
+    let checkStamp = -1;
+    let limit = 3;
+    let isClosed = false;
     let writeInfo:
       | {
           fileName: string;
@@ -173,9 +167,11 @@ export class ShareFile {
 
       // recieve File
       if (writeInfo) {
-        if (await this.writeFile(parse, writeInfo.fileName))
-          endTransferFile(socket, fileTransferId);
+        stamp = parse.order;
+        isClosed = await this.writeFile(parse, writeInfo.fileName);
+        if (isClosed) endTransferFile(socket, fileTransferId);
       } else if (parse.status === appStatus.fileRequestWrite) {
+        stamp = parse.order;
         const data: WriteFile = decodeParseData(parse.data);
         const isSet = await window.shareFile.setFileInfo(
           data.fileName,
@@ -222,6 +218,27 @@ export class ShareFile {
         }
       }
     });
+
+    // timeout check
+    // eslint-disable-next-line no-constant-condition
+    while (1) {
+      await timer(2 * 1000);
+      if (writeInfo) {
+        if (isClosed) break;
+        if (stamp === checkStamp) {
+          limit--;
+          if (limit == 0) {
+            console.log(`timeout recieve file: ${writeInfo.fileName}`);
+            window.shareFile.destroyRecvFileBuffer(writeInfo.fileName);
+
+            endTransferFile(socket, fileTransferId);
+            break;
+          }
+        } else {
+          checkStamp = stamp;
+        }
+      }
+    }
   };
 
   private writeFile = async (

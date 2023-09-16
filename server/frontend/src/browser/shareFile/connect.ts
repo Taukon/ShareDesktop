@@ -268,8 +268,8 @@ const readFile = async (
 ): Promise<void> => {
   let receivedSize = 0;
 
-  let stamp = 0;
-  let checkStamp = 0;
+  let stamp = -1;
+  let checkStamp = -1;
   let limit = 3;
   let isClosed = false;
 
@@ -301,7 +301,7 @@ const readFile = async (
       openProducer.close();
       if (fileInfo) endTransferFile(socket, fileInfo.fileTransferId);
     } else if (fileInfo && writer) {
-      stamp++;
+      stamp = parse.order;
       receivedSize += parse.data.byteLength;
       writer.write(parse.data);
       // console.log(
@@ -319,6 +319,7 @@ const readFile = async (
     }
   });
 
+  // timeout check
   // eslint-disable-next-line no-constant-condition
   while (1) {
     await timer(2 * 1000);
