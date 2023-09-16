@@ -21,6 +21,7 @@ import { FileProducerInfo, FileProducerList, WriteInfoList } from "./type";
 // import { usleep } from "../util";
 import { removeFileList, updateFiles } from "../monitorFile";
 import { DataProducer } from "mediasoup-client/lib/types";
+import { appStatus, decodeParseData, parseAppProtocol } from "../protocol";
 
 export class ShareFile {
   public desktopId: string;
@@ -100,8 +101,11 @@ export class ShareFile {
         removeFileList(fileDownload);
       });
       consumer.on("message", (msg) => {
-        const data: FileWatchMsg = JSON.parse(msg);
-        updateFiles(fileDownload, data, recvFileFunc);
+        const parse = parseAppProtocol(new Uint8Array(msg as ArrayBuffer));
+        if (parse.status === appStatus.fileWatch) {
+          const data: FileWatchMsg = decodeParseData(parse.data);
+          updateFiles(fileDownload, data, recvFileFunc);
+        }
       });
       sendJoinFileWatch(socket, access);
     } else if (consumer) {
@@ -110,8 +114,11 @@ export class ShareFile {
           removeFileList(fileDownload);
         });
         consumer.on("message", (msg) => {
-          const data: FileWatchMsg = JSON.parse(msg);
-          updateFiles(fileDownload, data, recvFileFunc);
+          const parse = parseAppProtocol(new Uint8Array(msg as ArrayBuffer));
+          if (parse.status === appStatus.fileWatch) {
+            const data: FileWatchMsg = decodeParseData(parse.data);
+            updateFiles(fileDownload, data, recvFileFunc);
+          }
         });
         sendJoinFileWatch(socket, access);
       });

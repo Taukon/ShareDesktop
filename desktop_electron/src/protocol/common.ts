@@ -16,11 +16,12 @@ export const appStatus = {
   middle: 0x1,
   end: 0x2,
   once: 0x3,
-  fileRequestWrite: 0x4,
-  fileRequestRead: 0x5,
-  fileAccept: 0x6,
-  fileError: 0x7,
-  control: 0x8,
+  control: 0x4,
+  fileWatch: 0x5,
+  fileRequestWrite: 0x6,
+  fileRequestRead: 0x7,
+  fileAccept: 0x8,
+  fileError: 0x9,
 };
 
 export const getRandomInt = (max: number) => {

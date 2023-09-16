@@ -66,7 +66,7 @@ export const setControl = async (
 
   if (consumer?.readyState === "open") {
     consumer.on("message", (msg) => {
-      const parse = parseAppProtocol(Buffer.from(msg as ArrayBuffer));
+      const parse = parseAppProtocol(new Uint8Array(msg as ArrayBuffer));
 
       if (parse.status === appStatus.control) {
         const data: ControlData = decodeParseData(parse.data);

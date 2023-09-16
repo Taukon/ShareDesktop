@@ -67,7 +67,12 @@ export class ShareFile {
       );
       if (producer?.readyState === "open") {
         window.shareFile.streamFileWatchMsg((data: FileWatchMsg) => {
-          producer.send(JSON.stringify(data));
+          producer.send(
+            createAppProtocolFromJson(
+              JSON.stringify(data),
+              appStatus.fileWatch,
+            ),
+          );
           updateFiles(fileList, data);
         });
         await window.shareFile.sendFileWatch(dir);
@@ -75,7 +80,12 @@ export class ShareFile {
       } else {
         producer?.on("open", async () => {
           window.shareFile.streamFileWatchMsg((data: FileWatchMsg) => {
-            producer.send(JSON.stringify(data));
+            producer.send(
+              createAppProtocolFromJson(
+                JSON.stringify(data),
+                appStatus.fileWatch,
+              ),
+            );
             updateFiles(fileList, data);
           });
           await window.shareFile.sendFileWatch(dir);
@@ -159,7 +169,7 @@ export class ShareFile {
       | undefined;
 
     consumer.on("message", async (appBuffer: ArrayBuffer) => {
-      const parse = parseAppProtocol(Buffer.from(appBuffer));
+      const parse = parseAppProtocol(new Uint8Array(appBuffer));
 
       // recieve File
       if (writeInfo) {
