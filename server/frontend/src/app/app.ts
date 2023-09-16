@@ -1,6 +1,10 @@
 import { io, Socket } from "socket.io-client";
-import { RtpCapabilities } from "mediasoup-client/lib/types";
-import { BrowserWebRTC, reqAccess } from "../browser";
+import {
+  BrowserWebRTC,
+  initShareApp,
+  initShareFile,
+  reqAccess,
+} from "../browser";
 import { Access } from "../browser/signaling/type";
 
 const createWebSocket = (): Socket => {
@@ -42,29 +46,39 @@ const setOptionForm = (socket: Socket) => {
     reqAccess(socket, inputDesktopId.value, inputPwd.value, start);
 };
 
-const start = (
-  socket: Socket,
-  access: Access,
-  rtpCap: RtpCapabilities,
-): void => {
-  const client = new BrowserWebRTC(socket, access, rtpCap, true);
+const start = async (socket: Socket, access: Access): Promise<void> => {
+  const client: BrowserWebRTC = {
+    access: access,
+    shareApp: initShareApp(access.desktopId, true),
+    shareFile: initShareFile(access.desktopId),
+  };
+
+  client.device = await client.shareApp.startShareApp(socket, access);
 
   const elementScreen = document.getElementById("screen");
   if (elementScreen) {
     const desktopDiv = document.createElement("div");
-    desktopDiv.id = client.desktopId;
+    desktopDiv.id = client.access.desktopId;
     elementScreen.appendChild(desktopDiv);
-    desktopDiv.appendChild(client.canvas);
+    desktopDiv.appendChild(client.shareApp.canvas);
 
     const fileShareButton = document.createElement("button");
     fileShareButton.textContent = "fileShare";
     desktopDiv.appendChild(fileShareButton);
     const onClick = async () => {
-      const result = await client.startFileShare();
-      if (result && client.fileDownload && client.fileUpload) {
-        desktopDiv.appendChild(client.fileDownload);
-        desktopDiv.appendChild(client.fileUpload.input);
-        desktopDiv.appendChild(client.fileUpload.button);
+      client.device = await client.shareFile.startShareFile(
+        socket,
+        access,
+        client.device,
+      );
+      if (
+        client.device &&
+        client.shareFile.fileDownload &&
+        client.shareFile.fileUpload
+      ) {
+        desktopDiv.appendChild(client.shareFile.fileDownload);
+        desktopDiv.appendChild(client.shareFile.fileUpload.input);
+        desktopDiv.appendChild(client.shareFile.fileUpload.button);
 
         desktopDiv.removeChild(fileShareButton);
         fileShareButton.disabled = true;
@@ -75,7 +89,7 @@ const start = (
 
     // elementScreen.appendChild(client.canvas);
     clientList.forEach((value, key) => {
-      if (value.desktopId == client.desktopId) {
+      if (value.access.desktopId == client.access.desktopId) {
         elementScreen.removeChild(elementScreen.childNodes.item(key));
         //console.log("key: " + key + ", " + clientList[key].desktopAddress);
         //console.log(document.getElementById('screen').childNodes);

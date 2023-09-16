@@ -18,7 +18,7 @@ export const controlEventListener = (
     "mousedown",
     () => {
       const button = { button: { buttonMask: 0x1, down: true } };
-      window.desktop.control(displayName, button);
+      window.shareApp.control(displayName, button);
       //console.log("mousedown: " + JSON.stringify(event));
     },
     false,
@@ -27,7 +27,7 @@ export const controlEventListener = (
     "mouseup",
     () => {
       const button = { button: { buttonMask: 0x1, down: false } };
-      window.desktop.control(displayName, button);
+      window.shareApp.control(displayName, button);
       //console.log("mouseup: " + JSON.stringify(event));
     },
     false,
@@ -38,7 +38,7 @@ export const controlEventListener = (
       const mouseX = event.clientX - canvas.getBoundingClientRect().left;
       const mouseY = event.clientY - canvas.getBoundingClientRect().top;
       const motion = { move: { x: Math.round(mouseX), y: Math.round(mouseY) } };
-      window.desktop.control(displayName, motion);
+      window.shareApp.control(displayName, motion);
       //console.log("mousemove : x=" + mouseX + ", y=" + mouseY);
     },
     false,
@@ -50,8 +50,8 @@ export const controlEventListener = (
       event.preventDefault();
       const buttonDown = { button: { buttonMask: 0x4, down: true } };
       const buttonUp = { button: { buttonMask: 0x4, down: false } };
-      window.desktop.control(displayName, buttonDown);
-      window.desktop.control(displayName, buttonUp);
+      window.shareApp.control(displayName, buttonDown);
+      window.shareApp.control(displayName, buttonUp);
       //console.log(JSON.stringify(event));
     },
     false,
@@ -64,9 +64,9 @@ export const controlEventListener = (
       const keySym = keyboradX11(event);
       if (keySym) {
         const key = { key: { keySym: keySym, down: true } };
-        window.desktop.control(displayName, key);
+        window.shareApp.control(displayName, key);
         if (keySym === 0xff2a || keySym === 0xff28 || keySym === 0xff29) {
-          window.desktop.control(displayName, {
+          window.shareApp.control(displayName, {
             key: { keySym: keySym, down: false },
           });
         }
@@ -82,7 +82,7 @@ export const controlEventListener = (
       const keySym = keyboradX11(event);
       if (keySym) {
         const key = { key: { keySym: keySym, down: false } };
-        window.desktop.control(displayName, key);
+        window.shareApp.control(displayName, key);
       }
       // console.log("keycode up: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
     },
@@ -95,10 +95,10 @@ export const controlEventListener = (
       event.preventDefault();
       if (event.deltaY / 100 > 0) {
         const button = { button: { buttonMask: 0x10, down: true } };
-        window.desktop.control(displayName, button);
+        window.shareApp.control(displayName, button);
       } else {
         const button = { button: { buttonMask: 0x8, down: true } };
-        window.desktop.control(displayName, button);
+        window.shareApp.control(displayName, button);
       }
       //console.log("scroll: "+JSON.stringify(data.wheel));
     },
@@ -115,7 +115,7 @@ export const controlEventListenerWID = (
     "mousedown",
     () => {
       const button = { button: { buttonMask: 0x1, down: true } };
-      window.desktop.controlWID(displayName, windowId, button);
+      window.shareApp.controlWID(displayName, windowId, button);
       //console.log("mousedown: " + JSON.stringify(event));
     },
     false,
@@ -124,7 +124,7 @@ export const controlEventListenerWID = (
     "mouseup",
     () => {
       const button = { button: { buttonMask: 0x1, down: false } };
-      window.desktop.controlWID(displayName, windowId, button);
+      window.shareApp.controlWID(displayName, windowId, button);
       //console.log("mouseup: " + JSON.stringify(event));
     },
     false,
@@ -135,7 +135,7 @@ export const controlEventListenerWID = (
       const mouseX = event.clientX - canvas.getBoundingClientRect().left;
       const mouseY = event.clientY - canvas.getBoundingClientRect().top;
       const motion = { move: { x: Math.round(mouseX), y: Math.round(mouseY) } };
-      window.desktop.controlWID(displayName, windowId, motion);
+      window.shareApp.controlWID(displayName, windowId, motion);
       //console.log("mousemove : x=" + mouseX + ", y=" + mouseY);
     },
     false,
@@ -147,8 +147,8 @@ export const controlEventListenerWID = (
       event.preventDefault();
       const buttonDown = { button: { buttonMask: 0x4, down: true } };
       const buttonUp = { button: { buttonMask: 0x4, down: false } };
-      window.desktop.controlWID(displayName, windowId, buttonDown);
-      window.desktop.controlWID(displayName, windowId, buttonUp);
+      window.shareApp.controlWID(displayName, windowId, buttonDown);
+      window.shareApp.controlWID(displayName, windowId, buttonUp);
       //console.log(JSON.stringify(event));
     },
     false,
@@ -161,9 +161,9 @@ export const controlEventListenerWID = (
       const keySym = keyboradX11(event);
       if (keySym) {
         const key = { key: { keySym: keySym, down: true } };
-        window.desktop.controlWID(displayName, windowId, key);
+        window.shareApp.controlWID(displayName, windowId, key);
         if (keySym === 0xff2a || keySym === 0xff28 || keySym === 0xff29) {
-          window.desktop.controlWID(displayName, windowId, {
+          window.shareApp.controlWID(displayName, windowId, {
             key: { keySym: keySym, down: false },
           });
         }
@@ -179,7 +179,7 @@ export const controlEventListenerWID = (
       const keySym = keyboradX11(event);
       if (keySym) {
         const key = { key: { keySym: keySym, down: false } };
-        window.desktop.controlWID(displayName, windowId, key);
+        window.shareApp.controlWID(displayName, windowId, key);
       }
       // console.log("keycode up: " + event.key + ' shift:' + event.shiftKey + ' ctrl:' + event.ctrlKey + ' ' + event.keyCode + ' ' + String.fromCharCode(event.keyCode));
     },
@@ -192,10 +192,10 @@ export const controlEventListenerWID = (
       event.preventDefault();
       if (event.deltaY / 100 > 0) {
         const button = { button: { buttonMask: 0x10, down: true } };
-        window.desktop.controlWID(displayName, windowId, button);
+        window.shareApp.controlWID(displayName, windowId, button);
       } else {
         const button = { button: { buttonMask: 0x8, down: true } };
-        window.desktop.controlWID(displayName, windowId, button);
+        window.shareApp.controlWID(displayName, windowId, button);
       }
       //console.log("scroll: "+JSON.stringify(data.wheel));
     },

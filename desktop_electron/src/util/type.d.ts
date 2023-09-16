@@ -18,7 +18,7 @@ export type ControlData = {
   };
 };
 
-export type AudioData = {
+export type AudioResponse = {
   rtp: number;
   rtcp?: number | undefined;
   ip_addr: string;
@@ -57,4 +57,9 @@ export type WriteFileInfo = {
   stream: WriteStream;
   size: number;
   receivedSize: number;
+};
+
+export type ReadFileInfo = {
+  totalBytesRead: number;
+  order: number;
 };

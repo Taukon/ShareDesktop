@@ -4,20 +4,23 @@ import { ConsumeDataParams, ProduceDataParam, TransportParams } from "./type";
 import { Signaling } from "../signaling/type";
 
 export const loadDevice = async (
-  forDevice: Signaling<void, mediasoupClient.types.RtpCapabilities>,
-): Promise<mediasoupClient.types.Device> => {
+  forDevice: Signaling<void, mediasoupClient.types.RtpCapabilities | undefined>,
+): Promise<mediasoupClient.types.Device | undefined> => {
   const rtpCap = await forDevice();
   const device = new mediasoupClient.Device({
     handlerFactory: Chrome111.createFactory(),
   });
-  await device.load({ routerRtpCapabilities: rtpCap });
-  return device;
+  if (rtpCap) {
+    await device.load({ routerRtpCapabilities: rtpCap });
+    return device;
+  }
+  return undefined;
 };
 
 export const setDataProducer = async (
   device: mediasoupClient.types.Device,
   forTransport: Signaling<void, TransportParams | undefined>,
-  forConnect: Signaling<mediasoupClient.types.DtlsParameters, void>,
+  forConnect: Signaling<mediasoupClient.types.DtlsParameters, boolean>,
   forProducedata: Signaling<ProduceDataParam, string | undefined>,
   options?: { ordered: boolean; maxRetransmits: number },
 ): Promise<mediasoupClient.types.DataProducer | undefined> => {
@@ -57,7 +60,7 @@ export const setDataProducer = async (
 export const setDataConsumer = async (
   device: mediasoupClient.types.Device,
   forTransport: Signaling<void, TransportParams | undefined>,
-  forConnect: Signaling<mediasoupClient.types.DtlsParameters, void>,
+  forConnect: Signaling<mediasoupClient.types.DtlsParameters, boolean>,
   forConsumeData: Signaling<void, ConsumeDataParams | undefined>,
 ): Promise<mediasoupClient.types.DataConsumer | undefined> => {
   const transportParams = await forTransport();

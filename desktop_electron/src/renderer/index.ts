@@ -1,11 +1,17 @@
-import { io } from "socket.io-client";
-import { DesktopWebRTCXvfb } from "./desktop/xvfb";
-import { DesktopWebRTCUserMedia } from "./desktop/userMedia";
+import { Socket, io } from "socket.io-client";
+import {
+  initShareFile,
+  initShareHostApp,
+  initShareVirtualApp,
+  setAuth,
+} from "./desktop";
+import { Device } from "mediasoup-client";
 
 const interval = 100; //300;
 const onDisplayScreen = true;
 const onAudio = false;
 let mode = true;
+let device: Device | undefined;
 
 //process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
 
@@ -76,7 +82,7 @@ const xvfbMode = () => {
   xkbButton.textContent = "run";
   xkbButton.disabled = true;
   xkbButton.onclick = () => {
-    if (display) window.desktop.setXkbLayout(display, xkbLayout.value);
+    if (display) window.shareApp.setXkbLayout(display, xkbLayout.value);
   };
   xkbForm.appendChild(xkbButton);
 
@@ -134,7 +140,7 @@ const xvfbMode = () => {
       return;
     }
     if (display) {
-      await window.desktop.startX11App(display, inputAppPath.value);
+      await window.shareApp.startX11App(display, inputAppPath.value);
     }
   };
   appForm.appendChild(appButton);
@@ -150,13 +156,13 @@ const startXvfb = async (
   width: number,
   height: number,
 ): Promise<boolean> => {
-  const isStart = await window.desktop.startXvfb(displayNum, width, height);
+  const isStart = await window.shareApp.startXvfb(displayNum, width, height);
   if (isStart) {
     runButton.disabled = true;
 
-    await window.desktop.setXkbLayout(displayNum, xkbLayout);
+    await window.shareApp.setXkbLayout(displayNum, xkbLayout);
     if (im) {
-      await window.desktop.setInputMethod(displayNum);
+      await window.shareApp.setInputMethod(displayNum);
     }
 
     const ip_addr = await window.util.getAddress();
@@ -166,13 +172,14 @@ const startXvfb = async (
       rejectUnauthorized: false,
     });
 
-    socket.on("desktopId", (msg) => {
+    socket.on("desktopId", async (msg) => {
       if (typeof msg === "string") {
         if (desktopIdList) {
           desktopIdList.textContent = `desktopID: ${msg}`;
         }
 
-        const desktopWebRTC = new DesktopWebRTCXvfb(
+        setAuth(msg, socket, password);
+        const shareVirtualApp = initShareVirtualApp(
           displayNum,
           msg,
           socket,
@@ -180,16 +187,17 @@ const startXvfb = async (
           onDisplayScreen,
           fullScreen,
           onAudio,
-          password,
         );
 
-        screen?.appendChild(desktopWebRTC.canvas);
+        device = await shareVirtualApp.startShareApp(device);
+
+        screen?.appendChild(shareVirtualApp.canvas);
 
         socket.on("disconnect", () => {
-          desktopWebRTC.deleteDesktop();
+          shareVirtualApp.deleteDesktop();
         });
 
-        setFileShare(desktopWebRTC);
+        setFileShare(msg, socket);
       }
     });
     return true;
@@ -222,7 +230,7 @@ const userMediaMode = async () => {
 
   // screen
   const screenForm = document.createElement("p");
-  const info = await window.desktop.getDisplayInfo();
+  const info = await window.shareApp.getDisplayInfo();
   for (const item of info) {
     const button = document.createElement("button");
     button.textContent = `${item.name} | ${item.id}`;
@@ -269,7 +277,7 @@ const startUserMedia = async (
       rejectUnauthorized: false,
     });
 
-    socket.on("desktopId", (msg) => {
+    socket.on("desktopId", async (msg) => {
       if (typeof msg === "string") {
         if (desktopIdList) {
           desktopIdList.textContent = `desktopID: ${msg}`;
@@ -279,7 +287,10 @@ const startUserMedia = async (
         const match = sourceId.match(regex); // 正規表現にマッチする部分を抽出
         if (match && match[1]) {
           const extractedNumber = parseInt(match[1], 10); // マッチした部分をnumber型に変換
-          const desktopWebRTC = new DesktopWebRTCUserMedia(
+
+          setAuth(msg, socket, password);
+
+          const shareHostApp = initShareHostApp(
             extractedNumber, //sourceId
             msg,
             socket,
@@ -287,18 +298,19 @@ const startUserMedia = async (
             onDisplayScreen,
             stream,
             onAudio,
-            password,
           );
 
+          device = await shareHostApp.startShareApp(device);
+
           if (onDisplayScreen) {
-            screen?.appendChild(desktopWebRTC.canvas);
+            screen?.appendChild(shareHostApp.canvas);
           }
 
           socket.on("disconnect", () => {
-            desktopWebRTC.deleteDesktop();
+            shareHostApp.deleteDesktop();
           });
 
-          setFileShare(desktopWebRTC);
+          setFileShare(msg, socket);
         }
         //
       }
@@ -309,9 +321,7 @@ const startUserMedia = async (
   }
 };
 
-const setFileShare = (
-  desktopWebRTC: DesktopWebRTCXvfb | DesktopWebRTCUserMedia,
-) => {
+const setFileShare = (desktopId: string, socket: Socket) => {
   if (fileList) {
     const inputDirPath: HTMLInputElement = document.createElement("input");
     fileList.appendChild(inputDirPath);
@@ -323,13 +333,14 @@ const setFileShare = (
     fileButton.textContent = "fileShare";
     fileList.appendChild(fileButton);
     fileButton.onclick = async () => {
+      const shareFile = initShareFile(desktopId, socket);
       const dirPath = inputDirPath.value;
       if (dirPath === "") {
         return;
       }
       const fileShare = document.createElement("div");
       fileList.appendChild(fileShare);
-      const result = await desktopWebRTC.startFileShare(dirPath, fileShare);
+      const result = await shareFile.startShareFile(dirPath, fileShare, device);
 
       if (result) {
         fileButton.disabled = true;

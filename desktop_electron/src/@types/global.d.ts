@@ -1,12 +1,11 @@
-import { desktop } from "../preload/desktop";
-import { fileShare } from "../preload/fileShare";
+import { shareApp } from "../preload/shareApp";
+import { shareFile } from "../preload/shareFile";
 import { util } from "../preload/util";
 
 declare global {
   interface Window {
-    // api: typeof controlObject;
-    desktop: typeof desktop;
-    fileShare: typeof fileShare;
+    shareApp: typeof shareApp;
+    shareFile: typeof shareFile;
     util: typeof util;
   }
 }

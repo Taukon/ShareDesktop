@@ -45,7 +45,7 @@ export class UserManage {
     return undefined;
   }
 
-  public getBrowserSocketId(browserId: string): string {
+  public getBrowserSocketId(browserId: string): string | undefined {
     return this.browserUser[browserId]?.socketId;
   }
 
