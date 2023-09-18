@@ -14,7 +14,6 @@ export const signalingDesktop = (
   socket: Socket,
   shareApp: ShareApp,
   shareFile: ShareFile,
-  enableAudio: boolean,
   userManage: UserManage,
 ): void => {
   const desktopId = userManage.addDesktopUser(socket.id);
@@ -47,7 +46,7 @@ export const signalingDesktop = (
     }
   });
 
-  signalingAppDesktop(desktopServer, socket, shareApp, enableAudio, userManage);
+  signalingAppDesktop(desktopServer, socket, shareApp, userManage);
 
   signalingFileDesktop(
     desktopServer,

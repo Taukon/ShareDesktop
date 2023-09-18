@@ -16,7 +16,6 @@ export const initServerShare = async (
   transportOptions: WebRtcTransportOptions,
   workerSettings: WorkerSettings,
   mediaCodecs: RtpCodecCapability[],
-  ipAddr: string,
 ): Promise<{
   shareApp: ShareApp;
   shareFile: ShareFile;
@@ -27,7 +26,6 @@ export const initServerShare = async (
     limitAppBro,
     router,
     transportOptions,
-    ipAddr,
   );
   const shareFile = new ShareFile(
     limitFileDtp,

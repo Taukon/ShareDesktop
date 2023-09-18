@@ -1,5 +1,5 @@
 import { ipcRenderer } from "electron";
-import { AudioResponse, ControlData, DisplayInfo } from "../util/type";
+import { ControlData, DisplayInfo } from "../util/type";
 
 export const shareApp = {
   getDisplayInfo: async (): Promise<DisplayInfo[]> => {
@@ -14,20 +14,6 @@ export const shareApp = {
     data: ControlData,
   ): Promise<void> => {
     await ipcRenderer.invoke("controlWID", displayName, windowId, data);
-  },
-  getAudio: async (
-    pulseAudioDevice: number,
-    data: AudioResponse,
-  ): Promise<number | undefined> => {
-    const ffmpegPid: number | undefined = await ipcRenderer.invoke(
-      "getAudio",
-      pulseAudioDevice,
-      data,
-    );
-    return ffmpegPid;
-  },
-  stopAudio: async (ffmpegPid: number): Promise<void> => {
-    await ipcRenderer.invoke("stopAudio", ffmpegPid);
   },
   // Xvfb
   setXkbLayout: async (

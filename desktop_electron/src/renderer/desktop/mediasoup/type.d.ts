@@ -13,6 +13,12 @@ export type TransportParams = {
   // appData: any;
 };
 
+export type ProduceParam = {
+  kind: mediasoupClient.types.MediaKind;
+  rtpParameters: mediasoupClient.types.RtpParameters;
+  // appData: mediasoupClient.types.AppData;
+};
+
 export type ProduceDataParam = {
   sctpStreamParameters: mediasoupClient.types.SctpStreamParameters;
   label?: string | undefined;

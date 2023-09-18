@@ -1,10 +1,17 @@
 import { Socket } from "socket.io-client";
 import * as mediasoupClient from "mediasoup-client";
-import { loadDevice, setDataConsumer, setDataProducer } from "../mediasoup";
+import {
+  loadDevice,
+  setDataConsumer,
+  setDataProducer,
+  setProducer,
+} from "../mediasoup";
 import { ControlData } from "../../../util/type";
 import {
+  connectDesktopAudio,
   connectDesktopControl,
   connectDesktopScreen,
+  createDesktopAudio,
   createDesktopControl,
   createDesktopScreen,
   establishDesktopAudio,
@@ -112,21 +119,41 @@ export const setScreenProducer = async (
 };
 
 // ----- Audio
-export const setAudio = async (
+export const setAudioProducer = async (
+  device: mediasoupClient.types.Device,
   socket: Socket,
   desktopId: string,
-  pulseAudioDevice: number,
-): Promise<number | undefined> => {
-  const params = await establishDesktopAudio(socket, desktopId);
+  audioTrack: MediaStreamTrack,
+): Promise<mediasoupClient.types.Producer | undefined> => {
+  const forTransport = createDesktopAudio(socket, desktopId);
+  const forConnect = connectDesktopAudio(socket, desktopId);
+  const forProduce = establishDesktopAudio(socket, desktopId);
+  const producer = await setProducer(
+    device,
+    forTransport,
+    forConnect,
+    forProduce,
+    audioTrack,
+  );
 
-  // const buf = Buffer.from(data as ArrayBuffer);
-  // const msg = JSON.parse(buf.toString());
-  if (params) {
-    const msg = params;
-    console.log(msg);
-
-    const ffmpegPid = await window.shareApp.getAudio(pulseAudioDevice, msg);
-    return ffmpegPid;
-  }
-  return undefined;
+  return producer;
 };
+
+// export const setAudio = async (
+//   socket: Socket,
+//   desktopId: string,
+//   pulseAudioDevice: number,
+// ): Promise<number | undefined> => {
+//   const params = await establishDesktopAudio(socket, desktopId);
+
+//   // const buf = Buffer.from(data as ArrayBuffer);
+//   // const msg = JSON.parse(buf.toString());
+//   if (params) {
+//     const msg = params;
+//     console.log(msg);
+
+//     const ffmpegPid = await window.shareApp.getAudio(pulseAudioDevice, msg);
+//     return ffmpegPid;
+//   }
+//   return undefined;
+// };

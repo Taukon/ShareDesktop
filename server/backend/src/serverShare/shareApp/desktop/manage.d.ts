@@ -1,7 +1,6 @@
 import {
   WebRtcTransport,
   DirectTransport,
-  PlainTransport,
   DataConsumer,
   DataProducer,
   Producer,
@@ -10,7 +9,9 @@ import {
 export type ScreenDesktopTransport = WebRtcTransport & {
   producer?: DataProducer;
 };
-export type AudioDesktopTransport = PlainTransport & { producer?: Producer };
+export type AudioDesktopTransport = WebRtcTransport & {
+  producer?: Producer;
+};
 export type ControlDesktopDirTransport = DirectTransport & {
   producer?: DataProducer;
 };

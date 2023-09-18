@@ -19,7 +19,7 @@ export const initShareHostApp = (
   interval: number,
   onDisplayScreen: boolean,
   videoStream: MediaStream,
-  onAudio: boolean,
+  audioTrack?: MediaStreamTrack,
 ): ShareHostApp => {
   return new ShareHostApp(
     windowId,
@@ -28,7 +28,7 @@ export const initShareHostApp = (
     interval,
     onDisplayScreen,
     videoStream,
-    onAudio,
+    audioTrack,
   );
 };
 
@@ -39,7 +39,7 @@ export const initShareVirtualApp = (
   interval: number,
   onDisplayScreen: boolean,
   isFullScreen: boolean,
-  onAudio: boolean,
+  audioTrack?: MediaStreamTrack,
 ): ShareVirtualApp => {
   return new ShareVirtualApp(
     displayNum,
@@ -48,7 +48,7 @@ export const initShareVirtualApp = (
     interval,
     onDisplayScreen,
     isFullScreen,
-    onAudio,
+    audioTrack,
   );
 };
 

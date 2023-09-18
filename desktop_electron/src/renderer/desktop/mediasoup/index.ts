@@ -1,6 +1,11 @@
 import * as mediasoupClient from "mediasoup-client";
 import { Chrome111 } from "mediasoup-client/lib/handlers/Chrome111.js";
-import { ConsumeDataParams, ProduceDataParam, TransportParams } from "./type";
+import {
+  ConsumeDataParams,
+  ProduceDataParam,
+  ProduceParam,
+  TransportParams,
+} from "./type";
 import { Signaling } from "../signaling/type";
 
 export const loadDevice = async (
@@ -15,6 +20,39 @@ export const loadDevice = async (
     return device;
   }
   return undefined;
+};
+
+export const setProducer = async (
+  device: mediasoupClient.types.Device,
+  forTransport: Signaling<void, TransportParams | undefined>,
+  forConnect: Signaling<mediasoupClient.types.DtlsParameters, boolean>,
+  forProduce: Signaling<ProduceParam, string | undefined>,
+  track: MediaStreamTrack,
+): Promise<mediasoupClient.types.Producer | undefined> => {
+  const transportParams = await forTransport();
+  if (!transportParams) return undefined;
+  const transport = device.createSendTransport(transportParams);
+
+  transport.on("connect", async ({ dtlsParameters }, callback, errback) => {
+    forConnect(dtlsParameters).then(callback).catch(errback);
+  });
+
+  transport.on("produce", async (parameters, callback, errback) => {
+    try {
+      const id = await forProduce(parameters);
+      if (id) callback({ id: id });
+    } catch (err: any) {
+      errback(err);
+    }
+  });
+
+  transport.observer.on("close", () => {
+    transport.close();
+  });
+
+  const producer = await transport.produce({ track: track });
+
+  return producer;
 };
 
 export const setDataProducer = async (

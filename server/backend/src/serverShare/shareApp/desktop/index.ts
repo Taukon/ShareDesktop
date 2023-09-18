@@ -5,14 +5,11 @@ import {
   RtpCapabilities,
   WebRtcTransportOptions,
 } from "mediasoup/node/lib/types";
-import {
-  createDirectProducer,
-  createPlainProducer,
-  createRtcTransport,
-} from "../../common";
+import { createDirectProducer, createRtcTransport } from "../../common";
 import {
   ConsumeDataParams,
   ProduceDataParams,
+  ProducerParams,
   RtcTransportParams,
 } from "../../common/type";
 import {
@@ -23,7 +20,6 @@ import {
   DesktopTransports,
   ScreenDesktopTransport,
 } from "./manage";
-import { AudioResponse } from "./type";
 
 export class AppDesktop {
   private desktopList: DesktopList = {};
@@ -84,19 +80,12 @@ export class AppDesktop {
     return false;
   }
 
-  private initDesktopTransports(
-    desktopId: string,
-    enableAudio: boolean,
-  ): boolean {
+  private initDesktopTransports(desktopId: string): boolean {
     const desktopTransports = this.getDesktopTransports(desktopId);
     if (desktopTransports?.exits) {
       console.log(`already created Desktop transports ID: ${desktopId}`);
 
       this.deleteDesktopTransports(desktopId, desktopTransports);
-    }
-
-    if (enableAudio) {
-      console.log(`enableAudio DesktopID: ${desktopId}`);
     }
 
     const transports: DesktopTransports = {
@@ -142,7 +131,6 @@ export class AppDesktop {
 
   public async getRtpCap(
     desktopId: string,
-    enableAudio: boolean,
     router: Router,
   ): Promise<RtpCapabilities | undefined> {
     const desktopTransports = this.getDesktopTransports(desktopId);
@@ -153,7 +141,7 @@ export class AppDesktop {
     }
 
     // initialize DesktopTransports
-    if (this.initDesktopTransports(desktopId, enableAudio)) {
+    if (this.initDesktopTransports(desktopId)) {
       return router.rtpCapabilities;
     }
     return undefined;
@@ -297,44 +285,65 @@ export class AppDesktop {
     return undefined;
   }
 
+  //create ProducerTransport for audio
   public async createDesktopAudio(
     desktopId: string,
     router: Router,
-    ipAddr: string,
-    rtcpMux: boolean,
-  ): Promise<boolean> {
+    transportOptions: WebRtcTransportOptions,
+  ): Promise<RtcTransportParams | undefined> {
     const exits = this.getDesktopTransports(desktopId)?.exits;
+
     if (exits) {
-      const audioTransport = await createPlainProducer(router, ipAddr, rtcpMux);
-      this.setAudioTransport(desktopId, audioTransport);
-      return true;
+      const { transport, params } = await createRtcTransport(
+        router,
+        transportOptions,
+      );
+
+      transport.observer.on("close", () => {
+        transport.close();
+        //delete this.producerList[transport.id];
+      });
+
+      this.setAudioTransport(desktopId, transport);
+
+      return params;
+    }
+
+    return undefined;
+  }
+
+  // connect event of ProducerTransport for screen
+  public async connectDesktopAudio(
+    desktopId: string,
+    dtlsParameters: DtlsParameters,
+  ): Promise<boolean> {
+    const desktopTransports = this.getDesktopTransports(desktopId);
+    const audioTransport = desktopTransports?.audioTransport;
+
+    if (audioTransport) {
+      try {
+        await audioTransport.connect({ dtlsParameters: dtlsParameters });
+        return true;
+      } catch (error) {
+        console.log(error);
+        return false;
+      }
     }
     return false;
   }
 
-  public establishDesktopAudio(desktopId: string): AudioResponse | undefined {
+  // produce event of ProducerTransport for audio
+  public async establishDesktopAudio(
+    desktopId: string,
+    produceParameters: ProducerParams,
+  ): Promise<string | undefined> {
     const desktopTransports = this.getDesktopTransports(desktopId);
-    const audioSendTransport = desktopTransports?.audioTransport;
+    const audioTransport = desktopTransports?.audioTransport;
 
-    // connect audio between transport and serverChannel
-    if (audioSendTransport) {
-      const localIp = audioSendTransport.tuple.localIp;
-
-      // Read the transport local RTP port.
-      const audioRtpPort = audioSendTransport.tuple.localPort;
-      // If rtcpMux is false, read the transport local RTCP port.
-      const audioRtcpPort = audioSendTransport.rtcpTuple?.localPort;
-      // If enableSrtp is true, read the transport srtpParameters.
-      const srtpParameters = audioSendTransport.srtpParameters;
-
-      const msg: AudioResponse = {
-        rtp: audioRtpPort,
-        rtcp: audioRtcpPort,
-        ip_addr: localIp,
-        srtpParameters: srtpParameters,
-      };
-
-      return msg;
+    if (audioTransport) {
+      const producer = await audioTransport.produce(produceParameters);
+      audioTransport.producer = producer;
+      return producer.id;
     }
     return undefined;
   }

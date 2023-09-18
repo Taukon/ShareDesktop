@@ -3,9 +3,9 @@ import * as mediasoupClient from "mediasoup-client";
 import {
   ConsumeDataParams,
   ProduceDataParam,
+  ProduceParam,
   TransportParams,
 } from "../mediasoup/type";
-import { AudioResponse } from "../../../util/type";
 import { Signaling } from "./type";
 import { sendRequest } from "./common";
 
@@ -76,9 +76,38 @@ export const establishDesktopScreen = (
 
 // -------- DesktopAUdio ---------
 
-export const establishDesktopAudio = async (
+export const createDesktopAudio = (
   socket: Socket,
   desktopId: string,
-): Promise<AudioResponse | undefined> => {
-  return await sendRequest(socket, "establishDesktopAudio", desktopId);
+): Signaling<void, TransportParams> => {
+  return () => sendRequest(socket, "createDesktopAudio", desktopId);
 };
+
+export const connectDesktopAudio = (
+  socket: Socket,
+  desktopId: string,
+): Signaling<mediasoupClient.types.DtlsParameters, boolean> => {
+  return (dtlsParameters: mediasoupClient.types.DtlsParameters) =>
+    sendRequest(socket, "connectDesktopAudio", {
+      desktopId: desktopId,
+      dtlsParameters: dtlsParameters,
+    });
+};
+
+export const establishDesktopAudio = (
+  socket: Socket,
+  desktopId: string,
+): Signaling<ProduceParam, string | undefined> => {
+  return (params: ProduceParam) =>
+    sendRequest(socket, "establishDesktopAudio", {
+      desktopId: desktopId,
+      produceParameters: params,
+    });
+};
+
+// export const establishDesktopAudio = async (
+//   socket: Socket,
+//   desktopId: string,
+// ): Promise<AudioResponse | undefined> => {
+//   return await sendRequest(socket, "establishDesktopAudio", desktopId);
+// };

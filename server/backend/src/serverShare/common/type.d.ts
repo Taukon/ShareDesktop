@@ -6,6 +6,8 @@ import {
   SctpParameters,
   Worker,
   Router,
+  RtpParameters,
+  MediaKind,
 } from "mediasoup/node/lib/types";
 
 export type StartWorkerResponse = {
@@ -32,6 +34,15 @@ export type ConsumeDataParams = {
   sctpStreamParameters: SctpStreamParameters | undefined;
   label: string;
   protocol: string;
+};
+
+export type ProducerParams = {
+  id?: string;
+  kind: MediaKind; //'audio' | 'video';
+  rtpParameters: RtpParameters;
+  paused?: boolean;
+  keyFrameRequestDelay?: number;
+  // appData?: any;
 };
 
 export type ProduceDataParams = {

@@ -9,7 +9,6 @@ import { Device } from "mediasoup-client";
 
 const interval = 100; //300;
 const onDisplayScreen = true;
-const onAudio = false;
 let mode = true;
 let device: Device | undefined;
 
@@ -186,7 +185,7 @@ const startXvfb = async (
           interval,
           onDisplayScreen,
           fullScreen,
-          onAudio,
+          undefined,
         );
 
         device = await shareVirtualApp.startShareApp(device);
@@ -297,7 +296,7 @@ const startUserMedia = async (
             interval,
             onDisplayScreen,
             stream,
-            onAudio,
+            audio ? stream.getAudioTracks()[0] : undefined,
           );
 
           device = await shareHostApp.startShareApp(device);

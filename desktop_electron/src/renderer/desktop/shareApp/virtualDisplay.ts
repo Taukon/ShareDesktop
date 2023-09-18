@@ -6,7 +6,7 @@ import { ControlData } from "../../../util/type";
 import {
   createDevice,
   setAlreadyDevice,
-  setAudio,
+  setAudioProducer,
   setControl,
   setScreenProducer,
 } from "./connect";
@@ -27,16 +27,11 @@ export class ShareVirtualApp {
   private interval: number;
   private onDisplayScreen: boolean;
   private isFullScreen: boolean;
-  private onAudio: boolean;
 
   public canvas = document.createElement("canvas");
   public image = new Image();
-  public audio?: HTMLAudioElement;
 
-  private ffmpegPid?: number; // ---ffmpeg process
-  // // --- for ffmpeg
-  private pulseAudioDevice = 1;
-  // // --- end ffmpeg
+  public audioTrack?: MediaStreamTrack;
 
   constructor(
     displayNum: number,
@@ -45,7 +40,7 @@ export class ShareVirtualApp {
     interval: number,
     onDisplayScreen: boolean,
     isFullScreen: boolean,
-    onAudio: boolean,
+    audioTrack?: MediaStreamTrack,
   ) {
     this.displayName = `:${displayNum}`;
 
@@ -62,7 +57,7 @@ export class ShareVirtualApp {
     this.interval = interval;
     this.onDisplayScreen = onDisplayScreen;
     this.isFullScreen = isFullScreen;
-    this.onAudio = onAudio;
+    this.audioTrack = audioTrack;
   }
 
   public async startShareApp(
@@ -91,11 +86,12 @@ export class ShareVirtualApp {
         controlEventListener(this.canvas, this.displayName);
       }
 
-      if (this.onAudio) {
-        setAudio(this.socket, this.desktopId, this.pulseAudioDevice).then(
-          (ffmpegPid) => {
-            this.ffmpegPid = ffmpegPid;
-          },
+      if (this.audioTrack) {
+        await this.startAudio(
+          alreadyDevice,
+          this.socket,
+          this.desktopId,
+          this.audioTrack,
         );
       }
     } else {
@@ -121,11 +117,12 @@ export class ShareVirtualApp {
           controlEventListener(this.canvas, this.displayName);
         }
 
-        if (this.onAudio) {
-          setAudio(this.socket, this.desktopId, this.pulseAudioDevice).then(
-            (ffmpegPid) => {
-              this.ffmpegPid = ffmpegPid;
-            },
+        if (this.audioTrack) {
+          await this.startAudio(
+            device,
+            this.socket,
+            this.desktopId,
+            this.audioTrack,
           );
         }
       }
@@ -134,10 +131,6 @@ export class ShareVirtualApp {
   }
 
   public deleteDesktop(): void {
-    if (this.ffmpegPid) {
-      window.shareApp.stopAudio(this.ffmpegPid);
-    }
-
     console.log("disconnect clear intervalId: " + this.intervalId);
     clearInterval(this.intervalId);
   }
@@ -222,5 +215,14 @@ export class ShareVirtualApp {
         console.log(err);
       }
     }, interval);
+  }
+
+  private async startAudio(
+    device: mediasoupClient.types.Device,
+    socket: Socket,
+    desktopId: string,
+    audioTrack: MediaStreamTrack,
+  ): Promise<void> {
+    await setAudioProducer(device, socket, desktopId, audioTrack);
   }
 }

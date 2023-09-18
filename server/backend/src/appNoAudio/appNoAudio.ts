@@ -26,8 +26,6 @@ const desktopPort = 3100; // --- https Port for desktop
 
 const ip_addr = getIpAddress() ?? "127.0.0.1"; // --- IP Address
 
-const enableAudio = false;
-
 const transportOption: WebRtcTransportOptions = {
   listenIps: [
     {
@@ -100,7 +98,6 @@ const start = async () => {
     transportOption,
     workerSettings,
     mediaCodecs,
-    ip_addr,
   );
 
   const userTable = new UserManage();
@@ -117,7 +114,6 @@ const start = async () => {
       sock,
       shareApp,
       shareFile,
-      enableAudio,
       userTable,
     );
   });

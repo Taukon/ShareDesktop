@@ -5,7 +5,7 @@ import { ControlData } from "../../../util/type";
 import {
   createDevice,
   setAlreadyDevice,
-  setAudio,
+  setAudioProducer,
   setControl,
   setScreenProducer,
 } from "./connect";
@@ -20,17 +20,11 @@ export class ShareHostApp {
 
   private interval: number;
   private onDisplayScreen: boolean;
-  private onAudio: boolean;
   private windowId: number;
 
   public canvas = document.createElement("canvas");
   public video = document.createElement("video");
-  public audio?: HTMLAudioElement;
-
-  private ffmpegPid?: number; // ---ffmpeg process
-  // // --- for ffmpeg
-  private pulseAudioDevice = 1;
-  // // --- end ffmpeg
+  public audioTrack?: MediaStreamTrack;
 
   // private device?: mediasoupClient.types.Device;
 
@@ -41,7 +35,7 @@ export class ShareHostApp {
     interval: number,
     onDisplayScreen: boolean,
     videoStream: MediaStream,
-    onAudio: boolean,
+    audioTrack?: MediaStreamTrack,
   ) {
     this.desktopId = desktopId;
     this.socket = socket;
@@ -50,9 +44,10 @@ export class ShareHostApp {
     this.video.srcObject = videoStream;
     this.video.onloadedmetadata = () => this.video.play();
 
+    this.audioTrack = audioTrack;
+
     this.interval = interval;
     this.onDisplayScreen = onDisplayScreen;
-    this.onAudio = onAudio;
     this.windowId = windowId;
   }
 
@@ -81,11 +76,12 @@ export class ShareHostApp {
           controlEventListenerWID(this.canvas, displayName, this.windowId);
         }
 
-        if (this.onAudio) {
-          setAudio(this.socket, this.desktopId, this.pulseAudioDevice).then(
-            (ffmpegPid) => {
-              this.ffmpegPid = ffmpegPid;
-            },
+        if (this.audioTrack) {
+          await this.startAudio(
+            alreadyDevice,
+            this.socket,
+            this.desktopId,
+            this.audioTrack,
           );
         }
       }
@@ -112,11 +108,12 @@ export class ShareHostApp {
           controlEventListenerWID(this.canvas, displayName, this.windowId);
         }
 
-        if (this.onAudio) {
-          setAudio(this.socket, this.desktopId, this.pulseAudioDevice).then(
-            (ffmpegPid) => {
-              this.ffmpegPid = ffmpegPid;
-            },
+        if (this.audioTrack) {
+          await this.startAudio(
+            device,
+            this.socket,
+            this.desktopId,
+            this.audioTrack,
           );
         }
       }
@@ -126,10 +123,6 @@ export class ShareHostApp {
   }
 
   public deleteDesktop(): void {
-    if (this.ffmpegPid) {
-      window.shareApp.stopAudio(this.ffmpegPid);
-    }
-
     console.log("disconnect clear intervalId: " + this.intervalId);
     clearInterval(this.intervalId);
   }
@@ -191,5 +184,14 @@ export class ShareHostApp {
         console.log(err);
       }
     }, interval);
+  }
+
+  private async startAudio(
+    device: mediasoupClient.types.Device,
+    socket: Socket,
+    desktopId: string,
+    audioTrack: MediaStreamTrack,
+  ): Promise<void> {
+    await setAudioProducer(device, socket, desktopId, audioTrack);
   }
 }

@@ -18,13 +18,6 @@ export type ControlData = {
   };
 };
 
-export type AudioResponse = {
-  rtp: number;
-  rtcp?: number | undefined;
-  ip_addr: string;
-  srtpParameters?: SrtpParameters | undefined;
-};
-
 /**
  * SRTP parameters by mediasoup
  */

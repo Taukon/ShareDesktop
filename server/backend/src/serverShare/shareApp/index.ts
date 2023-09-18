@@ -8,11 +8,10 @@ import {
 } from "mediasoup/node/lib/types";
 import { AppBrowser } from "./browser";
 //   import { startWorker } from "../common";
-import { type ProduceDataParams } from "../common/type";
+import { ProducerParams, type ProduceDataParams } from "../common/type";
 import { AppDesktop } from "./desktop";
 
 export class ShareApp {
-  private readonly ipAddr: string;
   private router: Router;
   private readonly transportOptions: WebRtcTransportOptions;
   // private readonly workerSettings: WorkerSettings;
@@ -31,11 +30,9 @@ export class ShareApp {
     transportOptions: WebRtcTransportOptions,
     //   workerSettings: WorkerSettings,
     //   mediaCodecs: RtpCodecCapability[],
-    ipAddr: string,
   ) {
     this.limitBrowser = limitBrowser;
     this.limitDesktop = limitDesktop;
-    this.ipAddr = ipAddr;
 
     this.router = router;
     this.transportOptions = transportOptions;
@@ -67,8 +64,8 @@ export class ShareApp {
 
   // ------------------------ Desktop --------------------------
 
-  public async getRtpCapDesktop(desktopId: string, enableAudio: boolean) {
-    return await this.desktop.getRtpCap(desktopId, enableAudio, this.router);
+  public async getRtpCapDesktop(desktopId: string) {
+    return await this.desktop.getRtpCap(desktopId, this.router);
   }
 
   public async createDesktopControl(desktopId: string) {
@@ -115,18 +112,40 @@ export class ShareApp {
     );
   }
 
-  public async createDesktopAudio(desktopId: string, rtcpMux: boolean) {
+  public async createDesktopAudio(desktopId: string) {
     return await this.desktop.createDesktopAudio(
       desktopId,
       this.router,
-      this.ipAddr,
-      rtcpMux,
+      this.transportOptions,
     );
   }
 
-  public establishDesktopAudio(desktopId: string) {
-    return this.desktop.establishDesktopAudio(desktopId);
+  public async connectDesktopAudio(
+    desktopId: string,
+    dtlsParameters: DtlsParameters,
+  ) {
+    return await this.desktop.connectDesktopAudio(desktopId, dtlsParameters);
   }
+
+  public establishDesktopAudio(
+    desktopId: string,
+    produceParameters: ProducerParams,
+  ) {
+    return this.desktop.establishDesktopAudio(desktopId, produceParameters);
+  }
+
+  // public async createDesktopAudio(desktopId: string, rtcpMux: boolean) {
+  //   return await this.desktop.createDesktopAudio(
+  //     desktopId,
+  //     this.router,
+  //     this.ipAddr,
+  //     rtcpMux,
+  //   );
+  // }
+
+  // public establishDesktopAudio(desktopId: string) {
+  //   return this.desktop.establishDesktopAudio(desktopId);
+  // }
 
   public disconnectDesktop(desktopId: string) {
     this.desktop.disconnect(desktopId);

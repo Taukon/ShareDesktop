@@ -1,6 +1,5 @@
-import { exec } from "child_process";
 import { desktopCapturer, ipcMain } from "electron";
-import { AudioResponse, ControlData, DisplayInfo } from "../../../util/type";
+import { ControlData, DisplayInfo } from "../../../util/type";
 import { xtest } from "./xvfb/x11lib";
 import { setXvfbIpcHandler } from "./xvfb";
 
@@ -98,58 +97,6 @@ export const setShareAppIpcHandler = (): void => {
         } catch (error) {
           console.error(error);
         }
-      }
-    },
-  );
-
-  ipcMain.handle(
-    "getAudio",
-    (
-      event: Electron.IpcMainInvokeEvent,
-      pulseAudioDevice: number,
-      data: AudioResponse,
-    ) => {
-      let command: string | undefined = undefined;
-
-      if (data.ip_addr && data.rtp && !data.rtcp && !data.srtpParameters) {
-        command = `ffmpeg -f pulse -i ${pulseAudioDevice} -map 0:a:0 -acodec libopus -ab 128k -ac 2 -ar 48000 -ssrc 11111111 -payload_type 101 -f rtp rtp://${data.ip_addr}:${data.rtp}`;
-      } else if (
-        data.ip_addr &&
-        data.rtp &&
-        data.rtcp &&
-        !data.srtpParameters
-      ) {
-        command = `ffmpeg -f pulse -i ${pulseAudioDevice} -map 0:a:0 -acodec libopus -ab 128k -ac 2 -ar 48000 -ssrc 11111111 -payload_type 101 -f rtp rtp://${data.ip_addr}:${data.rtp}?rtcpport=${data.rtcp}`;
-      } else if (
-        data.ip_addr &&
-        data.rtp &&
-        !data.rtcp &&
-        data.srtpParameters
-      ) {
-        command = `ffmpeg -f pulse -i ${pulseAudioDevice} -map 0:a:0 -acodec libopus -ab 128k -ac 2 -ar 48000 -ssrc 11111111 -payload_type 101 -f rtp -srtp_out_suite ${data.srtpParameters.cryptoSuite} -srtp_out_params ${data.srtpParameters.keyBase64} srtp://${data.ip_addr}:${data.rtp}`;
-      } else if (data.ip_addr && data.rtp && data.rtcp && data.srtpParameters) {
-        command = `ffmpeg -f pulse -i ${pulseAudioDevice} -map 0:a:0 -acodec libopus -ab 128k -ac 2 -ar 48000 -ssrc 11111111 -payload_type 101 -f rtp -srtp_out_suite ${data.srtpParameters.cryptoSuite} -srtp_out_params ${data.srtpParameters.keyBase64} srtp://${data.ip_addr}:${data.rtp}?rtcpport=${data.rtcp}`;
-      }
-
-      if (command) {
-        //console.log(command);
-        return exec(command).pid;
-      }
-      return undefined;
-    },
-  );
-
-  ipcMain.handle(
-    "stopAudio",
-    (event: Electron.IpcMainInvokeEvent, ffmpegPid: number) => {
-      try {
-        process.kill(ffmpegPid + 1);
-        process.kill(ffmpegPid);
-        console.log(
-          "delete ffmpeg process Id: " + ffmpegPid + ", " + (ffmpegPid + 1),
-        );
-      } catch (error) {
-        console.log(error);
       }
     },
   );

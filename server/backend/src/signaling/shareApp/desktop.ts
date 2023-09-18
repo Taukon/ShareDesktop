@@ -5,11 +5,11 @@ import {
 import { type Server, type Socket } from "socket.io";
 import { ShareApp } from "../../serverShare/shareApp";
 import {
+  ProducerParams,
   type ConsumeDataParams,
   type ProduceDataParams,
   type RtcTransportParams,
 } from "../../serverShare/common/type";
-import type * as desktopType from "../../serverShare/shareApp/desktop/type";
 import { UserManage } from "../../userManage";
 import { Callback } from "../type";
 
@@ -17,7 +17,6 @@ export const signalingAppDesktop = (
   desktopServer: Server,
   socket: Socket,
   shareApp: ShareApp,
-  enableAudio: boolean,
   userManage: UserManage,
 ): void => {
   socket.on(
@@ -31,7 +30,7 @@ export const signalingAppDesktop = (
         const socketId = userManage.getDesktopUser(dropId)?.socketId;
         if (socketId) desktopServer.to(socketId).emit("end");
       }
-      const params = await shareApp.getRtpCapDesktop(desktopId, enableAudio);
+      const params = await shareApp.getRtpCapDesktop(desktopId);
       callback(params);
     },
   );
@@ -114,18 +113,61 @@ export const signalingAppDesktop = (
     },
   );
 
+  // ---------- audio
+  socket.on(
+    "createDesktopAudio",
+    async (
+      desktopId: string,
+      callback: Callback<RtcTransportParams | undefined>,
+    ) => {
+      const params = await shareApp.createDesktopAudio(desktopId);
+      callback(params);
+    },
+  );
+
+  socket.on(
+    "connectDesktopAudio",
+    async (
+      req: {
+        desktopId: string;
+        dtlsParameters: DtlsParameters;
+      },
+      callback: Callback<boolean>,
+    ) => {
+      const params = await shareApp.connectDesktopAudio(
+        req.desktopId,
+        req.dtlsParameters,
+      );
+      callback(params);
+    },
+  );
+
   socket.on(
     "establishDesktopAudio",
     async (
-      desktopId: string,
-      callback: Callback<desktopType.AudioResponse | undefined>,
+      req: { desktopId: string; produceParameters: ProducerParams },
+      callback: Callback<string | undefined>,
     ) => {
-      if (await shareApp.createDesktopAudio(desktopId, false)) {
-        const params = shareApp.establishDesktopAudio(desktopId);
-        callback(params);
-      } else {
-        callback(undefined);
-      }
+      const params = await shareApp.establishDesktopAudio(
+        req.desktopId,
+        req.produceParameters,
+      );
+      callback(params);
     },
   );
+
+  // socket.on(
+  //   "establishDesktopAudio",
+  //   async (
+  //     desktopId: string,
+  //     callback: Callback<desktopType.AudioResponse | undefined>,
+  //   ) => {
+  //     if (await shareApp.createDesktopAudio(desktopId, false)) {
+  //       const params = shareApp.establishDesktopAudio(desktopId);
+  //       callback(params);
+  //     } else {
+  //       callback(undefined);
+  //     }
+  //   },
+  // );
 };
