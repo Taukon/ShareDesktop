@@ -12,8 +12,8 @@ export type BrowserWebRTC = {
   shareFile: ShareFile;
 };
 
-export const initShareApp = (desktopId: string, onAudio: boolean): ShareApp => {
-  return new ShareApp(desktopId, onAudio);
+export const initShareApp = (desktopId: string): ShareApp => {
+  return new ShareApp(desktopId);
 };
 
 export const initShareFile = (desktopId: string): ShareFile => {

@@ -9,8 +9,7 @@ module.exports = {
   externals: [nodeExternals()],
 
   entry: {
-    app: path.join(__dirname, 'src', 'app', 'app.ts'),
-    appNoAudio: path.join(__dirname, 'src', 'appNoAudio', 'appNoAudio.ts')
+    app: path.join(__dirname, 'src', 'app', 'app.ts')
   },
 
   output: {

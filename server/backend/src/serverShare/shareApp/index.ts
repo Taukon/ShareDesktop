@@ -207,6 +207,9 @@ export class ShareApp {
       browserId,
       desktopId,
       isAudio,
+      isAudio
+        ? this.desktop.getAudioSendProducerId(desktopId)
+        : this.desktop.getScreenSendProducerId(desktopId),
       this.router,
       this.transportOptions,
     );

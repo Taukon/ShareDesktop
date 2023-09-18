@@ -9,7 +9,6 @@ module.exports = {
 
   entry: {
     app: path.join(__dirname, 'src', 'app', 'app.ts'),
-    appNoAudio: path.join(__dirname, 'src', 'appNoAudio', 'appNoAudio.ts'),
   },
 
   output: {

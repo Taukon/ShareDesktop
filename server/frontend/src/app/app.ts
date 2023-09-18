@@ -49,7 +49,7 @@ const setOptionForm = (socket: Socket) => {
 const start = async (socket: Socket, access: Access): Promise<void> => {
   const client: BrowserWebRTC = {
     access: access,
-    shareApp: initShareApp(access.desktopId, true),
+    shareApp: initShareApp(access.desktopId),
     shareFile: initShareFile(access.desktopId),
   };
 

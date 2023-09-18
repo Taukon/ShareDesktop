@@ -17,11 +17,8 @@ export class ShareApp {
   public image: HTMLImageElement;
   public audio?: HTMLAudioElement;
 
-  private onAudio: boolean;
-
-  constructor(desktopId: string, onAudio: boolean) {
+  constructor(desktopId: string) {
     this.desktopId = desktopId;
-    this.onAudio = onAudio;
 
     this.canvas = document.createElement("canvas");
     this.canvas.setAttribute("tabindex", String(0));
@@ -48,7 +45,6 @@ export class ShareApp {
         alreadyDevice,
         this.image,
         this.canvas,
-        this.onAudio,
       );
 
       return alreadyDevice;
@@ -56,14 +52,7 @@ export class ShareApp {
       const device = await createDevice(socket, access);
       if (device) {
         this.device = device;
-        await this.loadSetting(
-          socket,
-          access,
-          device,
-          this.image,
-          this.canvas,
-          this.onAudio,
-        );
+        await this.loadSetting(socket, access, device, this.image, this.canvas);
 
         return device;
       }
@@ -77,7 +66,6 @@ export class ShareApp {
     device: Device,
     image: HTMLImageElement,
     canvas: HTMLCanvasElement,
-    onAudio: boolean,
   ): Promise<void> {
     const screenConsumer = await setScreenConsumer(device, socket, access);
 
@@ -100,15 +88,12 @@ export class ShareApp {
       }
     }
 
-    if (onAudio) {
+    const audioConsumer = await setAudioConsumer(device, socket, access);
+    if (audioConsumer) {
       this.audio = document.createElement("audio");
+      const { track } = audioConsumer;
+      this.audio.srcObject = new MediaStream([track]);
       this.audio.play();
-      const audioConsumer = await setAudioConsumer(device, socket, access);
-      if (audioConsumer) {
-        //console.log("get audio");
-        const { track } = audioConsumer;
-        this.audio.srcObject = new MediaStream([track]);
-      }
     }
   }
 }

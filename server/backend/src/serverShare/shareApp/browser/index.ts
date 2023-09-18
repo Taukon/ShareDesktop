@@ -261,13 +261,14 @@ export class AppBrowser {
     browserId: string,
     desktopId: string,
     isAudio: boolean,
+    producerId: string | undefined,
     router: Router,
     transportOptions: WebRtcTransportOptions,
   ): Promise<RtcTransportParams | undefined> {
     const createTime = this.getBrowserTransports(browserId, desktopId)
       ?.createTime;
 
-    if (createTime) {
+    if (createTime && producerId) {
       const { transport, params } = await createRtcTransport(
         router,
         transportOptions,
