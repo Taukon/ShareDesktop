@@ -1,4 +1,5 @@
 const path = require('path');
+const CopyPlugin = require('copy-webpack-plugin');
 const { DefinePlugin, IgnorePlugin } = require('webpack');
 
 const HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -48,7 +49,25 @@ const main = {
       },
     ],
   },
-  plugins: [ ...optionalPlugins ],
+  plugins: [
+    new CopyPlugin({
+      patterns: [
+        { 
+          from: path.resolve(__dirname, "./build/Release/screenshot.node"), 
+          to: path.resolve(__dirname, "dist") 
+        },
+        { 
+          from: path.resolve(__dirname, "./build/Release/converter.node"), 
+          to: path.resolve(__dirname, "dist") 
+        },
+        { 
+          from: path.resolve(__dirname, "./build/Release/xtest.node"), 
+          to: path.resolve(__dirname, "dist") 
+        },
+      ],
+    }),
+    ...optionalPlugins 
+  ],
 };
 
 
